@@ -403,7 +403,7 @@ class Spawn:
 
 	@staticmethod	
 	async def spawn():
-		delay = random.randint(10, 100)
+		delay = random.randint(10, 35)
 		print('Spawn delay is {}.'.format(delay))
 		await asyncio.sleep(delay)
 
@@ -425,8 +425,8 @@ class Spawn:
 				if channel.id == spawnChannel:
 					if not Spawn.spawned[server.id]:
 						serverSpawnChance = random.randint(0,255)
-						print('Spawn chance for server {}/{}.'.format(serverSpawnChance, 100))
-						if serverSpawnChance < 100:
+						print('Spawn chance for server {}/{}.'.format(serverSpawnChance, 50))
+						if serverSpawnChance < 50:
 							break
 
 						Spawn.spawned[server.id] = True
@@ -468,7 +468,7 @@ class Spawn:
 						Spawn.fought[server.id] = []
 						await client.send_message(channel, embed=em)
 						#await asyncio.sleep(5)
-		restSpawn = random.randint(25, 80)
+		restSpawn = random.randint(25, 45)
 		print('Rest time for spawn is {}.'.format(restSpawn))
 		await asyncio.sleep(restSpawn)
 
