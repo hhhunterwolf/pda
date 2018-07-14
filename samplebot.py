@@ -403,6 +403,10 @@ class Spawn:
 
 	@staticmethod	
 	async def spawn():
+		delay = random.randint(20, 100)
+		print('Spawn delay is {}.'.format(delay))
+		await asyncio.sleep(delay)
+
 		for server in client.servers:
 			try:
 				commandPrefix, spawnChannel = serverMap[server.id]
@@ -419,6 +423,11 @@ class Spawn:
 			for channel in server.channels:
 				if channel.id == spawnChannel:
 					if not Spawn.spawned[server.id]:
+						serverSpawnChance = random.randint(0,255)
+						print('Spawn chance for server {}/{}.'.format(serverSpawnChance, 100))
+						if serverSpawnChance < 100:
+							break
+
 						Spawn.spawned[server.id] = True
 						Spawn.pId[server.id], Spawn.name[server.id] = get_random_pokemon_spawn()
 						Spawn.trainer[server.id][0] = random.randint(0, 255)<=30
@@ -458,7 +467,9 @@ class Spawn:
 						Spawn.fought[server.id] = []
 						await client.send_message(channel, embed=em)
 						#await asyncio.sleep(5)
-		await asyncio.sleep(60)
+		restSpawn = random.randint(40, 80)
+		print('Rest time for spawn is {}.'.format(restSpawn))
+		await asyncio.sleep(restSpawn)
 
 @asyncio.coroutine
 async def spawn_wild_pokemon():
