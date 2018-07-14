@@ -403,7 +403,7 @@ class Spawn:
 
 	@staticmethod	
 	async def spawn():
-		delay = random.randint(20, 100)
+		delay = random.randint(10, 100)
 		print('Spawn delay is {}.'.format(delay))
 		await asyncio.sleep(delay)
 
@@ -421,6 +421,7 @@ class Spawn:
 				Spawn.trainer[server.id] = [False, 0]
 
 			for channel in server.channels:
+				print(server.id, channel.id, spawnChannel)
 				if channel.id == spawnChannel:
 					if not Spawn.spawned[server.id]:
 						serverSpawnChance = random.randint(0,255)
@@ -467,7 +468,7 @@ class Spawn:
 						Spawn.fought[server.id] = []
 						await client.send_message(channel, embed=em)
 						#await asyncio.sleep(5)
-		restSpawn = random.randint(40, 80)
+		restSpawn = random.randint(25, 80)
 		print('Rest time for spawn is {}.'.format(restSpawn))
 		await asyncio.sleep(restSpawn)
 
@@ -548,7 +549,7 @@ async def set_spawn_channel(message):
 			msg = 'Spawn channel set to #{0}.'.format(selectedChannel)
 			MySQL.commit()
 
-			serverMap[message.server.id][1] = selectedChannel
+			serverMap[message.server.id][1] = selectedChannel.id
 
 	em = discord.Embed(title='Set Spawn Channel', description=msg, colour=0xDEADBF)
 	em.set_author(name='Professor Oak', icon_url=oakUrl)
