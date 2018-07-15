@@ -16,10 +16,8 @@ from datetime import timedelta
 from pitem import PokeItem
 
 # TODO:
-# Fix unown picture
-# Give 3k for new players
-# Check exp for wild pokemon
 # Make shop for multiple items
+# Fix pages for exactly %20 pokemon
 
 TOKEN = '***REMOVED***'
 #TOKEN = '***REMOVED***'
@@ -723,8 +721,8 @@ async def display_not_started(message, commandPrefix):
 	em.set_footer(text='Use {}start # to select a starter pokemon.'.format(commandPrefix))
 	await client.send_message(message.channel, embed=em)
 
-async def display_success_shop(message, commandPrefix):
-	msg = '{0.author.mention}, thank you for your purchase!'.format(message)
+async def display_success_shop(message, item, amount, commandPrefix):
+	msg = '{0.author.mention}, you purchased **{1}** units of **{2}** for **{3}₽**. Thank you for your purchase!'.format(message, amount, item.name, amount*item.price)
 	em = discord.Embed(title='Thanks!', description=msg, colour=0xDEADBF)
 	em.set_author(name='Poke Mart', icon_url=pokeballUrl)
 	em.set_thumbnail(url=pokeMartUrl)
@@ -753,7 +751,7 @@ def getItemsString():
 	return msg
 
 async def display_info_shop(message, player, commandPrefix):
-	msg = '{0.author.mention}, welcome to the Poke Mart! To buy an item type {1}shop *item #*. These are the items we have for sale:\n'.format(message, commandPrefix)
+	msg = '{0.author.mention}, welcome to the Poke Mart! To buy an item type {1}shop *item #*. To buy more than 1 item, type {1}shop *item #* *amount*. These are the items we have for sale:\n'.format(message, commandPrefix)
 	em = discord.Embed(title='Hello there, {0}. You have {1}₽.'.format(message.author.name, player.money), description=msg+getItemsString(), colour=0xDEADBF)
 	em.set_author(name='Poke Mart', icon_url=pokeballUrl)
 	em.set_thumbnail(url=pokeMartUrl)
@@ -782,10 +780,15 @@ async def display_shop(message):
 				option = int(temp[1]) - 1
 				if option >=0 and option < len(shopItems):
 					item = shopItems[option]
-					if player.removeMoney(item.price):
-						await display_success_shop(message, commandPrefix)
+					
+					amount = 1
+					if len(temp)>2:
+						amount = int(temp[2])
+					
+					if player.removeMoney(item.price*amount):
 						item = shopItems[option]
-						player.addItem(item.id-1)
+						await display_success_shop(message, item, amount, commandPrefix)
+						player.addItem(item.id-1, amount)
 					else:
 						await display_fail_shop(message, commandPrefix)
 
