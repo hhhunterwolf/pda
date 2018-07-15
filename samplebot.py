@@ -137,8 +137,8 @@ async def display_pokemons(message):
 		if len(pokemonList)>0:
 			counter = ((curPage-1) * Player.pokemonPerPage) + 1
 			for pokemon, selected, inGym in pokemonList:
-				avg = sum(pokemon.pokeStats.current) // len(pokemon.pokeStats.current)
-				string += ('**' if selected else '') + str(counter) + ': ' + pokemon.name + ' Lv. {} Iv. {}'.format(pokemon.pokeStats.level, avg) + (' (selected)**' if selected else '') + (' *(holding gym {})*'.format(inGym) if inGym > 0 else '') + '\n'
+				avg = sum(pokemon.pokeStats.iv.values()) // 6
+				string += ('**' if selected else '') + str(counter) + ': ' + pokemon.name + ' Lv. {} IV. {}'.format(pokemon.pokeStats.level, avg) + (' (selected)**' if selected else '') + (' *(holding gym {})*'.format(inGym) if inGym > 0 else '') + '\n'
 				counter += 1
 		else:
 			string = 'Invalid page.'
