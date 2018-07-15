@@ -22,6 +22,7 @@ from pitem import PokeItem
 # Make shop for multiple items
 
 TOKEN = '***REMOVED***'
+#TOKEN = '***REMOVED***'
 
 client = discord.Client()
 playerMap = {}
@@ -226,11 +227,11 @@ def get_random_pokemon_spawn():
 	rates = [3,15,25,30,35,45,50,55,60,65,70,75,80,90,100,120,125,127,130,140,145,150,155,160,170,180,190,200,205,220,225,235,255]
 	rateList = []
 	for i in range(0,len(rates)):
-		rateList += int(rates[i]*5) * [rates[i]]
+		rateList += int(2*(math.log10(rates[i]**2))) * [rates[i]]
 	
 	generationList = []
 	for i in range(1, 7):
-		generationList += 20//i * [i]
+		generationList += (10-i) * [i]
 	
 	row = None
 	while not row:
@@ -255,9 +256,9 @@ Generation: %d
 Chance: %f
 """) % (
 		captureRate,
-		int(captureRate ** 1.5) / len(rateList),
+		int(2*(math.log10(captureRate**2))) / len(rateList),
 		generation,
-		(20 // generation) / len(generationList)
+		(10 - generation) / len(generationList)
 	))
 	
 	return row['id'], row['identifier'].upper()
@@ -331,9 +332,11 @@ class Spawn:
 				isTrainer, gender = Spawn.trainer[message.server.id]
 				wildPokemon = Pokemon(name=Spawn.name[message.server.id], pokemonId=Spawn.pId[message.server.id], level=newLevel, wild=1 if not isTrainer else 1.5)
 				boost = None
-				if player.isBoosted():
+				isBoosted = player.isBoosted()
+				if isBoosted:
 					boost = playerPokemon
-				battle = Battle(playerPokemon, wildPokemon, True)
+
+				battle = Battle(challenger1=playerPokemon, challenger2=wildPokemon, boost=boost)
 				winner, battleLog, levelUpMessage = battle.execute()
 				player.commitPokemonToDB()
 
@@ -427,7 +430,6 @@ class Spawn:
 				Spawn.trainer[server.id] = [False, 0]
 
 			for channel in server.channels:
-				print(server.id, channel.id, spawnChannel)
 				if channel.id == spawnChannel:
 					if not Spawn.spawned[server.id]:
 						serverSpawnChance = random.randint(0,255)
@@ -1025,7 +1027,8 @@ async def accept_challenge(message):
 		boost = False
 		if challenger.isBoosted():
 			boost = challengerPokemon
-		battle = Battle(challengerPokemon, challengedPokemon, boost)
+		
+		battle = Battle(challenger1=challengerPokemon, challenger2=challengedPokemon, boost=boost)
 
 		winner, battleLog, levelUpMessage = battle.execute()
 		challenger.commitPokemonToDB()
