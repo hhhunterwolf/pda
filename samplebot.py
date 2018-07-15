@@ -264,7 +264,7 @@ Chance: %f
 def convertDeltaToHuman(deltaTime):
 	return humanfriendly.format_timespan(deltaTime)
 
-valueMod = 5.5
+valueMod = 8.75
 ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
 class Spawn:
 	name = {}
