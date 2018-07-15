@@ -6,8 +6,9 @@ from mysql import MySQL
 from pitem import PokeItem
 from datetime import timedelta
 
-START_MONEY = 3000
 class Player:
+	START_MONEY = 3000
+
 	def setSelectedPokemon(self):
 		cursor = MySQL.getCursor()
 		self.pokemonList = []
