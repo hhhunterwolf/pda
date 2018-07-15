@@ -127,13 +127,14 @@ class Battle:
 		exp = self.getYieldExp(winner, loser)
 		bonusExp = 0
 		if self.boost and self.boost == winner:
-			bonusExp = exp * Battle.boostModifier
+			bonusExp = int(exp * boostModifier)
 		
-		if not self.gym and not winner.isWild():
+		if winner.pokeStats.level < 100 and not self.gym and not winner.isWild():
 			msg += '\n'
-			msg += ('Earned ' + str(exp) + ' EXP points.\n')
+			bonusMsg = ''
 			if bonusExp > 0:
-				msg += ('Earned ' + str(bonusExp) + ' boost EXP points.')
+				bonusExp = ' (+' + str(bonusExp) + ' boost)'
+			msg += ('Earned ' + str(exp) + bonusExp + ' EXP points.\n')
 		print(msg)
 		msg += '```'
 
