@@ -19,8 +19,8 @@ from pitem import PokeItem
 # Make shop for multiple items
 # Fix pages for exactly %20 pokemon
 
-TOKEN = '***REMOVED***'
 #TOKEN = '***REMOVED***'
+TOKEN = '***REMOVED***'
 
 client = discord.Client()
 playerMap = {}
@@ -1430,21 +1430,24 @@ def evaluate_server(server):
 		for row in rows:
 			random.seed()
 			lastPokemon = random.getrandbits(24)
-			
+
 			cursor.execute("""
-				SELECT * 
-				FROM type JOIN pokemon_type JOIN pokemon
+				SELECT pokemon.id as pokemon_id, AVG(base_stat) as average
+				FROM type JOIN pokemon_type JOIN pokemon JOIN pokemon_stat
 				WHERE pokemon_type.type_id = type.id
 				AND pokemon_type.pokemon_id = pokemon.id
+				AND pokemon_stat.pokemon_id = pokemon.id
 				AND type.id = %s
 				AND slot = 1
 				AND pokemon_type.pokemon_id < 722
+				AND base_stat > 80
+				GROUP BY pokemon.id
 				ORDER BY RAND()
 				LIMIT 1
 				""", (row['id'],))
 			rowPokemon = cursor.fetchone()
 
-			pokemon = Pokemon(name='', pokemonId=rowPokemon['pokemon_id'], level=50)
+			pokemon = Pokemon(name='', pokemonId=rowPokemon['pokemon_id'], level=100)
 			
 			cursor.execute("""
 				INSERT INTO player_pokemon (id, player_id, pokemon_id, level, experience, current_hp, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, selected, caught_with)
