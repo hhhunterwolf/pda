@@ -415,3 +415,41 @@ __Pokeball Stats:__
 			MySQL.commit()
 			return True
 		return False
+
+	def releasePokemon(self, pId):
+		pokemon = self.getPokemon(pId)
+
+		cursor = MySQL.getCursor()
+		cursor.execute("""
+			DELETE 
+			FROM player_pokemon
+			WHERE player_id = %s
+			AND id = %s
+			""", (self.pId, pId))
+		row = cursor.fetchone()
+
+		cursor.execute("""
+			UPDATE player_pokemon
+			SET id = id - 1
+			WHERE player_id = %s
+			AND id > %s
+			""", (self.pId, pId))
+		row = cursor.fetchone()
+
+		MySQL.commit()
+
+		self.pokemonCaught -= 1
+		self.update()
+
+		if pId == self.getSelectedPokemon().ownId:
+			cursor.execute("""
+				SELECT * 
+				FROM player_pokemon
+				WHERE player_id = %s
+				AND in_gym = 0
+				""", (self.pId,))
+			row = cursor.fetchone()
+
+			self.selectPokemon(row['id'])
+
+		return pokemon		
