@@ -336,7 +336,7 @@ __Pokeball Stats:__
 		return self.calculateExp(self.level + 1)
 
 	def calculateExp(self, level):
-		exp = (233) * (level**3) - 15*(level**2) + 100*level - 140
+		exp = (88) * (level**3) - 15*(level**2) + 100*level - 140
 		return exp if exp>0 else 0
 
 	def addExperience(self, experience):
