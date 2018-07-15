@@ -226,7 +226,7 @@ def get_random_pokemon_spawn():
 	rates = [3,15,25,30,35,45,50,55,60,65,70,75,80,90,100,120,125,127,130,140,145,150,155,160,170,180,190,200,205,220,225,235,255]
 	rateList = []
 	for i in range(0,len(rates)):
-		rateList += int(rates[i] ** 1.5) * [rates[i]]
+		rateList += int(rates[i]*5) * [rates[i]]
 	
 	generationList = []
 	for i in range(1, 7):
@@ -342,16 +342,16 @@ class Spawn:
 				if victory:
 					Spawn.fought[message.server.id].append(player.pId)
 
-					baseValue = int(6.65*valueMod*(player.level/15)*(wildPokemon.pokeStats.level*255/wildPokemon.captureRate))//3 + 1
+					baseValue = int(0.65*valueMod*(wildPokemon.pokeStats.level*255/wildPokemon.captureRate))//3 + random.randint(1, 75)
 					print('Added EXP: {}'.format(baseValue))
 					player.addExperience(baseValue)
-					money = int(random.uniform(3.5,4.6)*baseValue)
+					money = int(random.uniform(2.5,3.6)*baseValue)
 					player.addMoney(money)
 
 					if capture>0:
 						player.items[capture-1] -= 1
 						captureMessage += '\nYou threw a {} into {} and...\n'.format(ballList[capture-1], wildPokemon.name)
-						if True or wildPokemon.attemptCapture(capture-1):
+						if wildPokemon.attemptCapture(capture-1):
 							captureMessage += '```fix\nGotcha! {} was added to your pokemon list!\n```'.format(wildPokemon.name)
 							wildPokemon.caughtWith = capture
 							player.addExperience(baseValue * math.log10(wildPokemon.pokeStats.level))
@@ -370,7 +370,7 @@ class Spawn:
 						Spawn.fought[message.server.id].append(player.pId)
 
 					if victory:
-						money = int(random.uniform(5,6)*baseValue)
+						money = int(random.uniform(3,4)*baseValue)
 						player.addMoney(money)
 						trainerMessage = 'Damn, {}! Your *{}* completely destroyed my *{}*! Here\'s **{}₽** for your deserved win!'.format(message.author.mention, playerPokemon.name, wildPokemon.name, money)
 					else:
