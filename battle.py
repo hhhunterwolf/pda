@@ -7,7 +7,7 @@ from mysql import MySQL
 defaultPower = 65
 defaultCritModifier = 1.5
 expModifier = 3
-boostModifier = 1.5
+boostModifier = 0.5
 
 class Battle:
 	def getModifiers(self):
@@ -125,12 +125,15 @@ class Battle:
 		msg += ('{} (HP: {}/{}) wins.\n'.format(winner.name, winner.pokeStats.hp, winner.pokeStats.current['hp']))
 		
 		exp = self.getYieldExp(winner, loser)
+		bonusExp = 0
 		if self.boost and self.boost == winner:
-			exp *= Battle.boostModifier
+			bonusExp = exp * Battle.boostModifier
 		
 		if not self.gym and not winner.isWild():
 			msg += '\n'
 			msg += ('Earned ' + str(exp) + ' EXP points.\n')
+			if bonusExp > 0:
+				msg += ('Earned ' + str(bonusExp) + ' boost EXP points.')
 		print(msg)
 		msg += '```'
 
