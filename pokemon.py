@@ -179,6 +179,7 @@ __Experience:__
 		self.experience += experience
 		if self.experience >= self.getNextLevelExp():
 			self.pokeStats.level += 1
+			self.evolve(Pokemon(self.name, self.pokeStats.level, self.wild, self.pokeStats.iv))
 			return [True, self.hasEvolved()]
 		else:
 			return [False, False]

@@ -6,6 +6,7 @@ from mysql import MySQL
 from pitem import PokeItem
 from datetime import timedelta
 
+START_MONEY = 3000
 class Player:
 	def setSelectedPokemon(self):
 		cursor = MySQL.getCursor()
@@ -70,7 +71,7 @@ class Player:
 		else:
 			self.level = 1
 			self.experience = 0
-			self.money = 0
+			self.money = Player.START_MONEY
 			self.pokemonCaught = 0
 			self.boost = None
 
