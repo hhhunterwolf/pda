@@ -4,7 +4,7 @@ import random
 from pokemon import Pokemon
 from mysql import MySQL
 
-defaultPower = 65
+defaultPower = 75
 defaultCritModifier = 1.5
 expModifier = 3
 boostModifier = 0.5
