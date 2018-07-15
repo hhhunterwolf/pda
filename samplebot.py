@@ -16,8 +16,10 @@ from datetime import timedelta
 from pitem import PokeItem
 
 # TODO:
-# Implement dudududuel time
-# Implement gyms
+# Fix unown picture
+# Give 3k for new players
+# Check exp for wild pokemon
+# Make shop for multiple items
 
 TOKEN = 'NDYzNzQ0NjkzOTEwMzcyMzYy.Dh03cA.jaXIvI0zQdOieINXT46_Y9X-L2k'
 
@@ -364,7 +366,7 @@ class Spawn:
 						Spawn.fought[message.server.id].append(player.pId)
 
 					if victory:
-						money = int(random.uniform(6,7)*baseValue)
+						money = int(random.uniform(25,26)*baseValue)
 						player.addMoney(money)
 						trainerMessage = 'Damn, {}! Your *{}* completely destroyed my *{}*! Here\'s **{}₽** for your deserved win!'.format(message.author.mention, playerPokemon.name, wildPokemon.name, money)
 					else:
