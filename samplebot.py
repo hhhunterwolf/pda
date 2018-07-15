@@ -344,7 +344,9 @@ class Spawn:
 					baseValue = int(6.65*valueMod*(player.level/15)*(wildPokemon.pokeStats.level*255/wildPokemon.captureRate))//3 + 1
 					print('Added EXP: {}'.format(baseValue))
 					player.addExperience(baseValue)
-					
+					money = int(random.uniform(3.5,4.6)*baseValue)
+					player.addMoney(money)
+
 					if capture>0:
 						player.items[capture-1] -= 1
 						captureMessage += '\nYou threw a {} into {} and...\n'.format(ballList[capture-1], wildPokemon.name)
@@ -367,7 +369,7 @@ class Spawn:
 						Spawn.fought[message.server.id].append(player.pId)
 
 					if victory:
-						money = int(random.uniform(8,9)*baseValue)
+						money = int(random.uniform(5,6)*baseValue)
 						player.addMoney(money)
 						trainerMessage = 'Damn, {}! Your *{}* completely destroyed my *{}*! Here\'s **{}₽** for your deserved win!'.format(message.author.mention, playerPokemon.name, wildPokemon.name, money)
 					else:
