@@ -367,8 +367,8 @@ __Pokeball Stats:__
 			return True
 		return False
 
-	def addItem(self, id):
-		self.items[id] += 1
+	def addItem(self, id, amount=1):
+		self.items[id] += 1*amount
 		self.update()
 				
 	def getUsableItems(self):
