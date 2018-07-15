@@ -168,7 +168,7 @@ __Experience:__
 	def attemptCapture(self, ball):
 		chance = ((2*self.pokeStats.current['hp']) * self.captureRate * Pokemon.ballRatios[ball]) / (3*self.pokeStats.current['hp'])
 		random.seed()
-		dice = random.randint(0, 255)
+		dice = random.randint(0, 225) + 30
 		print('Capture chance is: {}/{}'.format(dice, chance))
 		return chance >= dice
 
