@@ -133,8 +133,8 @@ class Battle:
 			msg += '\n'
 			bonusMsg = ''
 			if bonusExp > 0:
-				bonusExp = ' (+' + str(bonusExp) + ' boost)'
-			msg += ('Earned ' + str(exp) + bonusExp + ' EXP points.\n')
+				bonusMsg = ' (+' + str(bonusExp) + ' boost)'
+			msg += ('Earned ' + str(exp) + bonusMsg + ' EXP points.\n')
 		print(msg)
 		msg += '```'
 
