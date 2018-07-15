@@ -341,7 +341,8 @@ class Spawn:
 				if victory:
 					Spawn.fought[message.server.id].append(player.pId)
 
-					baseValue = int(3.65*valueMod*(player.level/50)*(wildPokemon.pokeStats.level*255/wildPokemon.captureRate))//3
+					baseValue = int(3.65*valueMod*(player.level/50)*(wildPokemon.pokeStats.level*255/wildPokemon.captureRate))//3 + 1
+					print('Added EXP: {}'.format())
 					player.addExperience(baseValue)
 					
 					if capture>0:
@@ -366,7 +367,7 @@ class Spawn:
 						Spawn.fought[message.server.id].append(player.pId)
 
 					if victory:
-						money = int(random.uniform(25,26)*baseValue)
+						money = int(random.uniform(8,9)*baseValue)
 						player.addMoney(money)
 						trainerMessage = 'Damn, {}! Your *{}* completely destroyed my *{}*! Here\'s **{}₽** for your deserved win!'.format(message.author.mention, playerPokemon.name, wildPokemon.name, money)
 					else:
@@ -376,7 +377,7 @@ class Spawn:
 					tem.set_author(name='Poketrainer', icon_url=pokeballUrl)
 					tem.set_thumbnail(url=trainerURL.format(gender))
 
-					player.update()
+				player.update()
 						
 				msg = '{0.author.mention}, your {1} fought a beautiful battle against {2}! Here are the details: \n\n'.format(message, playerPokemon.name, wildPokemon.name)
 				em = discord.Embed(title='Battle with {}{} Lv. {}!'.format('Trainer\'s ' if isTrainer else '', wildPokemon.name, newLevel), description=msg+battleLog+captureMessage, colour=0xDEADBF)
