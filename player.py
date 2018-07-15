@@ -1,5 +1,6 @@
 import textwrap
 import datetime
+import humanfriendly
 
 from pokemon import Pokemon
 from mysql import MySQL
@@ -145,12 +146,17 @@ class Player:
 				badgesStr += bType.upper() + ', '
 		badgesStr = badgesStr[:-2]
 
+		expBoostStr = ''
+		boostTime = self.getBoostTime()
+		if boostTime>0:
+			expBoostStr += "**\n50\% EXP Boost:** {} remaining.\n".format(humanfriendly.format_timespan(boostTime))
+
 		return textwrap.dedent("""
 __General Stats:__
 
 **Name:** %s
 **Level:** %s
-**Experience:** %d / %d
+**Experience:** %d / %d%s
 **Money:** %d₽
 
 __Pokemon Stats:__
@@ -171,6 +177,7 @@ __Pokeball Stats:__
 			self.level,
 			self.experience,
 			self.calculateExp(self.level + 1),
+			expBoostStr,
 			self.money,
 			self.pokemonCaught,
 			averageLevel,
@@ -385,15 +392,16 @@ __Pokeball Stats:__
 
 		return item.itemType
 
-	def isBoosted(self):
+	def getBoostTime(self):
 		if self.boost:
-			isBoosted = (datetime.datetime.now().timestamp()-self.boost.timestamp())>0
-			if isBoosted:
-				return True
-			else:
-				self.boost = None
-				return False
+			return (self.boost.timestamp() - datetime.datetime.now().timestamp())
+		return 0
+
+	def isBoosted(self):
+		if self.getBoostTime()>0:
+			return True
 		else:
+			self.boost = None
 			return False
 
 	def addBadge(self, badge):
