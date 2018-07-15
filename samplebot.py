@@ -341,7 +341,7 @@ class Spawn:
 				if victory:
 					Spawn.fought[message.server.id].append(player.pId)
 
-					baseValue = int(6.65*valueMod*(player.level/50)*(wildPokemon.pokeStats.level*255/wildPokemon.captureRate))//3 + 1
+					baseValue = int(6.65*valueMod*(player.level/15)*(wildPokemon.pokeStats.level*255/wildPokemon.captureRate))//3 + 1
 					print('Added EXP: {}'.format(baseValue))
 					player.addExperience(baseValue)
 					
