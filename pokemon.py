@@ -164,11 +164,11 @@ __Experience:__
 	def isWild(self):
 		return self.wild==1
 
-	ballRatios = [1, 1.5, 2, 255]
+	ballRatios = [3, 3.5, 4, 255]
 	def attemptCapture(self, ball):
 		chance = ((2*self.pokeStats.current['hp']) * self.captureRate * Pokemon.ballRatios[ball]) / (3*self.pokeStats.current['hp'])
 		random.seed()
-		dice = random.randint(0, 225) + 30
+		dice = random.randint(0, 225)
 		print('Capture chance is: {}/{}'.format(dice, chance))
 		return chance >= dice
 
