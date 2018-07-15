@@ -159,6 +159,51 @@ async def display_pokemon_in_gym(message):
 	em.set_author(name='Professor Oak', icon_url=oakUrl)
 	await client.send_message(message.channel, embed=em)
 
+async def display_release_success(message, pokemon):
+	try:
+		commandPrefix, spawnChannel = serverMap[message.server.id]
+	except KeyError as err:
+		return
+
+	msg = '{0.author.mention}, your {1} was released back to the wild. It will probably die. Alone.'.format(message, pokemon.name)
+	em = discord.Embed(title='Good bye!', description=str(msg), colour=0xDEADBF)
+	em.set_thumbnail(url=imageURL.format(pokemon.pId))
+	em.set_author(name='Professor Oak', icon_url=oakUrl)
+	await client.send_message(message.channel, embed=em)
+
+async def release_pokemon(message):
+	try:
+		commandPrefix, spawnChannel = serverMap[message.server.id]
+	except KeyError as err:
+		return
+
+	player = playerMap[message.author.id + message.server.id]
+	
+	msg = ''
+	if not player.hasStarted():
+		await display_not_started(message, commandPrefix)
+	else:
+		temp = message.content.split(' ')
+		
+		option = None
+		if len(temp)>1:
+			try:
+				option = int(temp[1])
+				if option:
+					try:
+						em = check_hold_availability(message.author.mention, player, commandPrefix)
+						if em:
+							await client.send_message(message.channel, embed=em)
+							return
+
+						pokemon = player.releasePokemon(option)
+						await display_release_success(message, pokemon)
+					except IndexError as error:
+						print(error)
+						traceback.print_exc()
+			except ValueError as err:
+				print(err)
+
 async def select_pokemon(message):
 	try:
 		commandPrefix, spawnChannel = serverMap[message.server.id]
@@ -203,6 +248,7 @@ async def display_help(message):
 		'**{0}start:** Shows information on how to select a starter and start the adventure. \n' \
 		'**{0}pokemon:** Shows a list of all your pokemon. \n' \
 		'**{0}select:** Selects a pokemon in your list to use on your journey.\n' \
+		'**{0}release:** Releases a in your list pokemon. It will never come back.\n' \
 		'**{0}help:** Shows this help message. \n' \
 		'**{0}fight:** Fights the currently spawned pokemon or poketrainer if available.\n' \
 		'**{0}catch:** Fights and tries to catch the currently spawned pokemon if available.\n' \
@@ -1130,7 +1176,7 @@ async def display_info_gyms(message, commandPrefix):
 	em.set_author(name='Professor Oak', icon_url=oakUrl)
 	await client.send_message(message.channel, embed=em)
 
-def check_hold_availability(callout, player):
+def check_hold_availability(callout, player, commandPrefix):
 	em = None
 
 	cursor = MySQL.getCursor()
@@ -1144,7 +1190,7 @@ def check_hold_availability(callout, player):
 	row = cursor.fetchone()
 
 	if row['count'] == 0:
-		msg = '{0}, your {1} is your only available pokemons. You cannot leave your only pokemon to hold the gym.'.format(callout, player.getSelectedPokemon().name)
+		msg = '{0}, your {1} is your only available pokemon. You cannot release or leave your only pokemon to hold the gym.'.format(callout, player.getSelectedPokemon().name)
 		em = discord.Embed(title='No pokemon!', description=msg, colour=0xDEADBF)
 		em.set_author(name='Professor Oak', icon_url=oakUrl)
 		em.set_footer(text='Once a pokemon becomes the holder of a gym, it stays there until another claims it\'s place. Type {}gym for more information.'.format(commandPrefix))
@@ -1245,7 +1291,7 @@ async def display_gym(message):
 							await client.send_message(message.channel, embed=em)
 							return
 
-						em = check_hold_availability(message.author.mention, player)
+						em = check_hold_availability(message.author.mention, player, commandPrefix)
 						if em:
 							await client.send_message(message.channel, embed=em)
 							return
@@ -1325,6 +1371,7 @@ commandList = {
 	'info' : display_pokemon_info,
 	'pokemon' : display_pokemons,
 	'select' : select_pokemon,
+	'release' : release_pokemon,
 	'help' : display_help,
 	'fight' : display_fight,
 	'catch' : display_catch,
