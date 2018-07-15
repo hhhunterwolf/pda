@@ -19,8 +19,8 @@ from pitem import PokeItem
 # Make shop for multiple items
 # Fix pages for exactly %20 pokemon
 
-#TOKEN = '***REMOVED***'
 TOKEN = '***REMOVED***'
+#TOKEN = '***REMOVED***'
 
 client = discord.Client()
 playerMap = {}
@@ -1119,7 +1119,7 @@ async def display_info_gyms(message, commandPrefix):
 		""")
 	rows = cursor.fetchall()
 
-	msg = 'If you want to become a Pokemon master, you need to beat all the gyms and get all the badges! There are 18 gyms in total, each one with a different pokemon type. Gyms can be held by players if they\'re able to win a fight against the current owner.\n\nFor more information on a gym\'s current owner, type `{0}gym # info`, where *#* is the gym number. To fight a gym and try to earn its badges, type `{0}gym # fight`. To challenge the current holder of a gym, type `{0}gym # claim`. Only pokemon with the correct main type can hold a gym. This means the *FLYING* gym, for instance, can only be held by a primarly *FLYING* pokemon.\n\nThese are the currently available gyms:\n\n'.format(commandPrefix)
+	msg = 'If you want to become a Pokemon master, you need to beat all the gyms and get all the badges! There are 18 gyms in total, each one with a different pokemon type. Gyms can be held by players if they\'re able to win a fight against the current owner.\n\nFor more information on a gym\'s current owner, type `{0}gym # info`, where *#* is the gym number. To fight a gym and try to earn its badges, type `{0}gym # fight`. To challenge the current holder of a gym, type `{0}gym # claim`. Only pokemon with the correct type can hold a gym. This means the *FLYING* gym, for instance, can only be held by a *FLYING* pokemon.\n\nThese are the currently available gyms:\n\n'.format(commandPrefix)
 	
 	counter = 1
 	for row in rows:
@@ -1432,16 +1432,18 @@ def evaluate_server(server):
 			lastPokemon = random.getrandbits(24)
 
 			cursor.execute("""
-				SELECT pokemon.id as pokemon_id, AVG(base_stat) as average
-				FROM type JOIN pokemon_type JOIN pokemon JOIN pokemon_stat
-				WHERE pokemon_type.type_id = type.id
-				AND pokemon_type.pokemon_id = pokemon.id
-				AND pokemon_stat.pokemon_id = pokemon.id
-				AND type.id = %s
-				AND slot = 1
-				AND pokemon_type.pokemon_id < 722
-				AND base_stat > 80
-				GROUP BY pokemon.id
+				SELECT *
+				FROM (
+					SELECT pokemon.id as pokemon_id, SUM(base_stat) as sum_var
+				  FROM type JOIN pokemon_type JOIN pokemon JOIN pokemon_stat
+				  WHERE pokemon_type.type_id = type.id
+				  AND pokemon_type.pokemon_id = pokemon.id
+				  AND pokemon_stat.pokemon_id = pokemon.id
+				  AND type.id = %s
+				  AND pokemon_type.pokemon_id < 722
+				  GROUP BY pokemon.id
+				) as temp
+				WHERE sum_var > 450
 				ORDER BY RAND()
 				LIMIT 1
 				""", (row['id'],))
