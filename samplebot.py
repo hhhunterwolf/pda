@@ -189,7 +189,7 @@ async def release_pokemon(message):
 		if len(temp)>1:
 			try:
 				option = int(temp[1])
-				if option:
+				if option and option > 0 and option <= player.pokemonCaught:
 					try:
 						em = check_hold_availability(message.author.mention, player, commandPrefix)
 						if em:
