@@ -1318,6 +1318,13 @@ async def display_gym(message):
 						await client.send_message(message.channel, embed=em)
 
 						if winner == playerPokemon:
+							if player.addBadge([gymId, row['type_identifier'].upper()]):
+								em = discord.Embed(title='You got a new badge!', description='{0.author.mention}, you won against {1}\'s {2} and earned the {3} gym badge!'.format(message, row['player_name'], gymPokemon.name, row['type_identifier'].upper()), colour=0xDEADBF)
+								em.set_author(name='Professor Oak', icon_url=oakUrl)
+								em.set_thumbnail(url=message.author.avatar_url)
+								em.set_footer(text='Think you have what it takes to hold a gym? You can fight for the claim of a gym by typing {}gym # claim.'.format(commandPrefix))
+								await client.send_message(message.channel, embed=em)
+
 							em = discord.Embed(title='{} is now the leader of the {} gym!'.format(message.author.name, row['type_identifier'].upper()), description='{0.author.mention}, you won against {1}\'s {2} and are now the leader of the {3} gym!'.format(message, row['player_name'], gymPokemon.name, row['type_identifier'].upper()), colour=0xDEADBF)
 							em.set_author(name='Professor Oak', icon_url=oakUrl)
 							em.set_thumbnail(url=imageURL.format(winner.pId))
