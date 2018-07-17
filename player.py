@@ -1,6 +1,7 @@
 import textwrap
 import datetime
 import humanfriendly
+import math
 
 from pokemon import Pokemon
 from mysql import MySQL
@@ -150,7 +151,7 @@ class Player:
 		expBoostStr = ''
 		boostTime = self.getBoostTime()
 		if boostTime>0:
-			expBoostStr += "**\n50\% EXP Boost:** {} remaining.\n".format(humanfriendly.format_timespan(boostTime))
+			expBoostStr += "**\n50\% EXP Boost:** {} remaining.".format(humanfriendly.format_timespan(boostTime))
 
 		return textwrap.dedent("""
 __General Stats:__
@@ -451,3 +452,6 @@ __Pokeball Stats:__
 			self.selectPokemon(row['id'])
 
 		return pokemon		
+
+	def getCaptureMod(self):
+		return math.log10(self.level+1)/3
