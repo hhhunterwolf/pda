@@ -66,7 +66,7 @@ class Player:
 
 			rows = cursor.fetchall()
 			for row in rows:
-				self.badges.append([row['gym_id'], row['identifier']])
+				self.badges.append([row['gym_id'], row['identifier'].upper()])
 			
 			self.setSelectedPokemon()
 
