@@ -60,7 +60,7 @@ class Pokemon:
 		self.pokeStats = PokeStats(stats, level, iv, currentHp)
 
 		self.pId = pId
-		self.experience = experience if experience!=0 else self.calculateExp(level-1)
+		self.experience = experience if experience!=0 else self.calculateExp(level)
 
 	def __str__(self):
 		t = self.types[0].identifier
