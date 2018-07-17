@@ -242,7 +242,7 @@ async def display_help(message):
 	except KeyError as err:
 		return
 
-	msg = 'These are the possible commands: \n\n' \
+	msg = 'Welcome to Pokemon Discord Adventure! This bot is in a very alpha state, and most things are still being worked on. Please expect it to crash, bug out and sudden restarts. If you have any questions, suggestions, or just have a chat, contact me at Discord Fairfruit#8973, or send me an email at contact@yfrit.com.\n\n These are the possible commands: \n' \
 		'__Player Commands:__ \n\n' \
 		'**{0}info:** Shows stats of a specific pokemon (selected pokemon if none is specified) \n' \
 		'**{0}start:** Shows information on how to select a starter and start the adventure. \n' \
@@ -268,41 +268,33 @@ async def display_help(message):
 	await client.send_message(message.channel, embed=em)
 
 def get_random_pokemon_spawn():
-	rates = [3,15,25,30,35,45,50,55,60,65,70,75,80,90,100,120,125,127,130,140,145,150,155,160,170,180,190,200,205,220,225,235,255]
+	rates = [[3,4], [4,10], [10,30], [30,80], [80,120], [120,200], [200,255]]
 	rateList = []
 	for i in range(0,len(rates)):
-		rateList += int(2*(math.log10(rates[i]**2))) * [rates[i]]
-	
-	generationList = []
-	for i in range(1, 7):
-		generationList += (10-i) * [i]
+		rateList += int(2*(math.log10(rates[i][1]**4))) * [rates[i]]
 	
 	row = None
 	while not row:
 		captureRate = random.choice(rateList)
-		generation = random.choice(generationList)
+		minR, maxR = captureRate
 		cursor = MySQL.getCursor()
 		cursor.execute("""
 			SELECT * 
 			FROM pokemon
 			WHERE enabled = 1 
-			AND capture_rate = %s
-			AND generation_id = %s
+			AND capture_rate >= %s
+			AND capture_rate < %s
 			ORDER BY RAND()
 			LIMIT 1
-			""", (captureRate, generation))
+			""", (minR, maxR))
 		row = cursor.fetchone()
 
 	print(textwrap.dedent("""SPAWN INFO
 Capture Rate: %d
 Chance: %f
-Generation: %d
-Chance: %f
 """) % (
-		captureRate,
-		int(2*(math.log10(captureRate**2))) / len(rateList),
-		generation,
-		(10 - generation) / len(generationList)
+		maxR,
+		int(2*(math.log10(maxR**4))) / len(rateList),
 	))
 	
 	return row['id'], row['identifier'].upper()
@@ -583,7 +575,7 @@ async def set_spawn_channel(message):
 	if len(temp)<=1:
 		msg = 'Type {}spawn #channel_name to set the channel where wild pokemon will appear.'.format(commandPrefix)
 	else:
-		option = temp[1].replace('#', '').replace('<', '').replace('>', '')
+		option = temp[1].replace('#', '').replace('!', '').replace('<', '').replace('>', '')
 		selectedChannel = None
 		for channel in message.server.channels:
 			if int(channel.id) == int(option):
@@ -954,7 +946,7 @@ async def challenge_player(message):
 	else:
 		player = playerMap[message.author.id + message.server.id]
 		
-		option = temp[1].replace('@', '').replace('<', '').replace('>', '')
+		option = temp[1].replace('@', '').replace('!', '').replace('<', '').replace('>', '')
 		if str(message.author.id) == option:
 			msg = 'You cannot battle yourself.'
 		else:
@@ -1225,7 +1217,6 @@ async def display_gym(message):
 						em.set_author(name='Professor Oak', icon_url=oakUrl)
 						await client.send_message(message.channel, embed=em)
 					else:
-						player.lastGym = datetime.datetime.now()
 						row = getGymInfo(message.server.id, gymId)
 
 						gymPokemon = Pokemon(name='', pokemonId=row['pokemon_p_id'], level=row['pokemon_level'], iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']})
@@ -1247,6 +1238,7 @@ async def display_gym(message):
 							await client.send_message(message.channel, embed=em)
 							return
 
+						player.lastGym = datetime.datetime.now()
 						battle = Battle(challenger1=playerPokemon, challenger2=gymPokemon, gym=True)
 						
 						winner, battleLog, levelUpMessage = battle.execute()
@@ -1274,7 +1266,6 @@ async def display_gym(message):
 						em.set_author(name='Professor Oak', icon_url=oakUrl)
 						await client.send_message(message.channel, embed=em)
 					else:
-						player.lastGym = datetime.datetime.now()
 						row = getGymInfo(message.server.id, gymId)
 
 						gymPokemon = Pokemon(name='', pokemonId=row['pokemon_p_id'], level=row['pokemon_level'], iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']})
@@ -1306,6 +1297,7 @@ async def display_gym(message):
 							await client.send_message(message.channel, embed=em)
 							return
 
+						player.lastGym = datetime.datetime.now()
 						battle = Battle(challenger1=playerPokemon, challenger2=gymPokemon, gym=True)
 						
 						winner, battleLog, levelUpMessage = battle.execute()
