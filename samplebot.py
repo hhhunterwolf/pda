@@ -403,7 +403,6 @@ class Spawn:
 
 					baseValue = int(0.65*valueMod*(wildPokemon.pokeStats.level*255/wildPokemon.captureRate))//3 + random.randint(1, 75)
 					print('Added EXP: {}'.format(baseValue))
-					player.addExperience(baseValue)
 					money = int(random.uniform(2.5,3.6)*baseValue)
 					player.addMoney(money)
 
@@ -413,10 +412,13 @@ class Spawn:
 						if wildPokemon.attemptCapture(capture-1):
 							captureMessage += '```fix\nGotcha! {} was added to your pokemon list!\n```'.format(wildPokemon.name)
 							wildPokemon.caughtWith = capture
-							player.addExperience(baseValue * math.log10(wildPokemon.pokeStats.level))
+							baseValue *= math.log10(wildPokemon.pokeStats.level)
 							player.addPokemonViaInstace(wildPokemon)
 						else:
 							captureMessage += '```css\nIt escaped...\n```'
+
+					player.addExperience(baseValue)
+					battleLog += getPlayerEarnedMoneyEXP(message.author.mention, baseValue, money)
 
 					if levelUpMessage:
 						lem = discord.Embed(title='Level up!', description='{0.author.mention}, your '.format(message) + levelUpMessage, colour=0xDEADBF)
@@ -1026,6 +1028,9 @@ def check_not_started(callout, player, commandPrefix):
 		em.set_footer(text='Use {}start # to select a starter pokemon.'.format(commandPrefix))
 	return em
 
+def getPlayerEarnedMoneyEXP(callout, exp, money):
+	return '\n{} earned **{} EXP** and **{}₽** for this battle.'.format(callout, exp, money)
+
 duelCooldown = 300
 async def accept_challenge(message):
 	try:
@@ -1085,11 +1090,7 @@ async def accept_challenge(message):
 		challenger.lastDuel = datetime.datetime.now()
 		challenged.lastDuel = datetime.datetime.now()
 
-		boost = False
-		if challenger.isBoosted():
-			boost = challengerPokemon
-		
-		battle = Battle(challenger1=challengerPokemon, challenger2=challengedPokemon, boost=boost)
+		battle = Battle(challenger1=challengerPokemon, challenger2=challengedPokemon, gym=True)
 
 		winner, battleLog, levelUpMessage = battle.execute()
 		challenger.commitPokemonToDB()
@@ -1104,12 +1105,6 @@ async def accept_challenge(message):
 			winnerPlayer = challenged
 			loser = challengerPokemon
 
-		baseValue = int(3.65*valueMod*(winnerPlayer.level/50)*(loser.pokeStats.level*255/loser.captureRate))//3
-		winnerPlayer.addExperience(baseValue)
-		money = int(random.uniform(6,7)*baseValue)
-		winnerPlayer.addMoney(money)
-		winnerPlayer.update()
-		
 		if levelUpMessage:
 			lem = discord.Embed(title='Level up!', description='{0}, your '.format(callout) + levelUpMessage, colour=0xDEADBF)
 			lem.set_author(name='Professor Oak', icon_url=oakUrl)
@@ -1208,7 +1203,7 @@ def check_hold_availability(callout, player, commandPrefix):
 		em.set_footer(text='Once a pokemon becomes the holder of a gym, it stays there until another claims it\'s place. Type {}gym for more information.'.format(commandPrefix))
 	return em
 
-gymCooldown = 300	
+gymCooldown = 1800	
 async def display_gym(message):
 	try:
 		commandPrefix, spawnChannel = serverMap[message.server.id]
@@ -1415,7 +1410,7 @@ serverAdminCommandList = {
 }
 
 playerMessageMap = {}
-messageThreshold = 1.5
+messageThreshold = 3
 async def executeCommand(commandList, command, key, message):
 	lastMessage = playerMessageMap[key]
 	deltaTime = datetime.datetime.now().timestamp() - lastMessage
