@@ -117,7 +117,7 @@ class Battle:
 			WHERE pokemon_id = %s
 			""", (pokemon2.pId, ))
 		baseExp = cursor.fetchone()['experience']
-		return expModifier * math.floor((pokemon2.wild * baseExp * pokemon2.pokeStats.level)/7)
+		return int(expModifier * math.floor((pokemon2.wild * baseExp * pokemon2.pokeStats.level)/7))
 
 	def execute(self):
 		winner, loser, damage1, damage2 = self.executeCycle()
@@ -140,7 +140,7 @@ class Battle:
 			bonusMsg = ''
 			if bonusExp > 0:
 				bonusMsg = ' (+' + str(bonusExp) + ' boost)'
-			msg += ('Earned ' + str(exp) + bonusMsg + ' EXP points.\n')
+			msg += ('{} earned '.format(winner.name) + str(exp) + bonusMsg + ' EXP points.\n')
 		print(msg)
 		msg += '```'
 
