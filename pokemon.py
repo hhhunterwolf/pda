@@ -82,8 +82,9 @@ class Pokemon:
 		return textwrap.dedent("""
 __Information:__
 
-**Pokedex:** %d
+**ID:** %d
 **Name:** %s
+**Pokedex:** %d
 **Level:** %s
 **Types:** %s
 **Ball Used:** %s
@@ -101,8 +102,9 @@ __Stats and IV:__
 __Experience:__
 
 **Next level:** %d EXP""") % (
-			self.pId, 
+			self.ownId, 
 			self.name, 
+			self.pId, 
 			self.pokeStats.level,
 			t,
 			ballList[self.caughtWith-1] if self.caughtWith > 0 else 'Starter',
