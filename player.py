@@ -227,7 +227,7 @@ __Pokeball Stats:__
 
 	def getPokemon(self, pId):
 		if pId == self.getSelectedPokemon().ownId:
-			return self.getSelectedPokemon()
+			return self.getSelectedPokemon(), False
 
 		cursor = MySQL.getCursor()
 		cursor.execute("""
@@ -238,12 +238,9 @@ __Pokeball Stats:__
 			""", (self.pId, pId))
 		row = cursor.fetchone()
 		if row:
-			if row['in_gym'] > 0:
-				return False
-				
-			return Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], caughtWith=row['caught_with'])
+			return Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], caughtWith=row['caught_with']), row['in_gym'] > 0
 		else:
-			return self.getSelectedPokemon()
+			return self.getSelectedPokemon(), False
 		
 	def selectPokemon(self, ownId):
 		cursor = MySQL.getCursor()
@@ -418,7 +415,7 @@ __Pokeball Stats:__
 		return False
 
 	def releasePokemon(self, pId):
-		pokemon = self.getPokemon(pId)
+		pokemon, inGym = self.getPokemon(pId)
 
 		cursor = MySQL.getCursor()
 		cursor.execute("""

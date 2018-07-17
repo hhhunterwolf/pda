@@ -97,7 +97,7 @@ async def display_pokemon_info(message):
 			option = int(temp[1])
 
 		if option:
-			pokemon = player.getPokemon(option)
+			pokemon, inGym = player.getPokemon(option)
 		else:
 			pokemon = player.getSelectedPokemon()
 		
@@ -224,8 +224,8 @@ async def select_pokemon(message):
 				option = int(temp[1])
 				if option:
 					try:
-						pokemon = player.getPokemon(option)
-						if pokemon:
+						pokemon, inGym = player.getPokemon(option)
+						if not inGym:
 							player.selectPokemon(pokemon.ownId)
 							await display_pokemon_info(message)
 						else:
@@ -722,7 +722,7 @@ async def display_center(message):
 				option = int(temp[1])
 				if option:
 					try:
-						pokemon = player.getPokemon(option)
+						pokemon, inGym = player.getPokemon(option)
 						isHealing, deltaTime = pokemon.isHealing()
 						isFull = (pokemon.pokeStats.current['hp'] - pokemon.pokeStats.hp)<=0
 						if not isFull and isHealing == None:
