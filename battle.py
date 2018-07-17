@@ -6,7 +6,7 @@ from mysql import MySQL
 
 defaultPower = 75
 defaultCritModifier = 1.5
-expModifier = 3
+expModifier = 4.5
 boostModifier = 0.5
 
 class Battle:
@@ -24,7 +24,10 @@ class Battle:
 					""", (pokeType1.tId, pokeType2.tId))
 				row = cursor.fetchone()
 				tempMod = row['damage_factor']
-				self.modifier1 = max(self.modifier1, tempMod)
+				if self.modifier1 == 200 and tempMod == 200:
+					self.modifier1 = 400
+				else:
+					self.modifier1 = max(self.modifier1, tempMod)
 		self.modifier1 = self.modifier1/100
 
 		for pokeType1 in self.challenger2.types:
@@ -38,7 +41,10 @@ class Battle:
 					""", (pokeType1.tId, pokeType2.tId))
 				row = cursor.fetchone()
 				tempMod = row['damage_factor']
-				self.modifier2 = max(tempMod, self.modifier2)
+				if self.modifier2 == 200 and tempMod == 200:
+					self.modifier2 = 400
+				else:
+					self.modifier2 = max(tempMod, self.modifier2)
 		self.modifier2 = self.modifier2/100
 
 	def __init__(self, challenger1, challenger2, trainer=False, boost=None, gym=False):
@@ -140,7 +146,7 @@ class Battle:
 
 		name = winner.name
 		if not self.gym:
-			leveledUp, evolved = winner.addExperience(exp)
+			leveledUp, evolved = winner.addExperience(exp+bonusExp)
 		else:
 			leveledUp, evolved = False, False
 		levelUpMessage = None
