@@ -447,10 +447,20 @@ __Pokeball Stats:__
 				WHERE player_id = %s
 				AND in_gym = 0
 				""", (self.pId,))
+
 			row = cursor.fetchone()
-
 			self.selectPokemon(row['id'])
+		else:
+			cursor.execute("""
+				SELECT * 
+				FROM player_pokemon
+				WHERE player_id = %s
+				AND selected = 1
+				""", (self.pId,))
 
+			row = cursor.fetchone()
+			self.getSelectedPokemon().ownId = row['id']
+			
 		return pokemon		
 
 	def getCaptureMod(self):
