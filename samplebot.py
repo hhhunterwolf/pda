@@ -19,8 +19,8 @@ from pitem import PokeItem
 # Make shop for multiple items
 # Fix pages for exactly %20 pokemon
 
-TOKEN = '***REMOVED***'
 #TOKEN = '***REMOVED***'
+TOKEN = '***REMOVED***'
 
 client = discord.Client()
 playerMap = {}
@@ -268,10 +268,11 @@ async def display_help(message):
 	await client.send_message(message.channel, embed=em)
 
 def get_random_pokemon_spawn():
-	rates = [[3,4], [4,10], [10,30], [30,80], [80,120], [120,200], [200,255]]
+	rates = [[3,4], [15,45], [50,255]]
 	rateList = []
 	for i in range(0,len(rates)):
-		rateList += int(2*(math.log10(rates[i][1]**4))) * [rates[i]]
+		rate = int(rates[i][1]**1.25)
+		rateList += rate * [rates[i]]
 	
 	row = None
 	while not row:
@@ -283,7 +284,7 @@ def get_random_pokemon_spawn():
 			FROM pokemon
 			WHERE enabled = 1 
 			AND capture_rate >= %s
-			AND capture_rate < %s
+			AND capture_rate <= %s
 			ORDER BY RAND()
 			LIMIT 1
 			""", (minR, maxR))
@@ -294,7 +295,7 @@ Capture Rate: %d
 Chance: %f
 """) % (
 		maxR,
-		int(2*(math.log10(maxR**4))) / len(rateList),
+		int(maxR**1.25) / len(rateList),
 	))
 	
 	return row['id'], row['identifier'].upper()
@@ -448,7 +449,7 @@ class Spawn:
 
 	@staticmethod	
 	async def spawn():
-		delay = random.randint(10, 35)
+		delay = 1#random.randint(10, 35)
 		print('Spawn delay is {}.'.format(delay))
 		await asyncio.sleep(delay)
 
@@ -512,7 +513,7 @@ class Spawn:
 						Spawn.fought[server.id] = []
 						await client.send_message(channel, embed=em)
 						#await asyncio.sleep(5)
-		restSpawn = random.randint(25, 45)
+		restSpawn = 15#random.randint(25, 45)
 		print('Rest time for spawn is {}.'.format(restSpawn))
 		await asyncio.sleep(restSpawn)
 
