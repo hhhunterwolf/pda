@@ -19,8 +19,8 @@ from pitem import PokeItem
 # Make shop for multiple items
 # Fix pages for exactly %20 pokemon
 
-#TOKEN = '***REMOVED***'
 TOKEN = '***REMOVED***'
+#TOKEN = '***REMOVED***'
 
 client = discord.Client()
 playerMap = {}
@@ -322,7 +322,7 @@ Chance: %f
 def convertDeltaToHuman(deltaTime):
 	return humanfriendly.format_timespan(deltaTime)
 
-valueMod = 8.75
+valueMod = 8.75*0.45
 ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
 class Spawn:
 	name = {}
@@ -401,7 +401,7 @@ class Spawn:
 				if victory:
 					Spawn.fought[message.server.id].append(player.pId)
 
-					baseValue = int(0.65*valueMod*(wildPokemon.pokeStats.level*255/wildPokemon.captureRate))//3 + random.randint(1, 75)
+					baseValue = int(valueMod*(wildPokemon.pokeStats.level*3/math.log10(wildPokemon.captureRate)))//3 + random.randint(20, 75)
 					print('Added EXP: {}'.format(baseValue))
 					money = int(random.uniform(2.5,3.6)*baseValue)
 					player.addMoney(money)
@@ -409,7 +409,7 @@ class Spawn:
 					if capture>0:
 						player.items[capture-1] -= 1
 						captureMessage += '\nYou threw a {} into {} and...\n'.format(ballList[capture-1], wildPokemon.name)
-						if wildPokemon.attemptCapture(capture-1):
+						if wildPokemon.attemptCapture(capture-1, player.getCaptureMod()):
 							captureMessage += '```fix\nGotcha! {} was added to your pokemon list!\n```'.format(wildPokemon.name)
 							wildPokemon.caughtWith = capture
 							baseValue *= math.log10(wildPokemon.pokeStats.level)
@@ -418,7 +418,7 @@ class Spawn:
 							captureMessage += '```css\nIt escaped...\n```'
 
 					player.addExperience(baseValue)
-					battleLog += getPlayerEarnedMoneyEXP(message.author.mention, baseValue, money)
+					captureMessage += getPlayerEarnedMoneyEXP(message.author.mention, baseValue, money)
 
 					if levelUpMessage:
 						lem = discord.Embed(title='Level up!', description='{0.author.mention}, your '.format(message) + levelUpMessage, colour=0xDEADBF)
@@ -431,7 +431,7 @@ class Spawn:
 						Spawn.fought[message.server.id].append(player.pId)
 
 					if victory:
-						money = int(random.uniform(3,4)*baseValue)
+						money = int(random.uniform(3.1,3.8)*money)
 						player.addMoney(money)
 						trainerMessage = 'Damn, {}! Your *{}* completely destroyed my *{}*! Here\'s **{}₽** for your deserved win!'.format(message.author.mention, playerPokemon.name, wildPokemon.name, money)
 					else:
@@ -447,7 +447,7 @@ class Spawn:
 				em = discord.Embed(title='Battle with {}{} Lv. {}!'.format('Trainer\'s ' if isTrainer else '', wildPokemon.name, newLevel), description=msg+battleLog+captureMessage, colour=0xDEADBF)
 				em.set_author(name='Professor Oak', icon_url=oakUrl)
 				em.set_thumbnail(url=imageURL.format(Spawn.pId[message.server.id]))
-				em.set_footer(text='You need pokeballs to catch pokemon! Check your supply by typing {}me.'.format(commandPrefix))
+				em.set_footer(text='You can check your pokeball supply by typing {}me.'.format(commandPrefix))
 				await client.send_message(message.channel, embed=em)
 				
 				if victory and levelUpMessage:
@@ -470,7 +470,7 @@ class Spawn:
 
 	@staticmethod	
 	async def spawn():
-		delay = 1#random.randint(10, 35)
+		delay = random.randint(10, 35)
 		print('Spawn delay is {}.'.format(delay))
 		await asyncio.sleep(delay)
 
@@ -534,7 +534,7 @@ class Spawn:
 						Spawn.fought[server.id] = []
 						await client.send_message(channel, embed=em)
 						#await asyncio.sleep(5)
-		restSpawn = 15#random.randint(25, 45)
+		restSpawn = random.randint(25, 45)
 		print('Rest time for spawn is {}.'.format(restSpawn))
 		await asyncio.sleep(restSpawn)
 
@@ -869,6 +869,7 @@ async def display_me(message):
 	em = discord.Embed(title='{}\'s player information!'.format(message.author.name), description=str(finalStr), colour=0xDEADBF)
 	em.set_thumbnail(url=message.author.avatar_url)
 	em.set_author(name='Professor Oak', icon_url=oakUrl)
+	em.set_footer(text='Higher level players have a bigger chance of catching wild pokemon.')
 	await client.send_message(message.channel, embed=em)
 
 def getUsableItemsString(player):
@@ -1029,7 +1030,7 @@ def check_not_started(callout, player, commandPrefix):
 	return em
 
 def getPlayerEarnedMoneyEXP(callout, exp, money):
-	return '\n{} earned **{} EXP** and **{}₽** for this battle.'.format(callout, exp, money)
+	return '\n{} earned **{} EXP** and **{}₽** for this battle.'.format(callout, int(exp), money)
 
 duelCooldown = 300
 async def accept_challenge(message):
@@ -1410,7 +1411,7 @@ serverAdminCommandList = {
 }
 
 playerMessageMap = {}
-messageThreshold = 3
+messageThreshold = 1.5
 async def executeCommand(commandList, command, key, message):
 	lastMessage = playerMessageMap[key]
 	deltaTime = datetime.datetime.now().timestamp() - lastMessage
