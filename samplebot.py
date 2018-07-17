@@ -46,8 +46,26 @@ async def send_greeting(message):
 	em.set_footer(text='Use {}start # to select a starter pokemon.'.format(commandPrefix))
 	await client.send_message(message.channel, msg)
 
-starters = 'Bulbasaur (1), Charmander (2) or Squirtle (3)'
-startersId = [1, 4, 7]
+startersId = [1, 4, 7, 25, 152, 155, 158, 252, 255, 258, 387, 390, 393, 495, 498, 501, 650, 653, 656]
+def getStartersString():
+	format_strings = ','.join(['%s'] * len(startersId))
+	
+	cursor = MySQL.getCursor()
+	cursor.execute("""
+		SELECT *
+		FROM pokemon
+		WHERE id in (%s)
+		""" % format_strings, tuple(startersId))
+
+	rows = cursor.fetchall()
+
+	msg = ''
+	counter = 1
+	for row in rows:
+		msg += '**{}.** {}\n'.format(counter, row['identifier'].upper())
+		counter += 1
+	return msg
+
 async def select_starter(message):
 	try:
 		commandPrefix, spawnChannel = serverMap[message.server.id]
@@ -56,7 +74,8 @@ async def select_starter(message):
 
 	player = playerMap[message.author.id + message.server.id]
 	
-	msg = '{0.author.mention}, the possible starters are {1}. Type {2}start followed by a number to select a starter. For instance, {2}start 2 will give you Charmander!'.format(message, starters, commandPrefix)
+	msg = 'Hello {0.author.mention}, and welcome to Pokemon Discord Adventure! To begin your journey, you will have to choose a starter. That is easy! Type {1}start #, where # is the number of one of the starter pokemon listed below: \n\n'.format(message, commandPrefix)
+	msg += getStartersString()
 
 	if player.hasStarted():
 		msg = '{0.author.mention}, you have already selected a starter pokemon!'.format(message)
@@ -67,7 +86,7 @@ async def select_starter(message):
 		if len(temp)>1:
 			option = int(temp[1])
 
-		if option:
+		if option and option > 0 and option <= len(startersId):
 			try:
 				pId = startersId[option-1]
 				msg = '{0.author.mention}, here\'s your level 5 starter Pokemon!'.format(message)
