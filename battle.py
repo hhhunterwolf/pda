@@ -6,7 +6,7 @@ from mysql import MySQL
 
 defaultPower = 75
 defaultCritModifier = 1.5
-expModifier = 4.5
+expModifier = 2
 boostModifier = 0.5
 
 class Battle:
