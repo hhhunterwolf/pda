@@ -373,7 +373,8 @@ class Spawn:
 					UPDATE player_pokemon
 					SET healing = NULL
 					WHERE id = %s
-					""", (playerPokemon.ownId,))
+					AND player_id = %s
+					""", (playerPokemon.ownId, player.pId))
 				MySQL.commit()
 				playerPokemon.healing = None
 				playerPokemon.pokeStats.hp = playerPokemon.pokeStats.current['hp']				
@@ -532,8 +533,11 @@ class Spawn:
 						
 						Spawn.spawned[server.id] = False
 						Spawn.fought[server.id] = []
-						await client.send_message(channel, embed=em)
-						#await asyncio.sleep(5)
+						try:
+							await client.send_message(channel, embed=em)
+						except Exception as e:
+							traceback.print_exc()
+	
 		restSpawn = random.randint(25, 45)
 		print('Rest time for spawn is {}.'.format(restSpawn))
 		await asyncio.sleep(restSpawn)
@@ -542,7 +546,7 @@ class Spawn:
 async def spawn_wild_pokemon():
 	await client.wait_until_ready()
 
-	while not client.is_closed:
+	while True:
 		#await asyncio.sleep(5)
 		await Spawn.spawn()
 		
