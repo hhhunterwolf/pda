@@ -322,6 +322,7 @@ Chance: %f
 def convertDeltaToHuman(deltaTime):
 	return humanfriendly.format_timespan(deltaTime)
 
+afkTime = 180
 valueMod = 8.75*0.45
 ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
 class Spawn:
@@ -470,7 +471,7 @@ class Spawn:
 
 	@staticmethod	
 	async def spawn():
-		delay = random.randint(10, 35)
+		delay = random.randint(15, 35)
 		print('Spawn delay is {}.'.format(delay))
 		await asyncio.sleep(delay)
 
@@ -492,7 +493,9 @@ class Spawn:
 					if not Spawn.spawned[server.id]:
 						serverSpawnChance = random.randint(0,255)
 						print('Spawn chance for server {}/{}.'.format(serverSpawnChance, 50))
-						if serverSpawnChance < 50:
+						isAfk = server.id not in serverMessageMap or (datetime.datetime.now().timestamp() - serverMessageMap[server.id]) > afkTime
+						if serverSpawnChance < 50 or isAfk:
+							print('Is afk?', isAfk)
 							break
 
 						Spawn.spawned[server.id] = True
@@ -534,7 +537,7 @@ class Spawn:
 						Spawn.fought[server.id] = []
 						await client.send_message(channel, embed=em)
 						#await asyncio.sleep(5)
-		restSpawn = random.randint(25, 45)
+		restSpawn = random.randint(35, 50)
 		print('Rest time for spawn is {}.'.format(restSpawn))
 		await asyncio.sleep(restSpawn)
 
@@ -1419,6 +1422,8 @@ async def executeCommand(commandList, command, key, message):
 		playerMessageMap[key] = datetime.datetime.now().timestamp()
 		await commandList[command](message)
 
+serverMessageMap = {}
+
 @client.event
 async def on_message(message):
 	await client.wait_until_ready()
@@ -1431,6 +1436,8 @@ async def on_message(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id]
 	except KeyError as err:
 		return
+
+	serverMessageMap[message.server.id] = datetime.datetime.now().timestamp()
 
 	content = message.content.lower()
 	if content.startswith(commandPrefix):
