@@ -2,6 +2,7 @@ import textwrap
 import datetime
 import humanfriendly
 import math
+import string
 
 from pokemon import Pokemon
 from mysql import MySQL
@@ -10,6 +11,11 @@ from datetime import timedelta
 
 class Player:
 	START_MONEY = 3000
+
+	def strip_non_ascii(string):
+	    ''' Returns the string without non ASCII characters'''
+	    stripped = (c for c in string if 0 < ord(c) < 127)
+	    return ''.join(stripped)
 
 	def setSelectedPokemon(self):
 		cursor = MySQL.getCursor()
@@ -32,6 +38,8 @@ class Player:
 			WHERE id = %s
 			""", (pId,))
 		row = cursor.fetchone()
+
+		name = Player.strip_non_ascii(name)
 
 		self.lastDuel = datetime.datetime.now() - timedelta(days=1)
 		self.lastGym = datetime.datetime.now() - timedelta(days=1)

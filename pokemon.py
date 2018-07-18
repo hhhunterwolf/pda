@@ -208,7 +208,7 @@ __Experience:__
 			return '{} minute(s) and {} second(s)'.format(minutes, int(deltaTime - minutes*60))
 
 	def isType(self, tId):
-		if len(self.types)>1:
+		if len(self.types)==1:
 			return self.types[0].tId == tId
 		else:
 			return self.types[0].tId == tId or self.types[1].tId
