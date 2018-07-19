@@ -65,8 +65,8 @@ class Battle:
 			self.challenger1, self.challenger2 = self.challenger2, self.challenger1
 			self.modifier1, self.modifier2 = self.modifier2, self.modifier1
 		
-		print(challenger1)
-		print(challenger2)
+		#print(challenger1)
+		#print(challenger2)
 
 	def getDamage(self, challenger1, challenger2, modifier):
 		return math.floor(((((0.4*challenger1.pokeStats.level + 2) * defaultPower * (challenger1.pokeStats.current['attack'] / challenger2.pokeStats.current['defense']))/50) + 2) * modifier)
@@ -141,7 +141,7 @@ class Battle:
 			if bonusExp > 0:
 				bonusMsg = ' (+' + str(bonusExp) + ' boost)'
 			msg += ('{} earned '.format(winner.name) + str(exp) + bonusMsg + ' EXP points.\n')
-		print(msg)
+		#print(msg)
 		msg += '```'
 
 		name = winner.name
@@ -154,9 +154,10 @@ class Battle:
 			levelUpMessage = ('{} leveled up to level {}!\n\n'.format(name, str(winner.pokeStats.level)))
 			if evolved:
 				levelUpMessage += ('What!? {} is evolving! It evolved into a {}!'.format(name, winner.name))
-				print(winner)
+				#print(winner)
 		
 		if levelUpMessage:
-			print(levelUpMessage)
+			#print(levelUpMessage)
+			pass
 
 		return winner, msg, levelUpMessage
