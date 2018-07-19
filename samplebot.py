@@ -287,10 +287,10 @@ async def display_help(message):
 	await client.send_message(message.channel, embed=em)
 
 def get_random_pokemon_spawn():
-	rates = [[3,4], [15,45], [50,255]]
+	rates = [[3,4], [15,255]]
 	rateList = []
 	for i in range(0,len(rates)):
-		rate = int(rates[i][1]**1.25)
+		rate = int(rates[i][1]**1.75)
 		rateList += rate * [rates[i]]
 	
 	row = None
@@ -322,7 +322,7 @@ Chance: %f
 def convertDeltaToHuman(deltaTime):
 	return humanfriendly.format_timespan(deltaTime)
 
-afkTime = 180
+afkTime = 120
 valueMod = 8.75*0.45
 ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
 class Spawn:
@@ -331,6 +331,7 @@ class Spawn:
 	spawned = {}
 	fought = {}
 	trainer = {}
+	restSpawn = 0
 
 	@staticmethod
 	async def fight(message, capture=0):
@@ -472,7 +473,7 @@ class Spawn:
 
 	@staticmethod	
 	async def spawn():
-		delay = random.randint(15, 35)
+		delay = random.randint(25, 55)
 		print('Spawn delay is {}.'.format(delay))
 		await asyncio.sleep(delay)
 
@@ -492,11 +493,15 @@ class Spawn:
 			for channel in server.channels:
 				if channel.id == spawnChannel:
 					if not Spawn.spawned[server.id]:
-						serverSpawnChance = random.randint(0,255)
-						print('Spawn chance for server {}/{}.'.format(serverSpawnChance, 50))
-						isAfk = server.id not in serverMessageMap or (datetime.datetime.now().timestamp() - serverMessageMap[server.id]) > afkTime
-						if serverSpawnChance < 50 or isAfk:
-							print('Is afk?', isAfk)
+						isAfk = True
+						localAfkTime = 0
+						key = server.id + channel.id
+						if key in serverMessageMap:
+							localAfkTime = (datetime.datetime.now().timestamp() - serverMessageMap[key])
+							isAfk = localAfkTime > afkTime + Spawn.restSpawn
+
+						print('Is afk?', isAfk, localAfkTime)
+						if isAfk:
 							break
 
 						Spawn.spawned[server.id] = True
@@ -541,9 +546,9 @@ class Spawn:
 						except Exception as e:
 							traceback.print_exc()
 	
-		restSpawn = random.randint(25, 45)
-		print('Rest time for spawn is {}.'.format(restSpawn))
-		await asyncio.sleep(restSpawn)
+		Spawn.restSpawn = random.randint(25, 45)
+		print('Rest time for spawn is {}.'.format(Spawn.restSpawn))
+		await asyncio.sleep(Spawn.restSpawn)
 
 @asyncio.coroutine
 async def spawn_wild_pokemon():
@@ -1441,7 +1446,7 @@ async def on_message(message):
 	except KeyError as err:
 		return
 
-	serverMessageMap[message.server.id] = datetime.datetime.now().timestamp()
+	serverMessageMap[message.server.id + message.channel.id] = datetime.datetime.now().timestamp()
 
 	content = message.content.lower()
 	if content.startswith(commandPrefix):
