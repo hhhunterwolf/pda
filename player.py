@@ -141,7 +141,8 @@ class Player:
 				WHERE player_pokemon.player_id = %s
 			)
 			AND player_pokemon.pokemon_id = pokemon.id
-			""", (self.pId,))
+			AND player_pokemon.player_id = %s
+			""", (self.pId,self.pId))
 		row = cursor.fetchone()
 		if row:
 			highIvStr = '{} (**ID:** {} / **Average IV**: {})'.format(row['identifier'].upper(), row['id'], row['iv']//6)
