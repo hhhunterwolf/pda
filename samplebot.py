@@ -384,7 +384,7 @@ class Spawn:
 			if playerPokemon.pokeStats.hp > 0:
 				level = playerPokemon.pokeStats.level
 				levelDeviation = 1/(math.log10(level)+1)
-				newLevel =  int(random.uniform(levelDeviation, 1) * level)
+				newLevel =  int(random.uniform(levelDeviation, 0.85) * level)
 				# newLevel = 100 if newLevel > 100 else newLevel
 				# newLevel = 1 if newLevel < 1 else newLevel
 
@@ -430,9 +430,6 @@ class Spawn:
 						lem.set_footer(text='Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
 
 				if isTrainer:
-					if not player.pId in Spawn.fought[message.server.id]:
-						Spawn.fought[message.server.id].append(player.pId)
-
 					if victory:
 						money = int(random.uniform(3.1,3.8)*money)
 						player.addMoney(money)
