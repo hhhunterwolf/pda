@@ -231,23 +231,58 @@ __Pokeball Stats:__
 
 		pages = 1
 		if row:
-			pages = int(row['COUNT(*)'] / (pokemonPerPage)) + 1
+			pages = 1 + ((row['COUNT(*)']-1) // (pokemonPerPage))
 		
 		return pokemonList, pages
 
-	def getPokemon(self, pId):
-		if pId == self.getSelectedPokemon().ownId:
-			return self.getSelectedPokemon(), False
+	def getFavoritePokemonList(self):
+		pokemonPerPage = Player.pokemonPerPage
 
 		cursor = MySQL.getCursor()
 		cursor.execute("""
 			SELECT * 
-			FROM player_pokemon
-			WHERE player_id = %s
-			AND id = %s
-			""", (self.pId, pId))
-		row = cursor.fetchone()
+			FROM favorite JOIN player_pokemon
+			WHERE favorite.player_id = %s
+			AND favorite.player_id = player_pokemon.player_id
+			AND favorite.player_pokemon_id = player_pokemon.id
+			""", (self.pId,))
+		rows = cursor.fetchall()
+		
+		pokemonList = []
+		if rows:
+			for row in rows:
+				pokemonList.append([Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing']), row['selected'], row['in_gym']])
+
+		return pokemonList
+
+	def getPokemon(self, pId, isFav=False):
+		cursor = MySQL.getCursor()
+		if isFav:
+			cursor.execute("""
+				SELECT * 
+				FROM favorite JOIN player_pokemon
+				WHERE favorite.player_id = %s
+				AND favorite.favorite_id = %s
+				AND favorite.player_id = player_pokemon.player_id
+				AND favorite.player_pokemon_id = player_pokemon.id
+				""", (self.pId, pId))
+			row = cursor.fetchone()
+
+		else:
+			if pId == self.getSelectedPokemon().ownId:
+				return self.getSelectedPokemon(), False
+			cursor.execute("""
+				SELECT * 
+				FROM player_pokemon
+				WHERE player_id = %s
+				AND id = %s
+				""", (self.pId, pId))
+			row = cursor.fetchone()
+
 		if row:
+			if row['id'] == self.getSelectedPokemon().ownId:
+				return self.getSelectedPokemon(), False
+
 			return Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], caughtWith=row['caught_with']), row['in_gym'] > 0
 		else:
 			return self.getSelectedPokemon(), False
@@ -474,3 +509,67 @@ __Pokeball Stats:__
 
 	def getCaptureMod(self):
 		return math.log10(self.level+1)/3
+
+	def addFavorite(self, pId):
+		cursor = MySQL.getCursor()
+		cursor.execute("""
+			SELECT COUNT(*) 
+			FROM favorite
+			WHERE player_id = %s
+		""", (self.pId,))
+		row = cursor.fetchone()
+
+		lastId = 1
+		if row:
+			if row['COUNT(*)'] == 20:
+				return 'full', None, -1
+			lastId = row['COUNT(*)'] + 1
+
+		pokemon, inGym = self.getPokemon(pId)
+
+		if lastId>1:
+			cursor.execute("""
+				SELECT *
+				FROM favorite
+				WHERE player_id = %s
+				AND player_pokemon_id = %s
+			""", (self.pId, pokemon.ownId))
+			row = cursor.fetchone()
+
+			if row:
+				return 'duplicate', pokemon, row['favorite_id']
+
+		cursor.execute("""
+			INSERT INTO favorite (favorite_id, player_id, player_pokemon_id)
+			VALUES (%s, %s, %s)
+			""", (lastId, self.pId, pokemon.ownId))
+		MySQL.commit()
+
+		return 'success', pokemon, lastId
+
+	def removeFavorite(self, pId):
+		pokemon, inGym = self.getPokemon(pId, True)
+
+		cursor = MySQL.getCursor()
+		cursor.execute("""
+			DELETE 
+			FROM favorite
+			WHERE player_id = %s
+			AND favorite_id = %s
+			""", (self.pId, pId))
+		row = cursor.fetchone()
+
+		success = cursor.rowcount
+		if success > 0:
+			cursor.execute("""
+				UPDATE favorite
+				SET favorite_id = favorite_id - 1
+				WHERE player_id = %s
+				AND favorite_id > %s
+				""", (self.pId, pId))
+			row = cursor.fetchone()
+
+			MySQL.commit()
+			return True, pokemon
+		else:
+			return False, None
