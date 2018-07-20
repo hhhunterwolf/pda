@@ -221,7 +221,7 @@ async def display_favorite_pokemons(message):
 			string = 'No favorite pokemon.'
 
 		msg = '{0.author.mention}, this is your favorite pokemon list. You can quickly select your favorite pokemon by typing ``{1}favorite #``, where # is one of the favorite pokemon listed below, if any. To add pokemon to your favorites, type ``{1}favorite add #``, where # is the pokemon id found in ``{1}pokemon``. Finally, to remove a pokemon from your favorites, type ``{1}favorite rem #``.\n\n'.format(message, commandPrefix)
-		em = discord.Embed(title='{}\'s Favorite Pokemon List'.format(message.author.nick), description=msg+string, colour=0xDEADBF)
+		em = discord.Embed(title='{}\'s Favorite Pokemon List'.format(message.author.name), description=msg+string, colour=0xDEADBF)
 		em.set_author(name='Professor Oak', icon_url=oakUrl)
 		em.set_footer(text='HINT: Favoriting pokemon is an easy way of organizing them.'.format(commandPrefix))
 		await client.send_message(message.channel, embed=em)
@@ -259,7 +259,7 @@ async def display_pokemons(message):
 		else:
 			string = 'Invalid page.'
 
-		em = discord.Embed(title='{}\'s Pokemon List'.format(message.author.nick), description=string, colour=0xDEADBF)
+		em = discord.Embed(title='{}\'s Pokemon List'.format(message.author.name), description=string, colour=0xDEADBF)
 		em.set_author(name='Professor Oak', icon_url=oakUrl)
 		em.set_footer(text='HINT: Page {}/{}. Use {}pokemon # to select a different page.'.format(curPage, pages, commandPrefix))
 		await client.send_message(message.channel, embed=em)
@@ -365,8 +365,8 @@ async def display_help(message):
 		'**{0}start:** Shows information on how to select a starter and start the adventure. \n' \
 		'**{0}pokemon or {0}p:** Shows a list of all your pokemon. \n' \
 		'**{0}select or {0}s:** Selects a pokemon in your list to use on your journey.\n' \
-		'**{0}favorite or {0}a:** Shows information on how to add pokemon to your favorite list.\n' \
-		'**{0}release:** Releases a in your list pokemon. It will never come back.\n' \
+		'**{0}favorite or {0}v:** Shows information on how to add pokemon to your favorite list.\n' \
+		'**{0}release or {0}r:** Releases a in your list pokemon. It will never come back.\n' \
 		'**{0}help:** Shows this help message. \n' \
 		'**{0}fight or {0}f:** Fights the currently spawned pokemon or poketrainer if available.\n' \
 		'**{0}catch or {0}c:** Fights and tries to catch the currently spawned pokemon if available.\n' \
@@ -374,9 +374,9 @@ async def display_help(message):
 		'**{0}me:** Shows information on the player.\n' \
 		'**{0}shop or {0}b:** Displays the shop. \n' \
 		'**{0}item or {0}u:** Displays the player inventory. \n' \
-		'**{0}duel:** Challenges another player to a duel. \n' \
-		'**{0}accept:** Accepts a duel challenge. \n' \
-		'**{0}gym:** Shows information on the gyms. \n\n' \
+		'**{0}duel or {0}d:** Challenges another player to a duel. \n' \
+		'**{0}accept or {0}a:** Accepts a duel challenge. \n' \
+		'**{0}gym or {0}g:** Shows information on the gyms. \n\n' \
 		'__Admin Commands:__ \n\n' \
 		'**{0}prefix:** Changes the prefix used to trigger bot commands (default is p). \n' \
 		'**{0}spawn:** Sets the channel where wild pokemon and poketrainers will spawn. \n'
@@ -484,9 +484,13 @@ class Spawn:
 
 			if playerPokemon.pokeStats.hp > 0:
 				level = playerPokemon.pokeStats.level
-				levelDeviation = 1/(math.log10(level)+1)
+				levelDeviation = 1/(math.log10(level/2)+1)
+				print("Level Deviation", levelDeviation)
 				isTrainer, gender = Spawn.trainer[message.server.id]
-				newLevel =  int(random.uniform(levelDeviation, 0.85 + 0.45 if isTrainer else 0) * level)
+				uniform = random.uniform(levelDeviation, 0.85 + (0.45 if isTrainer else 0.1))
+				print("Uniform", uniform)
+				newLevel =  int(uniform * level)
+				print("New Level", newLevel)
 				newLevel = min(newLevel, 100)
 				newLevel = max(newLevel, 1)
 
@@ -1498,9 +1502,11 @@ commandList = {
 	'p' : display_pokemons,
 	'pokemon' : display_pokemons,
 	'a' : display_favorite_pokemons,
+	'v' : display_favorite_pokemons,
 	'favorite' : display_favorite_pokemons,
 	's' : select_pokemon,
 	'select' : select_pokemon,
+	'r' : release_pokemon,
 	'release' : release_pokemon,
 	'help' : display_help,
 	'f' : display_fight,
@@ -1509,14 +1515,19 @@ commandList = {
 	'catch' : display_catch,
 	'h' : display_center,
 	'center' : display_center,
+	'heal' : display_center,
 	'me' : display_me,
 	'b' : display_shop,
 	'shop' : display_shop,
 	'buy' : display_shop,
 	'u' : display_item,
 	'item' : display_item,
+	'use' : display_item,
+	'd' : challenge_player,
 	'duel' : challenge_player,
+	'a' : accept_challenge,
 	'accept' : accept_challenge,
+	'g' : display_gym,
 	'gym' : display_gym
 }
 
