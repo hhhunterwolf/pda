@@ -464,12 +464,19 @@ __Pokeball Stats:__
 
 		cursor = MySQL.getCursor()
 		cursor.execute("""
+			SELECT *
+			FROM favorite
+			WHERE player_id = %s
+			AND player_pokemon_id = %s
+			""", (self.pId, pId))
+		row = cursor.fetchone()
+
+		cursor.execute("""
 			DELETE 
 			FROM player_pokemon
 			WHERE player_id = %s
 			AND id = %s
 			""", (self.pId, pId))
-		row = cursor.fetchone()
 
 		cursor.execute("""
 			UPDATE player_pokemon
@@ -477,7 +484,14 @@ __Pokeball Stats:__
 			WHERE player_id = %s
 			AND id > %s
 			""", (self.pId, pId))
-		row = cursor.fetchone()
+
+		if row:
+			cursor.execute("""
+				UPDATE favorite
+				SET favorite_id = favorite_id - 1
+				WHERE player_id = %s
+				AND favorite_id > %s
+				""", (self.pId, row['favorite_id']))
 
 		MySQL.commit()
 
