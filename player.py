@@ -587,3 +587,6 @@ __Pokeball Stats:__
 			return True, pokemon
 		else:
 			return False, None
+
+	def hasAllBadges(self):
+		return len(self.badges) == 18
