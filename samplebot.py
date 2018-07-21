@@ -387,6 +387,20 @@ async def display_help(message):
 	em.set_author(name='Professor Oak', icon_url=oakUrl)
 	await client.send_message(message.channel, embed=em)
 
+def get_random_boss_pokemon():
+	cursor = MySQL.getCursor()
+	cursor.execute("""
+		SELECT * 
+		FROM pokemon
+		WHERE enabled = 1 
+		AND capture_rate <= 3
+		ORDER BY RAND()
+		LIMIT 1
+		""")
+	row = cursor.fetchone()
+
+	return row['id'], row['identifier'].upper()
+
 def get_random_pokemon_spawn():
 	rates = [[3,4], [15,255]]
 	rateList = []
@@ -423,6 +437,26 @@ Chance: %f
 def convertDeltaToHuman(deltaTime):
 	return humanfriendly.format_timespan(deltaTime)
 
+def give_players_boss_prize(serverId):
+	rand = random.randint(0, 255)
+	item = None
+	numerous = True
+	if rand == 0:
+		item = items[3]
+		numerous = False
+	elif rand <= 64:
+		item = items[7]
+	else:
+		item = items[2]
+	
+	for pId in Spawn.fought[serverId]:
+		player = playerMap[pId]
+		amount = 1 if not numerous else random.randint(2*player.level, 3*player.level)
+		player.addItem(item.id-1, amount)
+
+	return '{} unit(s) of {}!'.format('1' if not numerous else 'a couple of', item.name)
+
+bossChance = 16
 afkTime = 120
 valueMod = 8.75*0.45
 ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
@@ -432,6 +466,8 @@ class Spawn:
 	spawned = {}
 	fought = {}
 	trainer = {}
+	isBoss = {}
+	bossFighters = {}
 	restSpawn = 0
 
 	@staticmethod
@@ -482,57 +518,75 @@ class Spawn:
 				playerPokemon.healing = None
 				playerPokemon.pokeStats.hp = playerPokemon.pokeStats.current['hp']				
 
+			isTrainer = False
 			if playerPokemon.pokeStats.hp > 0:
-				level = playerPokemon.pokeStats.level
-				levelDeviation = 1/(math.log10(level/2)+1)
-				print("Level Deviation", levelDeviation)
-				isTrainer, gender = Spawn.trainer[message.server.id]
-				uniform = random.uniform(levelDeviation, 0.85 + (0.45 if isTrainer else 0.1))
-				print("Uniform", uniform)
-				newLevel =  int(uniform * level)
-				print("New Level", newLevel)
-				newLevel = min(newLevel, 100)
-				newLevel = max(newLevel, 1)
-
-				wildPokemon = Pokemon(name=Spawn.name[message.server.id], pokemonId=Spawn.pId[message.server.id], level=newLevel, wild=1 if not isTrainer else 1.5)
+				isBossBool, wildPokemon = Spawn.isBoss[message.server.id]
+				if isBossBool:
+					gym = True
+					if not wildPokemon:
+						wildPokemon = Pokemon(name=Spawn.name[message.server.id], pokemonId=Spawn.pId[message.server.id], level=100, wild=1)
+						Spawn.isBoss[message.server.id] = True, wildPokemon
+						wildPokemon.pokeStats.hp *= 10 
+				else:
+					gym = False
+					level = playerPokemon.pokeStats.level
+					levelDeviation = 1/(math.log10(2*level)+1)
+					isTrainer, gender = Spawn.trainer[message.server.id]
+					uniform = random.uniform(levelDeviation, 0.85 + (0.45 if isTrainer else 0.1))
+					newLevel =  int(uniform * level)
+					newLevel = min(newLevel, 100)
+					newLevel = max(newLevel, 1)
+					wildPokemon = Pokemon(name=Spawn.name[message.server.id], pokemonId=Spawn.pId[message.server.id], level=newLevel, wild=1 if not isTrainer else 1.5)
+					
 				boost = None
 				isBoosted = player.isBoosted()
 				if isBoosted:
 					boost = playerPokemon
 
-				battle = Battle(challenger1=playerPokemon, challenger2=wildPokemon, boost=boost)
+				battle = Battle(challenger1=playerPokemon, challenger2=wildPokemon, boost=boost, gym=gym)
 				winner, battleLog, levelUpMessage = battle.execute()
 				player.commitPokemonToDB()
 
 				captureMessage = ''
 				victory = winner == playerPokemon
-				if victory:
+				
+				if not isBossBool:
+					if victory:
+						Spawn.fought[message.server.id].append(player.pId)
+
+						baseValue = int(valueMod*(wildPokemon.pokeStats.level*3/math.log10(wildPokemon.captureRate)))//3 + random.randint(20, 75)
+						print('Added EXP: {}'.format(baseValue))
+						money = int(random.uniform(2.5,3.6)*baseValue)
+						player.addMoney(money)
+
+						if capture>0:
+							player.items[capture-1] -= 1
+							captureMessage += '\nYou threw a {} into {} and...\n'.format(ballList[capture-1], wildPokemon.name)
+							if wildPokemon.attemptCapture(capture-1, player.getCaptureMod()):
+								captureMessage += '```fix\nGotcha! {} was added to your pokemon list!\n```'.format(wildPokemon.name)
+								wildPokemon.caughtWith = capture
+								baseValue *= math.log10(wildPokemon.pokeStats.level)
+								player.addPokemonViaInstace(wildPokemon)
+							else:
+								captureMessage += '```css\nIt escaped...\n```'
+
+						player.addExperience(baseValue)
+						captureMessage += getPlayerEarnedMoneyEXP(message.author.mention, baseValue, money)
+
+						if levelUpMessage:
+							lem = discord.Embed(title='Level up!', description='{0.author.mention}, your '.format(message) + levelUpMessage, colour=0xDEADBF)
+							lem.set_author(name='Professor Oak', icon_url=oakUrl)
+							lem.set_thumbnail(url=imageURL.format(winner.pId))
+							lem.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
+				else:
 					Spawn.fought[message.server.id].append(player.pId)
-
-					baseValue = int(valueMod*(wildPokemon.pokeStats.level*3/math.log10(wildPokemon.captureRate)))//3 + random.randint(20, 75)
-					print('Added EXP: {}'.format(baseValue))
-					money = int(random.uniform(2.5,3.6)*baseValue)
-					player.addMoney(money)
-
-					if capture>0:
-						player.items[capture-1] -= 1
-						captureMessage += '\nYou threw a {} into {} and...\n'.format(ballList[capture-1], wildPokemon.name)
-						if wildPokemon.attemptCapture(capture-1, player.getCaptureMod()):
-							captureMessage += '```fix\nGotcha! {} was added to your pokemon list!\n```'.format(wildPokemon.name)
-							wildPokemon.caughtWith = capture
-							baseValue *= math.log10(wildPokemon.pokeStats.level)
-							player.addPokemonViaInstace(wildPokemon)
-						else:
-							captureMessage += '```css\nIt escaped...\n```'
-
-					player.addExperience(baseValue)
-					captureMessage += getPlayerEarnedMoneyEXP(message.author.mention, baseValue, money)
-
-					if levelUpMessage:
-						lem = discord.Embed(title='Level up!', description='{0.author.mention}, your '.format(message) + levelUpMessage, colour=0xDEADBF)
-						lem.set_author(name='Professor Oak', icon_url=oakUrl)
-						lem.set_thumbnail(url=imageURL.format(winner.pId))
-						lem.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
+					if victory:
+						prizeStr = give_players_boss_prize(message.server.id)
+						bossMsg = '{} was defeated! All the participant players won {}!'.format(Spawn.name[message.server.id], prizeStr)
+						bem = discord.Embed(title='The boss is down!', description=bossMsg, colour=0xDEADBF)
+						bem.set_author(name='Professor Oak', icon_url=oakUrl)
+						bem.set_thumbnail(url=imageURL.format(Spawn.pId[message.server.id]))
+						
 
 				if isTrainer:
 					if victory:
@@ -547,9 +601,13 @@ class Spawn:
 					tem.set_thumbnail(url=trainerURL.format(gender))
 
 				player.update()
-						
-				msg = '{0.author.mention}, your {1} fought a beautiful battle against {2}! Here are the details: \n\n'.format(message, playerPokemon.name, wildPokemon.name)
-				em = discord.Embed(title='Battle with {}{} Lv. {}!'.format('Trainer\'s ' if isTrainer else '', wildPokemon.name, newLevel), description=msg+battleLog+captureMessage, colour=0xDEADBF)
+				
+				if not isBossBool:		
+					msg = '{0.author.mention}, your {1} fought a beautiful battle against {2}! Here are the details: \n\n'.format(message, playerPokemon.name, wildPokemon.name)
+					em = discord.Embed(title='Battle with {}{} Lv. {}!'.format('Trainer\'s ' if isTrainer else '', wildPokemon.name, newLevel), description=msg+battleLog+captureMessage, colour=0xDEADBF)
+				else:
+					msg = '{0.author.mention}, your {1} gave it all against the boss {2}! Here are the details: \n\n'.format(message, playerPokemon.name, wildPokemon.name)
+					em = discord.Embed(title='Boss Battle with {} Lv. 100!'.format(wildPokemon.name), description=msg+battleLog, colour=0xDEADBF)
 				em.set_author(name='Professor Oak', icon_url=oakUrl)
 				em.set_thumbnail(url=imageURL.format(Spawn.pId[message.server.id]))
 				em.set_footer(text='HINT: You can check your pokeball supply by typing {}me.'.format(commandPrefix))
@@ -559,7 +617,10 @@ class Spawn:
 					await client.send_message(message.channel, embed=lem)
 
 				if isTrainer:
-					await client.send_message(message.channel, embed=tem)					
+					await client.send_message(message.channel, embed=tem)	
+
+				if victory and isBossBool:
+					await client.send_message(message.channel, embed=bem)									
 
 			else:
 				msg = '{0.author.mention}, your pokemon has 0 HP, it is in no condition to fight! Take it to the pokemon center by typing ``{1}center.``'.format(message, commandPrefix)
@@ -591,6 +652,7 @@ class Spawn:
 				Spawn.pId[server.id] = 0
 				Spawn.fought[server.id] = []
 				Spawn.trainer[server.id] = [False, 0]
+				Spawn.isBoss[server.id] = False, None
 
 			for channel in server.channels:
 				if channel.id == spawnChannel:
@@ -607,23 +669,32 @@ class Spawn:
 							break
 
 						Spawn.spawned[server.id] = True
-						Spawn.pId[server.id], Spawn.name[server.id] = get_random_pokemon_spawn()
-						Spawn.trainer[server.id][0] = random.randint(0, 255)<=30
-						Spawn.trainer[server.id][1] = random.randint(0, 1)
-						isTrainer, gender = Spawn.trainer[server.id]
-						if isTrainer:
-							article = 'him' if gender==0 else 'her'
-							msg = 'A poketrainer is looking for a challenger! Type ``{0}fight`` to fight {1}!'.format(commandPrefix, article)
-							em = discord.Embed(title='Here comes a new challenger!', description=msg, colour=0xDEADBF)
+						if random.randint(0,255) <= bossChance:
+							Spawn.pId[server.id], Spawn.name[server.id] = get_random_boss_pokemon()
+							Spawn.isBoss[server.id] = True, None
+							msg = 'A boss {0} has appeared! Type ``{1}fight`` to fight it!'.format(Spawn.name[server.id], commandPrefix)
+							em = discord.Embed(title='A wild Boss Pokemon appears!', description=msg, colour=0xDEADBF)
 							em.set_author(name='Tall Grass', icon_url=grassUrl)
-							em.set_thumbnail(url=trainerURL.format(gender))
-							em.set_footer(text='HINT: You cannot catch other trainer\'s pokemon, but you will earn money if you win the fight.'.format(commandPrefix))
+							em.set_image(url=imageURL.format(Spawn.pId[server.id]))
+							em.set_footer(text='HINT: The more people fight the boss, the easier it is to defeat it!'.format(commandPrefix))
 						else:
-							msg = 'A wild {0} wants to fight! Type ``{1}fight`` to fight it, or ``{1}catch #`` to try and catch it as well!'.format(Spawn.name[server.id], commandPrefix)
-							em = discord.Embed(title='A wild {} appeared!'.format(Spawn.name[server.id]), description=msg, colour=0xDEADBF)
-							em.set_author(name='Tall Grass', icon_url=grassUrl)
-							em.set_thumbnail(url=imageURL.format(Spawn.pId[server.id]))
-							em.set_footer(text='HINT: You need pokeballs to catch pokemon! Check your supply by typing {}me.'.format(commandPrefix))
+							Spawn.pId[server.id], Spawn.name[server.id] = get_random_pokemon_spawn()
+							Spawn.trainer[server.id][0] = random.randint(0, 255)<=30
+							Spawn.trainer[server.id][1] = random.randint(0, 1)
+							isTrainer, gender = Spawn.trainer[server.id]
+							if isTrainer:
+								article = 'him' if gender==0 else 'her'
+								msg = 'A poketrainer is looking for a challenger! Type ``{0}fight`` to fight {1}!'.format(commandPrefix, article)
+								em = discord.Embed(title='Here comes a new challenger!', description=msg, colour=0xDEADBF)
+								em.set_author(name='Tall Grass', icon_url=grassUrl)
+								em.set_thumbnail(url=trainerURL.format(gender))
+								em.set_footer(text='HINT: You cannot catch other trainer\'s pokemon, but you will earn money if you win the fight.'.format(commandPrefix))
+							else:
+								msg = 'A wild {0} wants to fight! Type ``{1}fight`` to fight it, or ``{1}catch #`` to try and catch it as well!'.format(Spawn.name[server.id], commandPrefix)
+								em = discord.Embed(title='A wild {} appeared!'.format(Spawn.name[server.id]), description=msg, colour=0xDEADBF)
+								em.set_author(name='Tall Grass', icon_url=grassUrl)
+								em.set_thumbnail(url=imageURL.format(Spawn.pId[server.id]))
+								em.set_footer(text='HINT: You need pokeballs to catch pokemon! Check your supply by typing {}me.'.format(commandPrefix))
 						await client.send_message(channel, embed=em)
 						#await asyncio.sleep(50)
 					else:
@@ -775,14 +846,26 @@ async def display_catch(message):
 				await display_balls_message(message, player, commandPrefix)
 			else:
 				if player.items[option-1]>0:
-					isTrainer, gender = Spawn.trainer[message.server.id]
-					if isTrainer:
-						msg = '{0.author.mention}, you cannot catch a pokemon that belongs to a trainer!'.format(message, ballList[option-1])
-						em = discord.Embed(title='That is not how this works!', description=msg, colour=0xDEADBF)
+					if option-1 == 3 and not player.hasAllBadges():
+						msg = '{0.author.mention}, only players with all the 18 gym badges can use Master Balls!'.format(message)
+						em = discord.Embed(title='You wish!', description=msg, colour=0xDEADBF)
 						em.set_author(name='Professor Oak', icon_url=oakUrl)
 						await client.send_message(message.channel, embed=em)
 					else:
-						await Spawn.fight(message, option)
+						isTrainer, gender = Spawn.trainer[message.server.id]
+						isBossBool, pokemon = Spawn.isBoss[message.server.id]
+						if isTrainer:
+							msg = '{0.author.mention}, you cannot catch a pokemon that belongs to a trainer!'.format(message)
+							em = discord.Embed(title='That is not how this works!', description=msg, colour=0xDEADBF)
+							em.set_author(name='Professor Oak', icon_url=oakUrl)
+							await client.send_message(message.channel, embed=em)
+						elif isBossBool:
+							msg = '{0.author.mention}, you cannot catch a boss pokemon!'.format(message)
+							em = discord.Embed(title='That is not how this works!', description=msg, colour=0xDEADBF)
+							em.set_author(name='Professor Oak', icon_url=oakUrl)
+							await client.send_message(message.channel, embed=em)
+						else:
+							await Spawn.fight(message, option)
 				else:
 					msg = '{0.author.mention}, you don\'t have any {1}s left! Here\'s your list of pokeballs: \n\n'.format(message, ballList[option-1])
 
