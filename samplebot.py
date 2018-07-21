@@ -463,7 +463,7 @@ def give_players_boss_prize(serverId):
 
 	return '{} unit(s) of {}!'.format('1' if not numerous else 'a couple of', item.name)
 
-bossChance = 16
+bossChance = 8
 afkTime = 120
 valueMod = 8.75*0.45
 ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
@@ -531,7 +531,7 @@ class Spawn:
 				if isBossBool:
 					gym = True
 					if not wildPokemon:
-						wildPokemon = Pokemon(name=Spawn.name[message.server.id], pokemonId=Spawn.pId[message.server.id], level=100, wild=1, customHp=10)
+						wildPokemon = Pokemon(name=Spawn.name[message.server.id], pokemonId=Spawn.pId[message.server.id], level=100, wild=1, customHp=5)
 						Spawn.isBoss[message.server.id] = True, wildPokemon
 				else:
 					gym = False
@@ -587,6 +587,7 @@ class Spawn:
 				else:
 					Spawn.fought[message.server.id].append(player.pId)
 					if victory:
+						Spawn.isBoss[message.server.id] = False, None
 						Spawn.spawned[message.server.id] = False
 						prizeStr = give_players_boss_prize(message.server.id)
 						bossMsg = '{} was defeated! All the participant players won {}! Players have also earned money and EXP according to their damage in the fight.'.format(Spawn.name[message.server.id], prizeStr)
@@ -677,6 +678,7 @@ class Spawn:
 
 						Spawn.spawned[server.id] = True
 						Spawn.fought[server.id] = []
+						Spawn.isBoss[server.id] = False, None
 						if random.randint(0,255) <= bossChance:
 							Spawn.pId[server.id], Spawn.name[server.id] = get_random_boss_pokemon()
 							Spawn.isBoss[server.id] = True, None
@@ -721,6 +723,7 @@ class Spawn:
 							em.set_footer(text='HINT: Your selected pokemon must be in fighting conditions for you to enter a fight! If you need to heal it, type {}center.'.format(commandPrefix))
 						
 						Spawn.spawned[server.id] = False
+						Spawn.isBoss[server.id] = False, None
 						try:
 							await client.send_message(channel, embed=em)
 						except Exception as e:
