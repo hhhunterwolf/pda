@@ -7,7 +7,7 @@ class PokeStats:
 	def getHPValue(self, baseStat, iv):
 		return math.floor(((2*baseStat + iv)*self.level)/100) + self.level + 10
 
-	def __init__(self, stats, level, iv, hp):
+	def __init__(self, stats, level, iv, hp, customHp=1):
 		self.level = level
 		self.base = stats
 		self.current = {}
@@ -15,7 +15,7 @@ class PokeStats:
 		self.iv = {}
 
 		self.iv['hp'] = iv['hp']
-		self.current['hp'] = self.getHPValue(stats['hp'], iv['hp'])
+		self.current['hp'] = self.getHPValue(stats['hp'], iv['hp'])*customHp
 		self.fakeCurrent['hp'] = self.current['hp']
 		self.hp = self.current['hp'] if hp==-1 else hp
 
