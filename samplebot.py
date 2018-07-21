@@ -437,33 +437,67 @@ Chance: %f
 def convertDeltaToHuman(deltaTime):
 	return humanfriendly.format_timespan(deltaTime)
 
-def give_players_boss_prize(serverId):
+async def give_players_boss_prize(message, commandPrefix):
+	serverId = message.server.id
 	rand = random.randint(0, 255)
 	item = None
 	numerous = True
-	if rand == 0:
+	if rand <= 16:
 		item = items[3]
 		numerous = False
-	elif rand <= 64:
+	elif rand <= 32:
 		item = items[7]
 	else:
 		item = items[2]
+
+	msg = '{0.author.mention}, there are no wild pokemon or trainers willing to fight near you at this time.'.format(message)
 	
 	for pId in Spawn.fought[serverId]:
 		player = playerMap[pId]
-		baseValue = int(valueMod*(player.level*30/math.log10(3)))//3 + random.randint(20, 75)
-		player.addExperience(int(random.randint(4, 5)*baseValue))
+		pokemon = player.lastBattle['pokemon']
+		damage = player.lastBattle['damage']
+
+		# player exp and money
+		baseValue = int(valueMod*(damage/math.log10(3)))//3 + random.randint(20, 75)
+		exp = int(random.uniform(0.7, 1)*baseValue)
+		player.addExperience(exp)
 		print('Added Boss EXP: {}'.format(baseValue))
-		money = int(random.uniform(11.5,13.6)*baseValue)
+		money = int(random.uniform(13.5,15.6)*baseValue)
 		player.addMoney(money)
 		print('Added Boss Money: {}'.format(money))
-		amount = 1 if not numerous else random.randint(2*player.level, 3*player.level)
+
+		# pokemon exp
+		basePValue = int(random.randint(40, 43)*damage)
+		leveledUp, evolved = pokemon.addExperience(basePValue)
+		levelUpMessage = None
+		if leveledUp:
+			levelUpMessage = ('{} leveled up to level {}!\n\n'.format(name, str(winner.pokeStats.level)))
+			if evolved:
+				levelUpMessage += ('What!? {} is evolving! It evolved into a {}!'.format(name, winner.name))
+			lem = discord.Embed(title='Level up!', description='<@{0}>, your '.format(player.pId.replace(serverId, '')) + levelUpMessage, colour=0xDEADBF)
+			lem.set_author(name='Professor Oak', icon_url=oakUrl)
+			lem.set_thumbnail(url=imageURL.format(winner.pId))
+			lem.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
+
+		# item gift
+		baseAmount = int(math.log(damage/10))
+		amount = 1 if not numerous else int(random.uniform(baseAmount*3, baseAmount*5))
 		player.addItem(item.id-1, amount)
+
+		# update
 		player.update()
 
-	return '{} unit(s) of {}!'.format('1' if not numerous else 'a couple of', item.name)
+		msg = '<@{}>, you participated in the boss fight, your reward is {} EXP for you, {} EXP for your {}, {}P and {} unit(s) of {}!'.format(player.pId.replace(serverId, ''), exp, basePValue, pokemon.name, money, amount, item.name)
+		em = discord.Embed(title='Well done!', description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_thumbnail(url=imageURL.format(pokemon.pId))
+		em.set_footer(text='HINT: No wild pokemon? Challenge a friend to a duel by typing {}duel @nickname!'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
 
-bossChance = 8
+		if leveledUp:
+			await client.send_message(message.channel, embed=lem)
+
+bossChance = 4
 afkTime = 120
 valueMod = 8.75*0.45
 ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
@@ -587,13 +621,22 @@ class Spawn:
 				else:
 					Spawn.fought[message.server.id].append(player.pId)
 					if victory:
+						player.lastBattle = {
+							'pokemon' : playerPokemon, 
+							'damage' : battle.damageDealt['winner']
+						}
 						Spawn.isBoss[message.server.id] = False, None
 						Spawn.spawned[message.server.id] = False
-						prizeStr = give_players_boss_prize(message.server.id)
-						bossMsg = '{} was defeated! All the participant players won {}! Players have also earned money and EXP according to their damage in the fight.'.format(Spawn.name[message.server.id], prizeStr)
+						await give_players_boss_prize(message, commandPrefix)
+						bossMsg = '{} was defeated! All the participant were rewarded according to the damage dealt! '.format(Spawn.name[message.server.id])
 						bem = discord.Embed(title='The boss is down!', description=bossMsg, colour=0xDEADBF)
 						bem.set_author(name='Professor Oak', icon_url=oakUrl)
 						bem.set_thumbnail(url=imageURL.format(Spawn.pId[message.server.id]))
+					else:
+						player.lastBattle = {
+							'pokemon' : playerPokemon, 
+							'damage' : battle.damageDealt['loser']
+						}
 						
 
 				if isTrainer:
@@ -644,7 +687,7 @@ class Spawn:
 
 	@staticmethod	
 	async def spawn():
-		delay = random.randint(25, 55)
+		delay = 3#random.randint(25, 55)
 		print('Spawn delay is {}.'.format(delay))
 		await asyncio.sleep(delay)
 

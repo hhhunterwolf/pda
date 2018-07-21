@@ -52,6 +52,10 @@ class Battle:
 		self.trainer = trainer
 		self.boost = boost
 		self.gym = gym
+		self.damageDealt = {
+			'winner' : 0,
+			'loser' : 0
+		}
 		
 		print('Initializing battle between {} ({}) and {} ({}).'.format(challenger1.name, challenger1.pokeStats.level, challenger2.name, challenger2.pokeStats.level))
 		speed1 = challenger1.pokeStats.current['speed']
@@ -122,9 +126,11 @@ class Battle:
 	def execute(self):
 		winner, loser, damage1, damage2 = self.executeCycle()
 		totalDamage, averageDamage, missCount, critCount = self.getDamageInfo(damage1)
+		self.damageDealt['winner'] = totalDamage
 		msg = ('```xl\n{} hit {} times.\nTotal of {} damage.\n{} misses / {} critical hits.\n'.format(winner.name, len(damage1), totalDamage, missCount, critCount))
 		msg += '\n'
 		totalDamage, averageDamage, missCount, critCount = self.getDamageInfo(damage2)
+		self.damageDealt['loser'] = totalDamage
 		msg += ('{} hit {} times.\nTotal of {} damage.\n{} misses / {} critical hits.\n'.format(loser.name, len(damage2), totalDamage, missCount, critCount))
 
 		msg += '\n'
