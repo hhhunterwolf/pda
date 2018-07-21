@@ -48,6 +48,10 @@ class Player:
 		self.pId = pId
 		self.items = []
 		self.badges = []
+		self.lastBattle = {
+			'pokemon' : None,
+			'damage' : 0
+		}
 		if row is not None:
 			self.level = row['level']
 			self.experience = row['experience']
