@@ -9,7 +9,7 @@ from mysql import MySQL
 from datetime import timedelta
 
 class Pokemon:
-	def __init__(self, name, level, wild=1, iv=None, experience=0, pokemonId=0, ownId=0, currentHp=-1, healing=None, caughtWith=0):
+	def __init__(self, name, level, wild=1, iv=None, experience=0, pokemonId=0, ownId=0, currentHp=-1, healing=None, caughtWith=0, customHp=1):
 		cursor = MySQL.getCursor()
 
 		self.wild = wild
@@ -57,7 +57,7 @@ class Pokemon:
 			stats[row['identifier']] = row['base_stat']
 			if row['identifier'] not in iv:
 				iv[row['identifier']] = random.randint(1, 31)
-		self.pokeStats = PokeStats(stats, level, iv, currentHp)
+		self.pokeStats = PokeStats(stats, level, iv, currentHp, customHp)
 
 		self.pId = pId
 		self.experience = experience if experience!=0 else self.calculateExp(level)
