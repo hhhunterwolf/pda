@@ -522,7 +522,7 @@ __Pokeball Stats:__
 		return pokemon		
 
 	def getCaptureMod(self):
-		return math.log10(self.level+1)/3
+		return math.log10(2*self.level+1)/3
 
 	def addFavorite(self, pId):
 		cursor = MySQL.getCursor()
