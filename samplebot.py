@@ -402,10 +402,10 @@ def get_random_boss_pokemon():
 	return row['id'], row['identifier'].upper()
 
 def get_random_pokemon_spawn():
-	rates = [[3,4], [15,255]]
+	rates = [[3,8], [15,45], [46,255]]
 	rateList = []
 	for i in range(0,len(rates)):
-		rate = int(rates[i][1]**1.75)
+		rate = int(rates[i][1]**1.4)
 		rateList += rate * [rates[i]]
 	
 	row = None
@@ -429,7 +429,7 @@ Capture Rate: %d
 Chance: %f
 """) % (
 		maxR,
-		int(maxR**1.25) / len(rateList),
+		int(maxR**1.4) / len(rateList),
 	))
 	
 	return row['id'], row['identifier'].upper()
@@ -451,8 +451,15 @@ def give_players_boss_prize(serverId):
 	
 	for pId in Spawn.fought[serverId]:
 		player = playerMap[pId]
+		baseValue = int(valueMod*(player.level*30/math.log10(3)))//3 + random.randint(20, 75)
+		player.addExperience(int(random.randint(4, 5)*baseValue))
+		print('Added Boss EXP: {}'.format(baseValue))
+		money = int(random.uniform(11.5,13.6)*baseValue)
+		player.addMoney(money)
+		print('Added Boss Money: {}'.format(money))
 		amount = 1 if not numerous else random.randint(2*player.level, 3*player.level)
 		player.addItem(item.id-1, amount)
+		player.update()
 
 	return '{} unit(s) of {}!'.format('1' if not numerous else 'a couple of', item.name)
 
@@ -524,9 +531,8 @@ class Spawn:
 				if isBossBool:
 					gym = True
 					if not wildPokemon:
-						wildPokemon = Pokemon(name=Spawn.name[message.server.id], pokemonId=Spawn.pId[message.server.id], level=100, wild=1)
+						wildPokemon = Pokemon(name=Spawn.name[message.server.id], pokemonId=Spawn.pId[message.server.id], level=100, wild=1, customHp=10)
 						Spawn.isBoss[message.server.id] = True, wildPokemon
-						wildPokemon.pokeStats.hp *= 10 
 				else:
 					gym = False
 					level = playerPokemon.pokeStats.level
@@ -581,8 +587,9 @@ class Spawn:
 				else:
 					Spawn.fought[message.server.id].append(player.pId)
 					if victory:
+						Spawn.spawned[message.server.id] = False
 						prizeStr = give_players_boss_prize(message.server.id)
-						bossMsg = '{} was defeated! All the participant players won {}!'.format(Spawn.name[message.server.id], prizeStr)
+						bossMsg = '{} was defeated! All the participant players won {}! Players have also earned money and EXP according to their damage in the fight.'.format(Spawn.name[message.server.id], prizeStr)
 						bem = discord.Embed(title='The boss is down!', description=bossMsg, colour=0xDEADBF)
 						bem.set_author(name='Professor Oak', icon_url=oakUrl)
 						bem.set_thumbnail(url=imageURL.format(Spawn.pId[message.server.id]))
@@ -669,6 +676,7 @@ class Spawn:
 							break
 
 						Spawn.spawned[server.id] = True
+						Spawn.fought[server.id] = []
 						if random.randint(0,255) <= bossChance:
 							Spawn.pId[server.id], Spawn.name[server.id] = get_random_boss_pokemon()
 							Spawn.isBoss[server.id] = True, None
@@ -713,7 +721,6 @@ class Spawn:
 							em.set_footer(text='HINT: Your selected pokemon must be in fighting conditions for you to enter a fight! If you need to heal it, type {}center.'.format(commandPrefix))
 						
 						Spawn.spawned[server.id] = False
-						Spawn.fought[server.id] = []
 						try:
 							await client.send_message(channel, embed=em)
 						except Exception as e:
