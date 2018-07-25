@@ -687,7 +687,7 @@ class Spawn:
 
 	@staticmethod	
 	async def spawn():
-		delay = 3#random.randint(25, 55)
+		delay = random.randint(25, 55)
 		print('Spawn delay is {}.'.format(delay))
 		await asyncio.sleep(delay)
 
