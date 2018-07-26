@@ -211,4 +211,4 @@ __Experience:__
 		if len(self.types)==1:
 			return self.types[0].tId == tId
 		else:
-			return self.types[0].tId == tId or self.types[1].tId
+			return self.types[0].tId == tId or self.types[1].tId == tId
