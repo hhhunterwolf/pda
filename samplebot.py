@@ -24,7 +24,7 @@ TOKEN = 'NDYzNzQ0NjkzOTEwMzcyMzYy.Dh03cA.jaXIvI0zQdOieINXT46_Y9X-L2k'
 
 client = discord.Client()
 playerMap = {}
-imageURL = 'https://microcubo.com.br/pokemon/{}.png'
+imageURL = 'http://35.198.25.241/pokemon/{}.png'
 trainerURL = 'https://microcubo.com.br/pokemon/Trainer_{}.png'
 oakUrl = 'https://i.imgur.com/VbSBVi7.png'
 grassUrl = 'https://i.imgur.com/zdeDVpY.png'
@@ -480,7 +480,7 @@ async def give_players_boss_prize(message, commandPrefix):
 			lem.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
 
 		# item gift
-		baseAmount = int(math.log(damage/10))
+		baseAmount = int(math.log10(damage/10) + 1) + 1
 		amount = 1 if not numerous else int(random.uniform(baseAmount*3, baseAmount*5))
 		player.addItem(item.id-1, amount)
 
@@ -678,6 +678,13 @@ class Spawn:
 				em = discord.Embed(title='Your {} is fainted!'.format(playerPokemon.name), description=msg, colour=0xDEADBF)
 				em.set_author(name='Professor Oak', icon_url=oakUrl)
 				await client.send_message(message.channel, embed=em)
+		elif Spawn.spawned[message.server.id]:
+			msg = '{0.author.mention}, you you already fought {1}! You can\'t fight it twice.'.format(message, Spawn.name[message.server.id])
+			em = discord.Embed(title='Ops!', description=msg, colour=0xDEADBF)
+			em.set_author(name='Tall Grass', icon_url=grassUrl)
+			em.set_thumbnail(url=imageURL.format(Spawn.pId[message.server.id]))
+			em.set_footer(text='HINT: No wild pokemon? Challenge a friend to a duel by typing {}duel @nickname!'.format(commandPrefix))
+			await client.send_message(message.channel, embed=em)
 		else:
 			msg = '{0.author.mention}, there are no wild pokemon or trainers willing to fight near you at this time.'.format(message)
 			em = discord.Embed(title='Ops!', description=msg, colour=0xDEADBF)
@@ -722,6 +729,7 @@ class Spawn:
 						Spawn.spawned[server.id] = True
 						Spawn.fought[server.id] = []
 						Spawn.isBoss[server.id] = False, None
+						Spawn.trainer[server.id] = [False, 0]
 						if random.randint(0,255) <= bossChance:
 							Spawn.pId[server.id], Spawn.name[server.id] = get_random_boss_pokemon()
 							Spawn.isBoss[server.id] = True, None
@@ -1638,8 +1646,8 @@ commandList = {
 	'p' : display_pokemons,
 	'pokemon' : display_pokemons,
 	'a' : display_favorite_pokemons,
-	'v' : display_favorite_pokemons,
-	'favorite' : display_favorite_pokemons,
+#	'v' : display_favorite_pokemons,
+#	'favorite' : display_favorite_pokemons,
 	's' : select_pokemon,
 	'select' : select_pokemon,
 	'r' : release_pokemon,
