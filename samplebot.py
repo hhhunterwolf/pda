@@ -24,7 +24,7 @@ TOKEN = '***REMOVED***'
 
 client = discord.Client()
 playerMap = {}
-imageURL = 'http://35.198.25.241/pokemon/{}.png'
+imageURL = 'http://microcubo.com.br/pokemon/{}.png'
 trainerURL = 'https://microcubo.com.br/pokemon/Trainer_{}.png'
 oakUrl = 'https://i.imgur.com/VbSBVi7.png'
 grassUrl = 'https://i.imgur.com/zdeDVpY.png'
@@ -471,7 +471,7 @@ async def give_players_boss_prize(message, commandPrefix):
 		leveledUp, evolved = pokemon.addExperience(basePValue)
 		levelUpMessage = None
 		if leveledUp:
-			levelUpMessage = ('{} leveled up to level {}!\n\n'.format(name, str(winner.pokeStats.level)))
+			levelUpMessage = ('{} leveled up to level {}!\n\n'.format(pokemon.name, str(pokemon.pokeStats.level)))
 			if evolved:
 				levelUpMessage += ('What!? {} is evolving! It evolved into a {}!'.format(name, winner.name))
 			lem = discord.Embed(title='Level up!', description='<@{0}>, your '.format(player.pId.replace(serverId, '')) + levelUpMessage, colour=0xDEADBF)
