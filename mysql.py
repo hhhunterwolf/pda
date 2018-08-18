@@ -1,17 +1,22 @@
 import MySQLdb
+import os
 
 class MySQL:
-	cnx = MySQLdb.connect(user='root', passwd='', host='127.0.0.1', db='pda')
+    cnx = None
 
-	@staticmethod	
-	def getCursor():
-		return MySQL.cnx.cursor(MySQLdb.cursors.DictCursor)
+    @staticmethod
+    def getCursor():
+        if not MySQL.cnx:
+            MySQL.cnx = MySQLdb.connect(user=os.environ['MYSQL_USER'], passwd=os.environ['MYSQL_PASS'], host=os.environ['MYSQL_HOST'], db='pda')
 
-	@staticmethod
-	def commit():
-		MySQL.cnx.commit()
+        return MySQL.cnx.cursor(MySQLdb.cursors.DictCursor)
 
-	@staticmethod
-	def close():
-		MySQL.cnx.close()
+
+    @staticmethod
+    def commit():
+        MySQL.cnx.commit()
+
+    @staticmethod
+    def close():
+        MySQL.cnx.close()
 
