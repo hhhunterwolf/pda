@@ -19,8 +19,8 @@ from pitem import PokeItem
 # Make shop for multiple items
 # Fix pages for exactly %20 pokemon
 
-TOKEN = '***REMOVED***'
 #TOKEN = '***REMOVED***'
+TOKEN = '***REMOVED***'
 
 client = discord.Client()
 playerMap = {}
@@ -1807,7 +1807,12 @@ def evaluate_server(server):
 
 	serverMap[server.id] = [commandPrefix, spawnChannel]
 	print('Done.')
-	
+
+ONLINE_MESSAGE = "PDA was updated to version 1.1a! Thank you so much for the support. I appologize for the downtime and for the pokemon pictures not showing, there were way too many servers, and my virtual server couldn't handle it. It should be fixed now. I will be working on Mega Evolutions for the next couple of days. Thank you for playing!"
+async def send_online_message(channel):
+	em = discord.Embed(title='PDA admin.', description=ONLINE_MESSAGE, colour=0xDEADBF)
+	await client.send_message(channel, embed=em)
+
 @client.event
 async def on_ready():
 	print('Logged in as')
@@ -1817,6 +1822,11 @@ async def on_ready():
 
 	for server in client.servers:
 		evaluate_server(server)
+		spawnChannel = serverMap[server.id]
+		if spawnChannel:
+			for channel in server.channels:
+				if channel.id == spawnChannel:
+					await send_online_message(channel)
 
 	client.loop.create_task(spawn_wild_pokemon())
 	print('------')
