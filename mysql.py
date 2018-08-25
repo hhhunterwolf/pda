@@ -7,6 +7,7 @@ class Cursor:
         try:
             self.cursor = cnx.cursor(MySQLdb.cursors.DictCursor)
             self.cursor.execute(query, tuple)
+            self.lastrowid = self.cursor.lastrowid
 
         finally:
             cnx.commit()
