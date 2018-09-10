@@ -19,8 +19,8 @@ from pitem import PokeItem
 # Make shop for multiple items
 # Fix pages for exactly %20 pokemon
 
-#TOKEN = 'NDYzNzQ0NjkzOTEwMzcyMzYy.Dh03cA.jaXIvI0zQdOieINXT46_Y9X-L2k'
-TOKEN = 'NDY4MDY3MDIxNTgyNDk5ODQw.Dizw5g.XLIpP3hINJLjSQm0rMEcE3onPeg'
+TOKEN = 'NDYzNzQ0NjkzOTEwMzcyMzYy.Dh03cA.jaXIvI0zQdOieINXT46_Y9X-L2k'
+#TOKEN = 'NDY4MDY3MDIxNTgyNDk5ODQw.Dizw5g.XLIpP3hINJLjSQm0rMEcE3onPeg'
 
 client = discord.Client()
 playerMap = {}
@@ -510,6 +510,7 @@ class Spawn:
 	isBoss = {}
 	bossFighters = {}
 	restSpawn = 0
+	lastAct = {}
 
 	@staticmethod
 	async def fight(message, capture=0):
@@ -716,7 +717,8 @@ class Spawn:
 			for channel in server.channels:
 				if channel.id == spawnChannel:
 					lastAct, actDelay = Spawn.lastAct[server.id]
-					if datetime.datetime.timestamp.now() - lastAct.timestamp().now() > actDelay:
+					canAct = datetime.datetime.now().timestamp() - lastAct.timestamp()
+					if canAct > actDelay:
 						print("Server '" + server.id + "' ready to act. Acting and updating delay.")
 						Spawn.lastAct[server.id] = [datetime.datetime.now(), random.randint(25, 55)]						
 						if not Spawn.spawned[server.id]:
@@ -785,7 +787,7 @@ class Spawn:
 							except Exception as e:
 								traceback.print_exc()
 					else:
-						print("Server '" + server.id + "' is on act delay. Waiting.")
+						print("Server '" + server.id + "' is on act delay for " + str(canAct) + " seconds. Waiting.")
 		#Spawn.restSpawn = random.randint(25, 45)
 		#print('Rest time for spawn is {}.'.format(Spawn.restSpawn))
 		await asyncio.sleep(10)
@@ -1814,10 +1816,10 @@ def evaluate_server(server):
 	serverMap[server.id] = [commandPrefix, spawnChannel]
 	print('Done.')
 
-ONLINE_MESSAGE = "PDA was updated to version 1.1a! Thank you so much for the support. I appologize for the downtime and for the pokemon pictures not showing, there were way too many servers, and my virtual server couldn't handle it. It should be fixed now. I will be working on Mega Evolutions for the next couple of days. Thank you for playing!"
+ONLINE_MESSAGE = "PDA was updated to version 1.1b!\n\n I am very sorry for everyone that couldn't reach me on the past few days, it's been a busy week. PDA was updated with an experimental spawn system, it should probably fix the instant run aways. I have been a little busy with work lately, but I'll try my best to work on the bot on the next few days. Thanks everybody for playing and for the support!"
 async def send_online_message(channel):
 	em = discord.Embed(title='PDA admin.', description=ONLINE_MESSAGE, colour=0xDEADBF)
-	await client.send_message(channel, embed=em)
+	#await client.send_message(channel, embed=em)
 
 @client.event
 async def on_ready():
