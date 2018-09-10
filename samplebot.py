@@ -19,8 +19,8 @@ from pitem import PokeItem
 # Make shop for multiple items
 # Fix pages for exactly %20 pokemon
 
-TOKEN = 'NDYzNzQ0NjkzOTEwMzcyMzYy.Dh03cA.jaXIvI0zQdOieINXT46_Y9X-L2k'
-#TOKEN = 'NDY4MDY3MDIxNTgyNDk5ODQw.Dizw5g.XLIpP3hINJLjSQm0rMEcE3onPeg'
+#TOKEN = 'NDYzNzQ0NjkzOTEwMzcyMzYy.Dh03cA.jaXIvI0zQdOieINXT46_Y9X-L2k'
+TOKEN = 'NDY4MDY3MDIxNTgyNDk5ODQw.Dizw5g.XLIpP3hINJLjSQm0rMEcE3onPeg'
 
 client = discord.Client()
 playerMap = {}
@@ -694,9 +694,9 @@ class Spawn:
 
 	@staticmethod	
 	async def spawn():
-		delay = random.randint(25, 55)
-		print('Spawn delay is {}.'.format(delay))
-		await asyncio.sleep(delay)
+		#delay = random.randint(25, 55)
+		#print('Spawn delay is {}.'.format(delay))
+		#await asyncio.sleep(delay)
 
 		for server in client.servers:
 			try:
@@ -711,78 +711,84 @@ class Spawn:
 				Spawn.fought[server.id] = []
 				Spawn.trainer[server.id] = [False, 0]
 				Spawn.isBoss[server.id] = False, None
+				Spawn.lastAct[server.id] = [datetime.datetime.now(), random.randint(25, 55)]
 
 			for channel in server.channels:
 				if channel.id == spawnChannel:
-					if not Spawn.spawned[server.id]:
-						isAfk = True
-						localAfkTime = 0
-						key = server.id + channel.id
-						if key in serverMessageMap:
-							localAfkTime = (datetime.datetime.now().timestamp() - serverMessageMap[key])
-							isAfk = localAfkTime > afkTime + Spawn.restSpawn
+					lastAct, actDelay = Spawn.lastAct[server.id]
+					if datetime.datetime.timestamp.now() - lastAct.timestamp().now() > actDelay:
+						print("Server '" + server.id + "' ready to act. Acting and updating delay.")
+						Spawn.lastAct[server.id] = [datetime.datetime.now(), random.randint(25, 55)]						
+						if not Spawn.spawned[server.id]:
+							isAfk = True
+							localAfkTime = 0
+							key = server.id + channel.id
+							if key in serverMessageMap:
+								localAfkTime = (datetime.datetime.now().timestamp() - serverMessageMap[key])
+								isAfk = localAfkTime > afkTime + Spawn.restSpawn
 
-						print('Is afk?', isAfk, localAfkTime)
-						if isAfk:
-							break
+							print('Is afk?', isAfk, localAfkTime)
+							if isAfk:
+								break
 
-						Spawn.spawned[server.id] = True
-						Spawn.fought[server.id] = []
-						Spawn.isBoss[server.id] = False, None
-						Spawn.trainer[server.id] = [False, 0]
-						if random.randint(0,255) <= bossChance:
-							Spawn.pId[server.id], Spawn.name[server.id] = get_random_boss_pokemon()
-							Spawn.isBoss[server.id] = True, None
-							msg = 'A boss {0} has appeared! Type ``{1}fight`` to fight it!'.format(Spawn.name[server.id], commandPrefix)
-							em = discord.Embed(title='A wild Boss Pokemon appears!', description=msg, colour=0xDEADBF)
-							em.set_author(name='Tall Grass', icon_url=grassUrl)
-							em.set_image(url=imageURL.format(Spawn.pId[server.id]))
-							em.set_footer(text='HINT: The more people fight the boss, the easier it is to defeat it!'.format(commandPrefix))
+							Spawn.spawned[server.id] = True
+							Spawn.fought[server.id] = []
+							Spawn.isBoss[server.id] = False, None
+							Spawn.trainer[server.id] = [False, 0]
+							if random.randint(0,255) <= bossChance:
+								Spawn.pId[server.id], Spawn.name[server.id] = get_random_boss_pokemon()
+								Spawn.isBoss[server.id] = True, None
+								msg = 'A boss {0} has appeared! Type ``{1}fight`` to fight it!'.format(Spawn.name[server.id], commandPrefix)
+								em = discord.Embed(title='A wild Boss Pokemon appears!', description=msg, colour=0xDEADBF)
+								em.set_author(name='Tall Grass', icon_url=grassUrl)
+								em.set_image(url=imageURL.format(Spawn.pId[server.id]))
+								em.set_footer(text='HINT: The more people fight the boss, the easier it is to defeat it!'.format(commandPrefix))
+							else:
+								Spawn.pId[server.id], Spawn.name[server.id] = get_random_pokemon_spawn()
+								Spawn.trainer[server.id][0] = random.randint(0, 255)<=30
+								Spawn.trainer[server.id][1] = random.randint(0, 1)
+								isTrainer, gender = Spawn.trainer[server.id]
+								if isTrainer:
+									article = 'him' if gender==0 else 'her'
+									msg = 'A poketrainer is looking for a challenger! Type ``{0}fight`` to fight {1}!'.format(commandPrefix, article)
+									em = discord.Embed(title='Here comes a new challenger!', description=msg, colour=0xDEADBF)
+									em.set_author(name='Tall Grass', icon_url=grassUrl)
+									em.set_thumbnail(url=trainerURL.format(gender))
+									em.set_footer(text='HINT: You cannot catch other trainer\'s pokemon, but you will earn money if you win the fight.'.format(commandPrefix))
+								else:
+									msg = 'A wild {0} wants to fight! Type ``{1}fight`` to fight it, or ``{1}catch #`` to try and catch it as well!'.format(Spawn.name[server.id], commandPrefix)
+									em = discord.Embed(title='A wild {} appeared!'.format(Spawn.name[server.id]), description=msg, colour=0xDEADBF)
+									em.set_author(name='Tall Grass', icon_url=grassUrl)
+									em.set_thumbnail(url=imageURL.format(Spawn.pId[server.id]))
+									em.set_footer(text='HINT: You need pokeballs to catch pokemon! Check your supply by typing {}me.'.format(commandPrefix))
+							await client.send_message(channel, embed=em)
+							#await asyncio.sleep(50)
 						else:
-							Spawn.pId[server.id], Spawn.name[server.id] = get_random_pokemon_spawn()
-							Spawn.trainer[server.id][0] = random.randint(0, 255)<=30
-							Spawn.trainer[server.id][1] = random.randint(0, 1)
 							isTrainer, gender = Spawn.trainer[server.id]
 							if isTrainer:
-								article = 'him' if gender==0 else 'her'
-								msg = 'A poketrainer is looking for a challenger! Type ``{0}fight`` to fight {1}!'.format(commandPrefix, article)
-								em = discord.Embed(title='Here comes a new challenger!', description=msg, colour=0xDEADBF)
-								em.set_author(name='Tall Grass', icon_url=grassUrl)
+								msg = 'The poketrainer is gone! Don\'t worry if you didn\'t have a chance to fight {}, though. Pokemon trainers eager to fight always come back.'.format('him' if gender==0 else 'her')
+								em = discord.Embed(title='Bye!', description=msg, colour=0xDEADBF)
 								em.set_thumbnail(url=trainerURL.format(gender))
-								em.set_footer(text='HINT: You cannot catch other trainer\'s pokemon, but you will earn money if you win the fight.'.format(commandPrefix))
-							else:
-								msg = 'A wild {0} wants to fight! Type ``{1}fight`` to fight it, or ``{1}catch #`` to try and catch it as well!'.format(Spawn.name[server.id], commandPrefix)
-								em = discord.Embed(title='A wild {} appeared!'.format(Spawn.name[server.id]), description=msg, colour=0xDEADBF)
 								em.set_author(name='Tall Grass', icon_url=grassUrl)
+								em.set_footer(text='HINT: Your selected pokemon must be in fighting conditions for you to enter a fight! If you need to heal it, type {}center.'.format(commandPrefix))
+							else:
+								msg = 'Darn it, {} has fled the scene! Don\'t worry if you didn\'t have a chance to fight it, though. Wild pokemon appear a lot around these parts.'.format(Spawn.name[server.id], commandPrefix)
+								em = discord.Embed(title='{} fled!'.format(Spawn.name[server.id]), description=msg, colour=0xDEADBF)
 								em.set_thumbnail(url=imageURL.format(Spawn.pId[server.id]))
-								em.set_footer(text='HINT: You need pokeballs to catch pokemon! Check your supply by typing {}me.'.format(commandPrefix))
-						await client.send_message(channel, embed=em)
-						#await asyncio.sleep(50)
+								em.set_author(name='Tall Grass', icon_url=grassUrl)
+								em.set_footer(text='HINT: Your selected pokemon must be in fighting conditions for you to enter a fight! If you need to heal it, type {}center.'.format(commandPrefix))
+							
+							Spawn.spawned[server.id] = False
+							Spawn.isBoss[server.id] = False, None
+							try:
+								await client.send_message(channel, embed=em)
+							except Exception as e:
+								traceback.print_exc()
 					else:
-						isTrainer, gender = Spawn.trainer[server.id]
-						if isTrainer:
-							msg = 'The poketrainer is gone! Don\'t worry if you didn\'t have a chance to fight {}, though. Pokemon trainers eager to fight always come back.'.format('him' if gender==0 else 'her')
-							em = discord.Embed(title='Bye!', description=msg, colour=0xDEADBF)
-							em.set_thumbnail(url=trainerURL.format(gender))
-							em.set_author(name='Tall Grass', icon_url=grassUrl)
-							em.set_footer(text='HINT: Your selected pokemon must be in fighting conditions for you to enter a fight! If you need to heal it, type {}center.'.format(commandPrefix))
-						else:
-							msg = 'Darn it, {} has fled the scene! Don\'t worry if you didn\'t have a chance to fight it, though. Wild pokemon appear a lot around these parts.'.format(Spawn.name[server.id], commandPrefix)
-							em = discord.Embed(title='{} fled!'.format(Spawn.name[server.id]), description=msg, colour=0xDEADBF)
-							em.set_thumbnail(url=imageURL.format(Spawn.pId[server.id]))
-							em.set_author(name='Tall Grass', icon_url=grassUrl)
-							em.set_footer(text='HINT: Your selected pokemon must be in fighting conditions for you to enter a fight! If you need to heal it, type {}center.'.format(commandPrefix))
-						
-						Spawn.spawned[server.id] = False
-						Spawn.isBoss[server.id] = False, None
-						try:
-							await client.send_message(channel, embed=em)
-						except Exception as e:
-							traceback.print_exc()
-	
-		Spawn.restSpawn = random.randint(25, 45)
-		print('Rest time for spawn is {}.'.format(Spawn.restSpawn))
-		await asyncio.sleep(Spawn.restSpawn)
+						print("Server '" + server.id + "' is on act delay. Waiting.")
+		#Spawn.restSpawn = random.randint(25, 45)
+		#print('Rest time for spawn is {}.'.format(Spawn.restSpawn))
+		await asyncio.sleep(10)
 
 @asyncio.coroutine
 async def spawn_wild_pokemon():
