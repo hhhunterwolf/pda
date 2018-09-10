@@ -19,8 +19,8 @@ from pitem import PokeItem
 # Make shop for multiple items
 # Fix pages for exactly %20 pokemon
 
-#TOKEN = 'NDYzNzQ0NjkzOTEwMzcyMzYy.Dh03cA.jaXIvI0zQdOieINXT46_Y9X-L2k'
-TOKEN = 'NDY4MDY3MDIxNTgyNDk5ODQw.Dizw5g.XLIpP3hINJLjSQm0rMEcE3onPeg'
+TOKEN = 'NDYzNzQ0NjkzOTEwMzcyMzYy.Dh03cA.jaXIvI0zQdOieINXT46_Y9X-L2k'
+#TOKEN = 'NDY4MDY3MDIxNTgyNDk5ODQw.Dizw5g.XLIpP3hINJLjSQm0rMEcE3onPeg'
 
 client = discord.Client()
 playerMap = {}
@@ -1822,7 +1822,7 @@ async def on_ready():
 
 	for server in client.servers:
 		evaluate_server(server)
-		spawnChannel = serverMap[server.id]
+		spawnChannel = serverMap[server.id][1]
 		if spawnChannel:
 			for channel in server.channels:
 				if channel.id == spawnChannel:
