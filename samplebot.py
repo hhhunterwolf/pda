@@ -359,7 +359,7 @@ async def display_help(message):
 	except KeyError as err:
 		return
 
-	msg = 'Welcome to Pokemon Discord Adventure! This bot is in a very alpha state, and most things are still being worked on. Please expect it to crash, bug out and sudden restarts. If you have any questions, suggestions, or just have a chat, contact me at Discord Fairfruit#8973, or send me an email at contact@yfrit.com.\n\nIf you like this bot and wish to add to your server, feel free to do it, but please keep in mind all of te disclaimers above. You can add the bot to your server with this link: https://discordapp.com/oauth2/authorize?client_id=463744693910372362&scope=bot. \n\n These are the possible commands: \n\n' \
+	msg = 'Welcome to Pokemon Discord Adventure! This bot is in a very alpha state, and most things are still being worked on. Please expect it to crash, bug out and sudden restarts. If you have any questions, suggestions, or just have a chat, contact me at Discord Fairfruit#8973, or send me an email at contact@yfrit.com.\n\nIf you like this bot and wish to add to your server, feel free to do it, but please keep in mind all of te disclaimers above. You can add the bot to your server with this link: https://discordapp.com/oauth2/authorize?client_id=463744693910372362&scope=bot. **Want to play the game? [Join the official PDA Server!](https://discord.gg/rEkQWUa)**\n\n These are the possible commands: \n\n' \
 		'__Player Commands:__ \n\n' \
 		'**{0}info or {0}i :** Shows stats of a specific pokemon (selected pokemon if none is specified) \n' \
 		'**{0}start:** Shows information on how to select a starter and start the adventure. \n' \
@@ -476,7 +476,7 @@ async def give_players_boss_prize(message, commandPrefix):
 				levelUpMessage += ('What!? {} is evolving! It evolved into a {}!'.format(name, winner.name))
 			lem = discord.Embed(title='Level up!', description='<@{0}>, your '.format(player.pId.replace(serverId, '')) + levelUpMessage, colour=0xDEADBF)
 			lem.set_author(name='Professor Oak', icon_url=oakUrl)
-			lem.set_thumbnail(url=imageURL.format(winner.pId))
+			lem.set_thumbnail(url=imageURL.format(pokemon.pId))
 			lem.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
 
 		# item gift
@@ -498,7 +498,7 @@ async def give_players_boss_prize(message, commandPrefix):
 			await client.send_message(message.channel, embed=lem)
 
 bossChance = 4
-afkTime = 120
+afkTime = 360
 valueMod = 8.75*0.45
 ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
 class Spawn:
@@ -712,7 +712,7 @@ class Spawn:
 				Spawn.fought[server.id] = []
 				Spawn.trainer[server.id] = [False, 0]
 				Spawn.isBoss[server.id] = False, None
-				Spawn.lastAct[server.id] = [datetime.datetime.now(), random.randint(25, 55)]
+				Spawn.lastAct[server.id] = [datetime.datetime.now(), random.randint(45, 95)]
 
 			for channel in server.channels:
 				if channel.id == spawnChannel:
@@ -720,8 +720,8 @@ class Spawn:
 					canAct = datetime.datetime.now().timestamp() - lastAct.timestamp()
 					if canAct > actDelay:
 						print("Server '" + server.id + "' ready to act. Acting and updating delay.")
-						Spawn.lastAct[server.id] = [datetime.datetime.now(), random.randint(25, 55)]						
 						if not Spawn.spawned[server.id]:
+							Spawn.lastAct[server.id] = [datetime.datetime.now(), random.randint(45, 55)]
 							isAfk = True
 							localAfkTime = 0
 							key = server.id + channel.id
@@ -767,6 +767,7 @@ class Spawn:
 							#await asyncio.sleep(50)
 						else:
 							isTrainer, gender = Spawn.trainer[server.id]
+							Spawn.lastAct[server.id] = [datetime.datetime.now(), random.randint(25, 80)]
 							if isTrainer:
 								msg = 'The poketrainer is gone! Don\'t worry if you didn\'t have a chance to fight {}, though. Pokemon trainers eager to fight always come back.'.format('him' if gender==0 else 'her')
 								em = discord.Embed(title='Bye!', description=msg, colour=0xDEADBF)
@@ -786,8 +787,8 @@ class Spawn:
 								await client.send_message(channel, embed=em)
 							except Exception as e:
 								traceback.print_exc()
-					else:
-						print("Server '" + server.id + "' is on act delay for " + str(canAct) + " seconds. Waiting.")
+#					else:
+#						print("Server '" + server.id + "' is on act delay for " + str(canAct) + " seconds. Waiting.")
 		#Spawn.restSpawn = random.randint(25, 45)
 		#print('Rest time for spawn is {}.'.format(Spawn.restSpawn))
 		await asyncio.sleep(10)
@@ -1816,10 +1817,15 @@ def evaluate_server(server):
 	serverMap[server.id] = [commandPrefix, spawnChannel]
 	print('Done.')
 
-ONLINE_MESSAGE = "PDA was updated to version 1.1b!\n\n I am very sorry for everyone that couldn't reach me on the past few days, it's been a busy week. PDA was updated with an experimental spawn system, it should probably fix the instant run aways. I have been a little busy with work lately, but I'll try my best to work on the bot on the next few days. Thanks everybody for playing and for the support!"
+#ONLINE_MESSAGE = "PDA was updated to version 1.1c!\n\n I am very sorry for everyone that couldn't reach me on the past few days, it's been a busy week. PDA was updated with an experimental spawn system, it should probably fix the instant run aways. I have been a little busy with work lately, but I'll try my best to work on the bot on the next few days. Thanks everybody for playing and for the support! Boss winning message was also fixed."
+
+ONLINE_MESSAGE = "My server went out of space. Cheap server, sorry about that everyon! Should be working fine (for real) now. \n\nPDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa). Thanks *Natsu dragneel6890#1771* for creating and managing the server! Have fun!"
 async def send_online_message(channel):
 	em = discord.Embed(title='PDA admin.', description=ONLINE_MESSAGE, colour=0xDEADBF)
-	#await client.send_message(channel, embed=em)
+	try:
+		await client.send_message(channel, embed=em)
+	except Exception as e:
+		print("Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
 
 @client.event
 async def on_ready():
