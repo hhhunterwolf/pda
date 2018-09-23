@@ -1089,7 +1089,7 @@ def getItemsString():
 	return msg
 
 async def display_info_shop(message, player, commandPrefix):
-	msg = '{0.author.mention}, welcome to the Poke Mart! To buy an item type ``{1}shop *item #*``. To buy more than 1 item, ``type {1}shop item amount``. These are the items we have for sale:\n'.format(message, commandPrefix)
+	msg = '{0.author.mention}, welcome to the Poke Mart! To buy an item type ``{1}shop item amount``.\n'.format(message, commandPrefix)
 	em = discord.Embed(title='Hello there, {0}. You have {1}₽.'.format(message.author.name, player.money), description=msg+getItemsString(), colour=0xDEADBF)
 	em.set_author(name='Poke Mart', icon_url=pokeballUrl)
 	em.set_thumbnail(url=pokeMartUrl)
