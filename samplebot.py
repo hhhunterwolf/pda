@@ -374,7 +374,7 @@ async def display_help(message):
 		'**{0}pokemon or {0}p:** Shows a list of all your pokemon. \n' \
 		'**{0}select or {0}s:** Selects a pokemon in your list to use on your journey.\n' \
 		'**{0}favorite or {0}v:** Shows information on how to add pokemon to your favorite list.\n' \
-		'**{0}release or {0}r:** Releases a in your list pokemon. It will never come back.\n' \
+		'**{0}release or {0}r:** Releases a pokemon in your list pokemon. It will never come back.\n' \
 		'**{0}help:** Shows this help message. \n' \
 		'**{0}fight or {0}f:** Fights the currently spawned pokemon or poketrainer if available.\n' \
 		'**{0}catch or {0}c:** Fights and tries to catch the currently spawned pokemon if available.\n' \
@@ -385,6 +385,7 @@ async def display_help(message):
 		'**{0}duel or {0}d:** Challenges another player to a duel. \n' \
 		'**{0}accept or {0}a:** Accepts a duel challenge. \n' \
 		'**{0}gym or {0}g:** Shows information on the gyms. \n' \
+		'**{0}mega:** Shows info on how to mega evolve pokemon. \n' \
 		'**{0}ping:** Standard ping command. \n' \
 		'**{0}donate:** Displays information on donations. \n\n' \
 		'__Admin Commands:__ \n\n' \
