@@ -498,7 +498,7 @@ async def give_players_boss_prize(message, commandPrefix):
 			await client.send_message(message.channel, embed=lem)
 
 bossChance = 4
-afkTime = 360
+afkTime = 150
 valueMod = 8.75*0.45
 ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
 class Spawn:
