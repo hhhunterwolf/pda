@@ -7,6 +7,7 @@ import asyncio
 import datetime
 import traceback
 import humanfriendly
+import time
 
 from player import Player
 from pokemon import Pokemon
@@ -14,6 +15,7 @@ from battle import Battle
 from mysql import MySQL
 from datetime import timedelta
 from pitem import PokeItem
+from discord.ext import commands
 
 # TODO:
 # Make shop for multiple items
@@ -376,10 +378,13 @@ async def display_help(message):
 		'**{0}item or {0}u:** Displays the player inventory. \n' \
 		'**{0}duel or {0}d:** Challenges another player to a duel. \n' \
 		'**{0}accept or {0}a:** Accepts a duel challenge. \n' \
-		'**{0}gym or {0}g:** Shows information on the gyms. \n\n' \
+		'**{0}gym or {0}g:** Shows information on the gyms. \n' \
+		'**{0}ping:** Standard ping command. \n' \
+		'**{0}donate:** Displays information on donations. \n\n' \
 		'__Admin Commands:__ \n\n' \
 		'**{0}prefix:** Changes the prefix used to trigger bot commands (default is p). \n' \
 		'**{0}spawn:** Sets the channel where wild pokemon and poketrainers will spawn. \n'
+
 	msg = msg.format(commandPrefix)
 	em = discord.Embed(title='Help!', description=msg, colour=0xDEADBF)
 	footerMsg = 'HINT: Don\'t forget to set the spawn channel with the spawn command, otherwise wild pokemon will not spawn until you do. The bot also has an "anti-afk" system, in which spawn channels that don\'t receive messages for a while will stop having pokemon spawned.'
@@ -1647,6 +1652,23 @@ async def display_gym(message):
 		else:
 			await display_info_gyms(message, commandPrefix)
 
+async def display_donation(message):
+	try:
+		commandPrefix, spawnChannel = serverMap[message.server.id]
+	except KeyError as err:
+		return
+
+	msg = "PDA is a for fun project that I work on as a hobby, and I'm really happy with how it's turning out! If you want to support me, help me pay for the server, or even request a feature, you can send a donation directly to me via PayPal to __matheus.pinheiro@usp.br__. If you want to request a feature, send an email to contact@yfrit.com, and I'll be happy to talk to you!"
+	await client.send_message(message.channel, msg)
+
+async def ping(message):
+	time
+	channel = message.channel
+	t1 = time.perf_counter()
+	await client.send_typing(channel)
+	t2 = time.perf_counter()
+	return await client.send_message(message.channel, 'Pong! {}ms.'.format(round((t2-t1)*1000)).format(round((t2-t1)*1000)))
+
 #'welcome' : send_greeting,
 commandList = {
 	'start' : select_starter,
@@ -1681,7 +1703,9 @@ commandList = {
 	'a' : accept_challenge,
 	'accept' : accept_challenge,
 	'g' : display_gym,
-	'gym' : display_gym
+	'gym' : display_gym,
+	'donate' : display_donation,
+	'ping' : ping
 }
 
 admin = 229680411079475201
