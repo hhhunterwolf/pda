@@ -557,7 +557,7 @@ class Spawn:
 				em = discord.Embed(title='There is no way!', description=msg, colour=0xDEADBF)
 				em.set_author(name='Nurse Joy', icon_url=joyUrl)
 				em.set_thumbnail(url=getImageUrl(playerPokemon.pId, playerPokemon.mega))
-				em.set_footer(text='HINT: HINT: Pokemon healing at pokecenter? You can choose other pokemon to fight by typing {0}select #! Use {0}pokemon to see your full list of pokemon.'.format(commandPrefix))
+				em.set_footer(text='HINT:  Pokemon healing at pokecenter? You can choose other pokemon to fight by typing {0}select #! Use {0}pokemon to see your full list of pokemon.'.format(commandPrefix))
 				await client.send_message(message.channel, embed=em)
 				return
 			elif isHealing == False:
@@ -1888,9 +1888,9 @@ def evaluate_server(server):
 	serverMap[server.id] = [commandPrefix, spawnChannel]
 	print('Done.')
 
-#ONLINE_MESSAGE = "PDA was updated to version 1.1c!\n\n I am very sorry for everyone that couldn't reach me on the past few days, it's been a busy week. PDA was updated with an experimental spawn system, it should probably fix the instant run aways. I have been a little busy with work lately, but I'll try my best to work on the bot on the next few days. Thanks everybody for playing and for the support! Boss winning message was also fixed."
+ONLINE_MESSAGE = "PDA was updated to version 2.0a!\n\n I am happy to annouce the new version of PDA and the long awaited Mega Evolutions! I'm sorry about the delay, and I hope you guys enjoy the new feature! A donate and a ping button were also added. Enjoy! \n\nPDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa). Thanks *Natsu dragneel6890#1771* for creating and managing the server! Have fun!"
 
-ONLINE_MESSAGE = "My server went out of space. Cheap server, sorry about that everyon! Should be working fine (for real) now. \n\nPDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa). Thanks *Natsu dragneel6890#1771* for creating and managing the server! Have fun!"
+#ONLINE_MESSAGE = "My server went out of space. Cheap server, sorry about that everyon! Should be working fine (for real) now. \n\nPDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa). Thanks *Natsu dragneel6890#1771* for creating and managing the server! Have fun!"
 async def send_online_message(channel):
 	em = discord.Embed(title='PDA admin.', description=ONLINE_MESSAGE, colour=0xDEADBF)
 	try:
