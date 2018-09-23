@@ -19,8 +19,8 @@ from pitem import PokeItem
 # Make shop for multiple items
 # Fix pages for exactly %20 pokemon
 
-TOKEN = 'NDYzNzQ0NjkzOTEwMzcyMzYy.Dh03cA.jaXIvI0zQdOieINXT46_Y9X-L2k'
-#TOKEN = 'NDY4MDY3MDIxNTgyNDk5ODQw.Dizw5g.XLIpP3hINJLjSQm0rMEcE3onPeg'
+#TOKEN = 'NDYzNzQ0NjkzOTEwMzcyMzYy.Dh03cA.jaXIvI0zQdOieINXT46_Y9X-L2k'
+TOKEN = 'NDY4MDY3MDIxNTgyNDk5ODQw.Dizw5g.XLIpP3hINJLjSQm0rMEcE3onPeg'
 
 client = discord.Client()
 playerMap = {}
@@ -541,7 +541,7 @@ class Spawn:
 
 			isHealing, deltaTime = playerPokemon.isHealing()
 			if isHealing == True:
-				msg = '{0.author.mention}, your {1} is currently healing at the pokemon center, and won\'t be able to fight for {2}.'.format(message, playerPokemon.name, convertDeltaToHuman(deltaTime))
+				msg = '{0.author.mention}, your {1} is currently healing at the pokemon center, and won\'t be able to fight for {2}.'.format(message, playerPokemon.name, convertDeltaToHuman(deltaTime+1))
 				em = discord.Embed(title='There is no way!', description=msg, colour=0xDEADBF)
 				em.set_author(name='Nurse Joy', icon_url=joyUrl)
 				em.set_thumbnail(url=imageURL.format(playerPokemon.pId))
@@ -969,7 +969,7 @@ async def display_fail_pokecenter(message, commandPrefix):
 	await client.send_message(message.channel, embed=em)
 
 async def display_healing_pokecenter(message, commandPrefix, pokemon, deltaTime):
-	msg = '{0.author.mention}, your {1} is already being healed. It will be ready for battle in {2}.'.format(message, pokemon.name, convertDeltaToHuman(deltaTime))
+	msg = '{0.author.mention}, your {1} is already being healed. It will be ready for battle in {2}.'.format(message, pokemon.name, convertDeltaToHuman(deltaTime+1))
 	em = discord.Embed(title='Already healing!', description=msg, colour=0xDEADBF)
 	em.set_author(name='Nurse Joy', icon_url=joyUrl)
 	em.set_thumbnail(url=imageURL.format(113))
