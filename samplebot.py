@@ -827,9 +827,9 @@ async def change_prefix(message):
 		
 	option = None
 	if len(temp)<=1:
-		msg = 'Invalid prefix. Type ``{}prefix`` your_prefix to change the command prefix. In this example, commands would be called as your_prefix!command.'.format(commandPrefix)
+		msg = 'Invalid prefix. Type ``{}prefix your_prefix`` to change the command prefix. In this example, commands would be called as your_prefix!command.'.format(commandPrefix)
 	else:
-		option = temp[1] + '!'
+		option = temp[1]
 		if len(option)>10:
 			msg = 'Invalid prefix. Prefix is too long. Maximum of 10 characters.'.format(commandPrefix)
 		else:
@@ -1846,7 +1846,7 @@ async def on_message(message):
 		if command in serverAdminCommandList and message.author.server_permissions.administrator:
 			await executeCommand(serverAdminCommandList, command, key, message)
 			return
-			
+
 serverMap = {}
 
 @client.event
