@@ -596,25 +596,27 @@ __Pokeball Stats:__
 	def hasAllBadges(self):
 		return len(self.badges) == 18
 
+	def hasBadge(self, badgeId, badgeName):
+		return [badgeId, badgeName.upper()] in self.badges
+
 	def megaEvolveSelectedPokemon(self):
 		pokemon = self.getSelectedPokemon()
 
-		if not pokemon.canMegaEvolve():
-			return False
-
-		xgh = []
-		for t in pokemon.types:
-			for badgeId, badgeType in self.badges:
-				if badgeType == t.identifier.upper():
-					xgh.append(True)
-		if len(xgh) != len(pokemon.types):
-			return False
-					
-
-		if pokemon.mega:
-			return False
-
-		pokemon.megaEvolve()
-		self.commitPokemonToDB(pokemon)
+		hasMega = False
+		hasBadges = True
+		isMega = False
 		
-		return True
+		hasMega = pokemon.canMegaEvolve()
+
+		for t in pokemon.types:
+			if not self.hasBadge(t.tId, t.identifier):
+				hasBadges = False
+				break
+		
+		isMega = pokemon.mega
+
+		if hasMega and hasBadges and not isMega:
+			pokemon.megaEvolve()
+			self.commitPokemonToDB(pokemon)
+		
+		return hasMega, hasBadges, isMega

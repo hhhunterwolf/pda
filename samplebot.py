@@ -17,12 +17,8 @@ from datetime import timedelta
 from pitem import PokeItem
 from discord.ext import commands
 
-# TODO:
-# Make shop for multiple items
-# Fix pages for exactly %20 pokemon
-
-#TOKEN = '***REMOVED***'
 TOKEN = '***REMOVED***'
+#TOKEN = '***REMOVED***'
 
 client = discord.Client()
 playerMap = {}
@@ -1677,9 +1673,18 @@ async def ping(message):
 	return await client.send_message(message.channel, 'Pong! {}ms.'.format(round((t2-t1)*1000)).format(round((t2-t1)*1000)))
 
 megaEvolutionPrice = 250000
-async def display_mega_info_message(message, commandPrefix):
-	msg = '{0.author.mention}, to trigger a mega evolution you need a pokemon that __can mega evolve__, it needs to be on __level 100__, you need to __have the badges corresponding to your pokemon types__ (you need both Ghost and Poison badges to mega evolve a Gengar, for example), and it will cost __{1}₽__.'.format(message, megaEvolutionPrice)
+async def display_mega_info_message(message, commandPrefix, pokemon, player):
+	msg = '{0.author.mention}, here\'s what you need for your Mega Evolution: \n\n'.format(message, megaEvolutionPrice)
+	msg += "**Level:** {0}/100.\n".format(pokemon.pokeStats.level)
+	msg += "**Badges:** \n"
+
+	for t in pokemon.types:
+		msg += "    {0}: {1}\n ".format(t.identifier.upper(), ("✓" if player.hasBadge(t.tId, t.identifier) else "򪪪"))
+
+	msg += "**Money:** {0}₽/{1}₽. \n".format(player.money, megaEvolutionPrice)
+
 	em = discord.Embed(title='Sorry, but you can\'t mega evolve yet!', description=msg, colour=0xDEADBF)
+	em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
 	em.set_author(name='Professor Oak', icon_url=oakUrl)
 	em.set_footer(text='HINT: You can buy an EXP Boost on the PokeMart to level up your pokemon faster!')
 	await client.send_message(message.channel, embed=em)
@@ -1687,6 +1692,22 @@ async def display_mega_info_message(message, commandPrefix):
 async def display_mega_evolved_message(message, commandPrefix, pokemon):
 	msg = '{0.author.mention}, congratulations, you now have a {1}!'.format(message, pokemon.name)
 	em = discord.Embed(title='What!? It\'s mega evolving!', description=msg, colour=0xDEADBF)
+	em.set_author(name='Professor Oak', icon_url=oakUrl)
+	em.set_footer(text='HINT: You can buy an EXP Boost on the PokeMart to level up your pokemon faster!')
+	em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+	await client.send_message(message.channel, embed=em)
+
+async def display_mega_nomega_message(message, commandPrefix, pokemon):
+	msg = '{0.author.mention}, that is a {1}! It cannot Mega Evolve.'.format(message, pokemon.name)
+	em = discord.Embed(title='That is not how this works!', description=msg, colour=0xDEADBF)
+	em.set_author(name='Professor Oak', icon_url=oakUrl)
+	em.set_footer(text='HINT: You can buy an EXP Boost on the PokeMart to level up your pokemon faster!')
+	em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+	await client.send_message(message.channel, embed=em)
+
+async def display_mega_ismega_message(message, commandPrefix, pokemon):
+	msg = '{0.author.mention}, that is a {1}! It is already Mega Evolved!'.format(message, pokemon.name)
+	em = discord.Embed(title='That is not how this works!', description=msg, colour=0xDEADBF)
 	em.set_author(name='Professor Oak', icon_url=oakUrl)
 	em.set_footer(text='HINT: You can buy an EXP Boost on the PokeMart to level up your pokemon faster!')
 	em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
@@ -1707,13 +1728,20 @@ async def display_mega(message):
 
 	player = playerMap[message.author.id + message.server.id]
 		
-	if not player.megaEvolveSelectedPokemon():
-		await display_mega_info_message(message, commandPrefix)
+	hasMega, hasBadges, isMega, hasLevel = player.megaEvolveSelectedPokemon()
+	pokemon = player.getSelectedPokemon()
+
+	if not hasMega:
+		await display_mega_nomega_message(message, commandPrefix, pokemon)
+	elif isMega:
+		await display_mega_ismega_message(message, commandPrefix, pokemon)
+	elif not hasBadges or not hasLevel:
+		await display_mega_info_message(message, commandPrefix, pokemon, player)
 	else:
 		if player.removeMoney(megaEvolutionPrice):
-			await display_mega_evolved_message(message, commandPrefix, player.getSelectedPokemon())
+			await display_mega_evolved_message(message, commandPrefix, pokemon)
 		else:
-			await display_mega_evolved_message(message, commandPrefix, player)
+			await display_mega_info_message(message, commandPrefix, pokemon, player)
 
 #'welcome' : send_greeting,
 commandList = {
