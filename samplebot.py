@@ -839,7 +839,7 @@ async def change_prefix(message):
 				SET prefix = %s
 				WHERE id = %s
 				""", (option, message.server.id))
-			msg = 'Prefix set to {0}. Commands now must be called as {0}!command.'.format(option)
+			msg = 'Prefix set to {0}. Commands now must be called as {0}command.'.format(option)
 			MySQL.commit()
 
 			serverMap[message.server.id][0] = option
