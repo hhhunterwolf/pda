@@ -604,8 +604,9 @@ __Pokeball Stats:__
 
 		hasMega = False
 		hasBadges = True
+		hasLevel = False
 		isMega = False
-		
+
 		hasMega = pokemon.canMegaEvolve()
 
 		for t in pokemon.types:
@@ -618,5 +619,7 @@ __Pokeball Stats:__
 		if hasMega and hasBadges and not isMega:
 			pokemon.megaEvolve()
 			self.commitPokemonToDB(pokemon)
+
+		hasLevel = pokemon.pokeStats.level == 100
 		
-		return hasMega, hasBadges, isMega
+		return hasMega, hasBadges, isMega, hasLevel
