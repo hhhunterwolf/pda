@@ -382,6 +382,7 @@ async def display_help(message):
 		'**{0}accept or {0}a:** Accepts a duel challenge. \n' \
 		'**{0}gym or {0}g:** Shows information on the gyms. \n' \
 		'**{0}mega:** Shows info on how to mega evolve pokemon. \n' \
+		'**{0}rank:** Shows the top 10 players in the server. \n' \
 		'**{0}ping:** Standard ping command. \n' \
 		'**{0}donate:** Displays information on donations. \n\n' \
 		'__Admin Commands:__ \n\n' \
@@ -1072,26 +1073,36 @@ async def display_fail_shop(message, commandPrefix):
 
 itemTypes = ['__PokeBalls__', '__Potions__', '__EXP Boosts__']
 def getItemsString():
-	msg = ''
+	msg = {}
 	counter = 1
 	oldType = -1
+
+	# This is a trash piece of code that is only here because I am a XGH lazy piece of crap
 	for item in shopItems:
 		if oldType < item.itemType:
-			msg += '\n' + itemTypes[item.itemType] + '\n\n'
+			msg[itemTypes[item.itemType]] = ''
 			oldType = item.itemType
 
-		msg += '**{}.** {} ({}₽)\n'.format(counter, item.name, item.price)
-		msg += '**Description:** {}\n'.format(item.description)
+		msg[itemTypes[item.itemType]] += '**{}.** {} ({}₽)\n'.format(counter, item.name, item.price)
+		msg[itemTypes[item.itemType]] += '**Description:** {}\n'.format(item.description)
 		counter += 1
 	return msg
 
 async def display_info_shop(message, player, commandPrefix):
-	msg = '{0.author.mention}, welcome to the Poke Mart! To buy an item type ``{1}shop item amount``.\n'.format(message, commandPrefix)
-	em = discord.Embed(title='Hello there, {0}. You have {1}₽.'.format(message.author.name, player.money), description=msg+getItemsString(), colour=0xDEADBF)
+	msg = '{0.author.mention}, welcome to the Poke Mart! To buy an item type ``{1}shop item amount``. Here these are the available items:'.format(message, commandPrefix)
+	em = discord.Embed(title='Hello there, {0}. You have {1}₽.'.format(message.author.name, player.money), description=msg, colour=0xDEADBF)
 	em.set_author(name='Poke Mart', icon_url=pokeballUrl)
 	em.set_thumbnail(url=pokeMartUrl)
 	em.set_footer(text='HINT: To use an item, type {0}item #. You can see your items by typing {0}item.'.format(commandPrefix))
 	await client.send_message(message.channel, embed=em)
+
+	shopMessages = getItemsString()
+	for itemType, itemMessage in shopMessages.items():
+		em = discord.Embed(title='{0}'.format(itemType.replace("_", "")), description=itemMessage, colour=0xDEADBF) # and with trash code, comes trashier code
+		em.set_author(name='Poke Mart', icon_url=pokeballUrl)
+		em.set_thumbnail(url=pokeMartUrl)
+		em.set_footer(text='HINT: To use an item, type {0}item #. You can see your items by typing {0}item.'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
 
 shopItems = []
 items = []
@@ -1743,6 +1754,31 @@ async def display_mega(message):
 		else:
 			await display_mega_info_message(message, commandPrefix, pokemon, player)
 
+
+async def display_rank(message):
+	serverId = message.server.id
+
+	cursor = MySQL.getCursor()
+	cursor.execute("""
+		SELECT *
+		FROM player
+		WHERE id like %s
+		ORDER BY level DESC
+		LIMIT 10
+	""", ('%' + str(serverId) + '%',))
+	rows = cursor.fetchall()
+
+	counter = 1
+	msg = ''
+	for row in rows:
+		msg += '**{0}.** {1}: Level {2} | {3} Pokemons owned | {4}₽\n'.format(counter, row['name'], row['level'], row['pokemon_caught'], row['money'])
+		counter += 1
+
+	em = discord.Embed(title='Top 10 PokeTrainers', description=msg, colour=0xDEADBF)
+	em.set_author(name='Professor Oak', icon_url=oakUrl)
+	em.set_footer(text='HINT: Winning against trainers is a very good way of getting cash!')
+	await client.send_message(message.channel, embed=em)
+
 #'welcome' : send_greeting,
 commandList = {
 	'start' : select_starter,
@@ -1780,7 +1816,8 @@ commandList = {
 	'gym' : display_gym,
 	'donate' : display_donation,
 	'ping' : ping,
-	'mega' : display_mega
+	'mega' : display_mega,
+	'rank' : display_rank
 }
 
 admin = 229680411079475201
@@ -1916,7 +1953,7 @@ def evaluate_server(server):
 	serverMap[server.id] = [commandPrefix, spawnChannel]
 	print('Done.')
 
-ONLINE_MESSAGE = "PDA was updated to version 2.0a!\n\n I am happy to annouce the new version of PDA and the long awaited Mega Evolutions! I'm sorry about the delay, and I hope you guys enjoy the new feature! A donate and a ping button were also added. Enjoy! \n\nPDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa). Thanks *Natsu dragneel6890#1771* for creating and managing the server! Have fun!"
+ONLINE_MESSAGE = "PDA was updated to version 2.0b!\n\n Fixed the shop message not being shown, it's a little more spammy now, but it works. Added a 'rank' command. Main priorities now are: 1) fixing the spawn crashes when the bot loses connectivity with Discord; 2) Fixing the favorites system, I've pushed this aside for too long; 3) Implementing a 'trade' command. I will do my best to work on those things ASAP. \n\nPDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa). Thanks *Natsu dragneel6890#1771* for creating and managing the server! Have fun!"
 
 #ONLINE_MESSAGE = "My server went out of space. Cheap server, sorry about that everyon! Should be working fine (for real) now. \n\nPDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa). Thanks *Natsu dragneel6890#1771* for creating and managing the server! Have fun!"
 async def send_online_message(channel):
