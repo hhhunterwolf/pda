@@ -7,6 +7,7 @@ import asyncio
 import datetime
 import traceback
 import humanfriendly
+import time
 
 from player import Player
 from pokemon import Pokemon
@@ -14,17 +15,14 @@ from battle import Battle
 from mysql import MySQL
 from datetime import timedelta
 from pitem import PokeItem
-
-# TODO:
-# Make shop for multiple items
-# Fix pages for exactly %20 pokemon
+from discord.ext import commands
 
 TOKEN = 'NDYzNzQ0NjkzOTEwMzcyMzYy.Dh03cA.jaXIvI0zQdOieINXT46_Y9X-L2k'
 #TOKEN = 'NDY4MDY3MDIxNTgyNDk5ODQw.Dizw5g.XLIpP3hINJLjSQm0rMEcE3onPeg'
 
 client = discord.Client()
 playerMap = {}
-imageURL = 'http://microcubo.com.br/pokemon/{}.png'
+#imageURL = 'http://microcubo.com.br/pokemon/{}.png'
 trainerURL = 'https://microcubo.com.br/pokemon/Trainer_{}.png'
 oakUrl = 'https://i.imgur.com/VbSBVi7.png'
 grassUrl = 'https://i.imgur.com/zdeDVpY.png'
@@ -33,6 +31,12 @@ pokeballUrl = 'https://i.imgur.com/2jQoEjs.png'
 pokeMartUrl = 'https://i.imgur.com/RkJQOOh.png'
 
 # lastPokemonEnabled = 649
+
+def getImageUrl(pId, mega=False):
+	if not mega:
+		return 'http://microcubo.com.br/pokemon/{}.png'.format(pId)
+	else:
+		return 'http://microcubo.com.br/pokemon/{}-mega.png'.format(pId)
 
 async def send_greeting(message):
 	try:
@@ -122,7 +126,7 @@ async def display_pokemon_info(message):
 		
 		em = discord.Embed(title='{}\'s Pokemon'.format(message.author.name), description=str(pokemon), colour=0xDEADBF)
 		em.set_author(name='Professor Oak', icon_url=oakUrl)
-		em.set_thumbnail(url=imageURL.format(pokemon.pId))
+		em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
 		em.set_footer(text='HINT: Use {0}pokemon to see your full list of Pokemon. Use {0}info # to see info of an unselected pokemon.'.format(commandPrefix))
 		await client.send_message(message.channel, embed=em)
 	else:
@@ -132,21 +136,21 @@ async def display_success_add_favorite(message, pokemon, favId, commandPrefix):
 	msg = '{0.author.mention}, your  *{1}* was added to your favorites with Fav. ID: **{2}**. Use ``{3}favorite {2}`` to select it, or just ``{3}favorite`` to list all favorite pokemon.'.format(message, pokemon.name, favId, commandPrefix)
 	em = discord.Embed(title='Favorite added!', description=msg, colour=0xDEADBF)
 	em.set_author(name='Professor Oak', icon_url=oakUrl)
-	em.set_thumbnail(url=imageURL.format(pokemon.pId))
+	em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
 	await client.send_message(message.channel, embed=em)
 
 async def display_fail_add_favorite(message, pokemon, favId, commandPrefix):
 	msg = '{0.author.mention}, your *{1}* is already in your favorite list with Fav ID: **{2}**. Use ``{3}favorite {2}`` to select it, or just ``{3}favorite`` to list all favorite pokemon.'.format(message, pokemon.name, favId, commandPrefix)
 	em = discord.Embed(title='Could not add favorite...', description=msg, colour=0xDEADBF)
 	em.set_author(name='Professor Oak', icon_url=oakUrl)
-	em.set_thumbnail(url=imageURL.format(pokemon.pId))
+	em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
 	await client.send_message(message.channel, embed=em)
 
 async def display_success_rem_favorite(message, pokemon, commandPrefix):
 	msg = '{0.author.mention}, your  *{1}* was removed from your favorite list. Type ``{2}favorite`` to list all favorite pokemon.'.format(message, pokemon.name, commandPrefix)
 	em = discord.Embed(title='Favorite removed!', description=msg, colour=0xDEADBF)
 	em.set_author(name='Professor Oak', icon_url=oakUrl)
-	em.set_thumbnail(url=imageURL.format(pokemon.pId))
+	em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
 	await client.send_message(message.channel, embed=em)
 
 async def display_fail_rem_favorite(message, favId, commandPrefix):
@@ -284,7 +288,7 @@ async def display_release_success(message, pokemon):
 
 	msg = '{0.author.mention}, your {1} was released back to the wild. It will probably die. Alone.'.format(message, pokemon.name)
 	em = discord.Embed(title='Good bye!', description=str(msg), colour=0xDEADBF)
-	em.set_thumbnail(url=imageURL.format(pokemon.pId))
+	em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
 	em.set_author(name='Professor Oak', icon_url=oakUrl)
 	await client.send_message(message.channel, embed=em)
 
@@ -359,14 +363,14 @@ async def display_help(message):
 	except KeyError as err:
 		return
 
-	msg = 'Welcome to Pokemon Discord Adventure! This bot is in a very alpha state, and most things are still being worked on. Please expect it to crash, bug out and sudden restarts. If you have any questions, suggestions, or just have a chat, contact me at Discord Fairfruit#8973, or send me an email at contact@yfrit.com.\n\nIf you like this bot and wish to add to your server, feel free to do it, but please keep in mind all of te disclaimers above. You can add the bot to your server with this link: https://discordapp.com/oauth2/authorize?client_id=463744693910372362&scope=bot. \n\n These are the possible commands: \n\n' \
+	msg = 'Welcome to Pokemon Discord Adventure! This bot is in a very alpha state, and most things are still being worked on. Please expect it to crash, bug out and sudden restarts. If you have any questions, suggestions, or just have a chat, contact me at Discord Fairfruit#8973, or send me an email at contact@yfrit.com.\n\nIf you like this bot and wish to add to your server, feel free to do it, but please keep in mind all of te disclaimers above. You can add the bot to your server with this link: https://discordapp.com/oauth2/authorize?client_id=463744693910372362&scope=bot. **Want to play the game? [Join the official PDA Server!](https://discord.gg/rEkQWUa)**\n\n These are the possible commands: \n\n' \
 		'__Player Commands:__ \n\n' \
 		'**{0}info or {0}i :** Shows stats of a specific pokemon (selected pokemon if none is specified) \n' \
 		'**{0}start:** Shows information on how to select a starter and start the adventure. \n' \
 		'**{0}pokemon or {0}p:** Shows a list of all your pokemon. \n' \
 		'**{0}select or {0}s:** Selects a pokemon in your list to use on your journey.\n' \
 		'**{0}favorite or {0}v:** Shows information on how to add pokemon to your favorite list.\n' \
-		'**{0}release or {0}r:** Releases a in your list pokemon. It will never come back.\n' \
+		'**{0}release or {0}r:** Releases a pokemon in your list pokemon. It will never come back.\n' \
 		'**{0}help:** Shows this help message. \n' \
 		'**{0}fight or {0}f:** Fights the currently spawned pokemon or poketrainer if available.\n' \
 		'**{0}catch or {0}c:** Fights and tries to catch the currently spawned pokemon if available.\n' \
@@ -376,10 +380,15 @@ async def display_help(message):
 		'**{0}item or {0}u:** Displays the player inventory. \n' \
 		'**{0}duel or {0}d:** Challenges another player to a duel. \n' \
 		'**{0}accept or {0}a:** Accepts a duel challenge. \n' \
-		'**{0}gym or {0}g:** Shows information on the gyms. \n\n' \
+		'**{0}gym or {0}g:** Shows information on the gyms. \n' \
+		'**{0}mega:** Shows info on how to mega evolve pokemon. \n' \
+		'**{0}rank:** Shows the top 10 players in the server. \n' \
+		'**{0}ping:** Standard ping command. \n' \
+		'**{0}donate:** Displays information on donations. \n\n' \
 		'__Admin Commands:__ \n\n' \
 		'**{0}prefix:** Changes the prefix used to trigger bot commands (default is p). \n' \
 		'**{0}spawn:** Sets the channel where wild pokemon and poketrainers will spawn. \n'
+
 	msg = msg.format(commandPrefix)
 	em = discord.Embed(title='Help!', description=msg, colour=0xDEADBF)
 	footerMsg = 'HINT: Don\'t forget to set the spawn channel with the spawn command, otherwise wild pokemon will not spawn until you do. The bot also has an "anti-afk" system, in which spawn channels that don\'t receive messages for a while will stop having pokemon spawned.'
@@ -476,7 +485,7 @@ async def give_players_boss_prize(message, commandPrefix):
 				levelUpMessage += ('What!? {} is evolving! It evolved into a {}!'.format(name, winner.name))
 			lem = discord.Embed(title='Level up!', description='<@{0}>, your '.format(player.pId.replace(serverId, '')) + levelUpMessage, colour=0xDEADBF)
 			lem.set_author(name='Professor Oak', icon_url=oakUrl)
-			lem.set_thumbnail(url=imageURL.format(winner.pId))
+			lem.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
 			lem.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
 
 		# item gift
@@ -490,7 +499,7 @@ async def give_players_boss_prize(message, commandPrefix):
 		msg = '<@{}>, you participated in the boss fight, your reward is {} EXP for you, {} EXP for your {}, {}P and {} unit(s) of {}!'.format(player.pId.replace(serverId, ''), exp, basePValue, pokemon.name, money, amount, item.name)
 		em = discord.Embed(title='Well done!', description=msg, colour=0xDEADBF)
 		em.set_author(name='Professor Oak', icon_url=oakUrl)
-		em.set_thumbnail(url=imageURL.format(pokemon.pId))
+		em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
 		em.set_footer(text='HINT: No wild pokemon? Challenge a friend to a duel by typing {}duel @nickname!'.format(commandPrefix))
 		await client.send_message(message.channel, embed=em)
 
@@ -498,7 +507,7 @@ async def give_players_boss_prize(message, commandPrefix):
 			await client.send_message(message.channel, embed=lem)
 
 bossChance = 4
-afkTime = 120
+afkTime = 150
 valueMod = 8.75*0.45
 ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
 class Spawn:
@@ -510,6 +519,7 @@ class Spawn:
 	isBoss = {}
 	bossFighters = {}
 	restSpawn = 0
+	lastAct = {}
 
 	@staticmethod
 	async def fight(message, capture=0):
@@ -540,11 +550,11 @@ class Spawn:
 
 			isHealing, deltaTime = playerPokemon.isHealing()
 			if isHealing == True:
-				msg = '{0.author.mention}, your {1} is currently healing at the pokemon center, and won\'t be able to fight for {2}.'.format(message, playerPokemon.name, convertDeltaToHuman(deltaTime))
+				msg = '{0.author.mention}, your {1} is currently healing at the pokemon center, and won\'t be able to fight for {2}.'.format(message, playerPokemon.name, convertDeltaToHuman(deltaTime+1))
 				em = discord.Embed(title='There is no way!', description=msg, colour=0xDEADBF)
 				em.set_author(name='Nurse Joy', icon_url=joyUrl)
-				em.set_thumbnail(url=imageURL.format(playerPokemon.pId))
-				em.set_footer(text='HINT: HINT: Pokemon healing at pokecenter? You can choose other pokemon to fight by typing {0}select #! Use {0}pokemon to see your full list of pokemon.'.format(commandPrefix))
+				em.set_thumbnail(url=getImageUrl(playerPokemon.pId, playerPokemon.mega))
+				em.set_footer(text='HINT:  Pokemon healing at pokecenter? You can choose other pokemon to fight by typing {0}select #! Use {0}pokemon to see your full list of pokemon.'.format(commandPrefix))
 				await client.send_message(message.channel, embed=em)
 				return
 			elif isHealing == False:
@@ -616,7 +626,7 @@ class Spawn:
 						if levelUpMessage:
 							lem = discord.Embed(title='Level up!', description='{0.author.mention}, your '.format(message) + levelUpMessage, colour=0xDEADBF)
 							lem.set_author(name='Professor Oak', icon_url=oakUrl)
-							lem.set_thumbnail(url=imageURL.format(winner.pId))
+							lem.set_thumbnail(url=getImageUrl(winner.pId, winner.mega))
 							lem.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
 				else:
 					Spawn.fought[message.server.id].append(player.pId)
@@ -631,7 +641,7 @@ class Spawn:
 						bossMsg = '{} was defeated! All the participant were rewarded according to the damage dealt! '.format(Spawn.name[message.server.id])
 						bem = discord.Embed(title='The boss is down!', description=bossMsg, colour=0xDEADBF)
 						bem.set_author(name='Professor Oak', icon_url=oakUrl)
-						bem.set_thumbnail(url=imageURL.format(Spawn.pId[message.server.id]))
+						bem.set_thumbnail(url=getImageUrl(Spawn.pId[message.server.id]))
 					else:
 						player.lastBattle = {
 							'pokemon' : playerPokemon, 
@@ -660,7 +670,7 @@ class Spawn:
 					msg = '{0.author.mention}, your {1} gave it all against the boss {2}! Here are the details: \n\n'.format(message, playerPokemon.name, wildPokemon.name)
 					em = discord.Embed(title='Boss Battle with {} Lv. 100!'.format(wildPokemon.name), description=msg+battleLog, colour=0xDEADBF)
 				em.set_author(name='Professor Oak', icon_url=oakUrl)
-				em.set_thumbnail(url=imageURL.format(Spawn.pId[message.server.id]))
+				em.set_thumbnail(url=getImageUrl(Spawn.pId[message.server.id]))
 				em.set_footer(text='HINT: You can check your pokeball supply by typing {}me.'.format(commandPrefix))
 				await client.send_message(message.channel, embed=em)
 				
@@ -682,7 +692,7 @@ class Spawn:
 			msg = '{0.author.mention}, you you already fought {1}! You can\'t fight it twice.'.format(message, Spawn.name[message.server.id])
 			em = discord.Embed(title='Ops!', description=msg, colour=0xDEADBF)
 			em.set_author(name='Tall Grass', icon_url=grassUrl)
-			em.set_thumbnail(url=imageURL.format(Spawn.pId[message.server.id]))
+			em.set_thumbnail(url=getImageUrl(Spawn.pId[message.server.id]))
 			em.set_footer(text='HINT: No wild pokemon? Challenge a friend to a duel by typing {}duel @nickname!'.format(commandPrefix))
 			await client.send_message(message.channel, embed=em)
 		else:
@@ -694,9 +704,9 @@ class Spawn:
 
 	@staticmethod	
 	async def spawn():
-		delay = random.randint(25, 55)
-		print('Spawn delay is {}.'.format(delay))
-		await asyncio.sleep(delay)
+		#delay = random.randint(25, 55)
+		#print('Spawn delay is {}.'.format(delay))
+		#await asyncio.sleep(delay)
 
 		for server in client.servers:
 			try:
@@ -711,78 +721,86 @@ class Spawn:
 				Spawn.fought[server.id] = []
 				Spawn.trainer[server.id] = [False, 0]
 				Spawn.isBoss[server.id] = False, None
+				Spawn.lastAct[server.id] = [datetime.datetime.now(), random.randint(45, 95)]
 
 			for channel in server.channels:
 				if channel.id == spawnChannel:
-					if not Spawn.spawned[server.id]:
-						isAfk = True
-						localAfkTime = 0
-						key = server.id + channel.id
-						if key in serverMessageMap:
-							localAfkTime = (datetime.datetime.now().timestamp() - serverMessageMap[key])
-							isAfk = localAfkTime > afkTime + Spawn.restSpawn
+					lastAct, actDelay = Spawn.lastAct[server.id]
+					canAct = datetime.datetime.now().timestamp() - lastAct.timestamp()
+					if canAct > actDelay:
+						print("Server '" + server.id + "' ready to act. Acting and updating delay.")
+						if not Spawn.spawned[server.id]:
+							Spawn.lastAct[server.id] = [datetime.datetime.now(), random.randint(45, 55)]
+							isAfk = True
+							localAfkTime = 0
+							key = server.id + channel.id
+							if key in serverMessageMap:
+								localAfkTime = (datetime.datetime.now().timestamp() - serverMessageMap[key])
+								isAfk = localAfkTime > afkTime + Spawn.restSpawn
 
-						print('Is afk?', isAfk, localAfkTime)
-						if isAfk:
-							break
+							print('Is afk?', isAfk, localAfkTime)
+							if isAfk:
+								break
 
-						Spawn.spawned[server.id] = True
-						Spawn.fought[server.id] = []
-						Spawn.isBoss[server.id] = False, None
-						Spawn.trainer[server.id] = [False, 0]
-						if random.randint(0,255) <= bossChance:
-							Spawn.pId[server.id], Spawn.name[server.id] = get_random_boss_pokemon()
-							Spawn.isBoss[server.id] = True, None
-							msg = 'A boss {0} has appeared! Type ``{1}fight`` to fight it!'.format(Spawn.name[server.id], commandPrefix)
-							em = discord.Embed(title='A wild Boss Pokemon appears!', description=msg, colour=0xDEADBF)
-							em.set_author(name='Tall Grass', icon_url=grassUrl)
-							em.set_image(url=imageURL.format(Spawn.pId[server.id]))
-							em.set_footer(text='HINT: The more people fight the boss, the easier it is to defeat it!'.format(commandPrefix))
-						else:
-							Spawn.pId[server.id], Spawn.name[server.id] = get_random_pokemon_spawn()
-							Spawn.trainer[server.id][0] = random.randint(0, 255)<=30
-							Spawn.trainer[server.id][1] = random.randint(0, 1)
-							isTrainer, gender = Spawn.trainer[server.id]
-							if isTrainer:
-								article = 'him' if gender==0 else 'her'
-								msg = 'A poketrainer is looking for a challenger! Type ``{0}fight`` to fight {1}!'.format(commandPrefix, article)
-								em = discord.Embed(title='Here comes a new challenger!', description=msg, colour=0xDEADBF)
+							Spawn.spawned[server.id] = True
+							Spawn.fought[server.id] = []
+							Spawn.isBoss[server.id] = False, None
+							Spawn.trainer[server.id] = [False, 0]
+							if random.randint(0,255) <= bossChance:
+								Spawn.pId[server.id], Spawn.name[server.id] = get_random_boss_pokemon()
+								Spawn.isBoss[server.id] = True, None
+								msg = 'A boss {0} has appeared! Type ``{1}fight`` to fight it!'.format(Spawn.name[server.id], commandPrefix)
+								em = discord.Embed(title='A wild Boss Pokemon appears!', description=msg, colour=0xDEADBF)
 								em.set_author(name='Tall Grass', icon_url=grassUrl)
-								em.set_thumbnail(url=trainerURL.format(gender))
-								em.set_footer(text='HINT: You cannot catch other trainer\'s pokemon, but you will earn money if you win the fight.'.format(commandPrefix))
+								em.set_image(url=getImageUrl(Spawn.pId[server.id]))
+								em.set_footer(text='HINT: The more people fight the boss, the easier it is to defeat it!'.format(commandPrefix))
 							else:
-								msg = 'A wild {0} wants to fight! Type ``{1}fight`` to fight it, or ``{1}catch #`` to try and catch it as well!'.format(Spawn.name[server.id], commandPrefix)
-								em = discord.Embed(title='A wild {} appeared!'.format(Spawn.name[server.id]), description=msg, colour=0xDEADBF)
-								em.set_author(name='Tall Grass', icon_url=grassUrl)
-								em.set_thumbnail(url=imageURL.format(Spawn.pId[server.id]))
-								em.set_footer(text='HINT: You need pokeballs to catch pokemon! Check your supply by typing {}me.'.format(commandPrefix))
-						await client.send_message(channel, embed=em)
-						#await asyncio.sleep(50)
-					else:
-						isTrainer, gender = Spawn.trainer[server.id]
-						if isTrainer:
-							msg = 'The poketrainer is gone! Don\'t worry if you didn\'t have a chance to fight {}, though. Pokemon trainers eager to fight always come back.'.format('him' if gender==0 else 'her')
-							em = discord.Embed(title='Bye!', description=msg, colour=0xDEADBF)
-							em.set_thumbnail(url=trainerURL.format(gender))
-							em.set_author(name='Tall Grass', icon_url=grassUrl)
-							em.set_footer(text='HINT: Your selected pokemon must be in fighting conditions for you to enter a fight! If you need to heal it, type {}center.'.format(commandPrefix))
-						else:
-							msg = 'Darn it, {} has fled the scene! Don\'t worry if you didn\'t have a chance to fight it, though. Wild pokemon appear a lot around these parts.'.format(Spawn.name[server.id], commandPrefix)
-							em = discord.Embed(title='{} fled!'.format(Spawn.name[server.id]), description=msg, colour=0xDEADBF)
-							em.set_thumbnail(url=imageURL.format(Spawn.pId[server.id]))
-							em.set_author(name='Tall Grass', icon_url=grassUrl)
-							em.set_footer(text='HINT: Your selected pokemon must be in fighting conditions for you to enter a fight! If you need to heal it, type {}center.'.format(commandPrefix))
-						
-						Spawn.spawned[server.id] = False
-						Spawn.isBoss[server.id] = False, None
-						try:
+								Spawn.pId[server.id], Spawn.name[server.id] = get_random_pokemon_spawn()
+								Spawn.trainer[server.id][0] = random.randint(0, 255)<=30
+								Spawn.trainer[server.id][1] = random.randint(0, 1)
+								isTrainer, gender = Spawn.trainer[server.id]
+								if isTrainer:
+									article = 'him' if gender==0 else 'her'
+									msg = 'A poketrainer is looking for a challenger! Type ``{0}fight`` to fight {1}!'.format(commandPrefix, article)
+									em = discord.Embed(title='Here comes a new challenger!', description=msg, colour=0xDEADBF)
+									em.set_author(name='Tall Grass', icon_url=grassUrl)
+									em.set_thumbnail(url=trainerURL.format(gender))
+									em.set_footer(text='HINT: You cannot catch other trainer\'s pokemon, but you will earn money if you win the fight.'.format(commandPrefix))
+								else:
+									msg = 'A wild {0} wants to fight! Type ``{1}fight`` to fight it, or ``{1}catch #`` to try and catch it as well!'.format(Spawn.name[server.id], commandPrefix)
+									em = discord.Embed(title='A wild {} appeared!'.format(Spawn.name[server.id]), description=msg, colour=0xDEADBF)
+									em.set_author(name='Tall Grass', icon_url=grassUrl)
+									em.set_thumbnail(url=getImageUrl(Spawn.pId[server.id]))
+									em.set_footer(text='HINT: You need pokeballs to catch pokemon! Check your supply by typing {}me.'.format(commandPrefix))
 							await client.send_message(channel, embed=em)
-						except Exception as e:
-							traceback.print_exc()
-	
-		Spawn.restSpawn = random.randint(25, 45)
-		print('Rest time for spawn is {}.'.format(Spawn.restSpawn))
-		await asyncio.sleep(Spawn.restSpawn)
+							#await asyncio.sleep(50)
+						else:
+							isTrainer, gender = Spawn.trainer[server.id]
+							Spawn.lastAct[server.id] = [datetime.datetime.now(), random.randint(25, 80)]
+							if isTrainer:
+								msg = 'The poketrainer is gone! Don\'t worry if you didn\'t have a chance to fight {}, though. Pokemon trainers eager to fight always come back.'.format('him' if gender==0 else 'her')
+								em = discord.Embed(title='Bye!', description=msg, colour=0xDEADBF)
+								em.set_thumbnail(url=trainerURL.format(gender))
+								em.set_author(name='Tall Grass', icon_url=grassUrl)
+								em.set_footer(text='HINT: Your selected pokemon must be in fighting conditions for you to enter a fight! If you need to heal it, type {}center.'.format(commandPrefix))
+							else:
+								msg = 'Darn it, {} has fled the scene! Don\'t worry if you didn\'t have a chance to fight it, though. Wild pokemon appear a lot around these parts.'.format(Spawn.name[server.id], commandPrefix)
+								em = discord.Embed(title='{} fled!'.format(Spawn.name[server.id]), description=msg, colour=0xDEADBF)
+								em.set_thumbnail(url=getImageUrl(Spawn.pId[server.id]))
+								em.set_author(name='Tall Grass', icon_url=grassUrl)
+								em.set_footer(text='HINT: Your selected pokemon must be in fighting conditions for you to enter a fight! If you need to heal it, type {}center.'.format(commandPrefix))
+							
+							Spawn.spawned[server.id] = False
+							Spawn.isBoss[server.id] = False, None
+							try:
+								await client.send_message(channel, embed=em)
+							except Exception as e:
+								traceback.print_exc()
+#					else:
+#						print("Server '" + server.id + "' is on act delay for " + str(canAct) + " seconds. Waiting.")
+		#Spawn.restSpawn = random.randint(25, 45)
+		#print('Rest time for spawn is {}.'.format(Spawn.restSpawn))
+		await asyncio.sleep(10)
 
 @asyncio.coroutine
 async def spawn_wild_pokemon():
@@ -810,19 +828,20 @@ async def change_prefix(message):
 		
 	option = None
 	if len(temp)<=1:
-		msg = 'Invalid prefix. Type ``{}prefix`` your_prefix to change the command prefix. In this example, commands would be called as your_prefix!command.'.format(commandPrefix)
+		msg = 'Invalid prefix. Type ``{}prefix your_prefix`` to change the command prefix. In this example, commands would be called as your_prefix!command.'.format(commandPrefix)
 	else:
-		option = temp[1] + '!'
+		option = temp[1]
 		if len(option)>10:
 			msg = 'Invalid prefix. Prefix is too long. Maximum of 10 characters.'.format(commandPrefix)
 		else:
+			option = option.lower()
 			cursor = MySQL.getCursor()
 			cursor.execute("""
 				UPDATE server
 				SET prefix = %s
 				WHERE id = %s
 				""", (option, message.server.id))
-			msg = 'Prefix set to {0}. Commands now must be called as {0}!command.'.format(option)
+			msg = 'Prefix set to {0}. Commands now must be called as {0}command.'.format(option)
 			MySQL.commit()
 
 			serverMap[message.server.id][0] = option
@@ -947,7 +966,7 @@ async def display_success_pokecenter(message, commandPrefix):
 	msg = '{0.author.mention}, we will take good care of your pokemon!'.format(message)
 	em = discord.Embed(title='Thanks for using the pokemon center!', description=msg, colour=0xDEADBF)
 	em.set_author(name='Nurse Joy', icon_url=joyUrl)
-	em.set_thumbnail(url=imageURL.format(113))
+	em.set_thumbnail(url=getImageUrl(113))
 	em.set_footer(text='HINT: Pokemon healing at pokecenter? You can choose other pokemon to fight by typing {0}select #! Use {0}pokemon to see your full list of pokemon.'.format(commandPrefix))
 	await client.send_message(message.channel, embed=em)
 
@@ -955,15 +974,15 @@ async def display_fail_pokecenter(message, commandPrefix):
 	msg = '{0.author.mention}, welcome to the Pokemon Center! You can heal a single pokemon by typing ``{1}center #``, or you can heal all your pokemon by typing ``{1}center all``.'.format(message, commandPrefix)
 	em = discord.Embed(title='Hello there!', description=msg, colour=0xDEADBF)
 	em.set_author(name='Nurse Joy', icon_url=joyUrl)
-	em.set_thumbnail(url=imageURL.format(113))
+	em.set_thumbnail(url=getImageUrl(113))
 	em.set_footer(text='HINT: Pokemon healing at pokecenter? You can choose other pokemon to fight by typing {0}select #! Use {0}pokemon to see your full list of pokemon.'.format(commandPrefix))
 	await client.send_message(message.channel, embed=em)
 
 async def display_healing_pokecenter(message, commandPrefix, pokemon, deltaTime):
-	msg = '{0.author.mention}, your {1} is already being healed. It will be ready for battle in {2}.'.format(message, pokemon.name, convertDeltaToHuman(deltaTime))
+	msg = '{0.author.mention}, your {1} is already being healed. It will be ready for battle in {2}.'.format(message, pokemon.name, convertDeltaToHuman(deltaTime+1))
 	em = discord.Embed(title='Already healing!', description=msg, colour=0xDEADBF)
 	em.set_author(name='Nurse Joy', icon_url=joyUrl)
-	em.set_thumbnail(url=imageURL.format(113))
+	em.set_thumbnail(url=getImageUrl(113))
 	em.set_footer(text='HINT: Pokemon healing at pokecenter? You can choose other pokemon to fight by typing {0}select #! Use {0}pokemon to see your full list of pokemon.'.format(commandPrefix))
 	await client.send_message(message.channel, embed=em)
 
@@ -971,7 +990,7 @@ async def display_healed_pokecenter(message, commandPrefix, pokemon):
 	msg = '{0.author.mention}, your {1} is fully healed! It is ready for combat.'.format(message, pokemon.name)
 	em = discord.Embed(title='All done!', description=msg, colour=0xDEADBF)
 	em.set_author(name='Nurse Joy', icon_url=joyUrl)
-	em.set_thumbnail(url=imageURL.format(113))
+	em.set_thumbnail(url=getImageUrl(113))
 	em.set_footer(text='HINT: Pokemon healing at pokecenter? You can choose other pokemon to fight by typing {0}select #! Use {0}pokemon to see your full list of pokemon.'.format(commandPrefix))
 	await client.send_message(message.channel, embed=em)
 
@@ -1055,26 +1074,36 @@ async def display_fail_shop(message, commandPrefix):
 
 itemTypes = ['__PokeBalls__', '__Potions__', '__EXP Boosts__']
 def getItemsString():
-	msg = ''
+	msg = {}
 	counter = 1
 	oldType = -1
+
+	# This is a trash piece of code that is only here because I am a XGH lazy piece of crap
 	for item in shopItems:
 		if oldType < item.itemType:
-			msg += '\n' + itemTypes[item.itemType] + '\n\n'
+			msg[itemTypes[item.itemType]] = ''
 			oldType = item.itemType
 
-		msg += '**{}.** {} ({}₽)\n'.format(counter, item.name, item.price)
-		msg += '**Description:** {}\n'.format(item.description)
+		msg[itemTypes[item.itemType]] += '**{}.** {} ({}₽)\n'.format(counter, item.name, item.price)
+		msg[itemTypes[item.itemType]] += '**Description:** {}\n'.format(item.description)
 		counter += 1
 	return msg
 
 async def display_info_shop(message, player, commandPrefix):
-	msg = '{0.author.mention}, welcome to the Poke Mart! To buy an item type ``{1}shop *item #*``. To buy more than 1 item, ``type {1}shop item amount``. These are the items we have for sale:\n'.format(message, commandPrefix)
-	em = discord.Embed(title='Hello there, {0}. You have {1}₽.'.format(message.author.name, player.money), description=msg+getItemsString(), colour=0xDEADBF)
+	msg = '{0.author.mention}, welcome to the Poke Mart! To buy an item type ``{1}shop item amount``. Here these are the available items:'.format(message, commandPrefix)
+	em = discord.Embed(title='Hello there, {0}. You have {1}₽.'.format(message.author.name, player.money), description=msg, colour=0xDEADBF)
 	em.set_author(name='Poke Mart', icon_url=pokeballUrl)
 	em.set_thumbnail(url=pokeMartUrl)
 	em.set_footer(text='HINT: To use an item, type {0}item #. You can see your items by typing {0}item.'.format(commandPrefix))
 	await client.send_message(message.channel, embed=em)
+
+	shopMessages = getItemsString()
+	for itemType, itemMessage in shopMessages.items():
+		em = discord.Embed(title='{0}'.format(itemType.replace("_", "")), description=itemMessage, colour=0xDEADBF) # and with trash code, comes trashier code
+		em.set_author(name='Poke Mart', icon_url=pokeballUrl)
+		em.set_thumbnail(url=pokeMartUrl)
+		em.set_footer(text='HINT: To use an item, type {0}item #. You can see your items by typing {0}item.'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
 
 shopItems = []
 items = []
@@ -1253,7 +1282,7 @@ def check_player_pokemon_healing(callout, pokemon, commandPrefix):
 		msg = '{0}, your {1} is currently healing at the pokemon center, and won\'t be able to fight for {2}.'.format(callout, pokemon.name, convertDeltaToHuman(deltaTime))
 		em = discord.Embed(title='There is no way!', description=msg, colour=0xDEADBF)
 		em.set_author(name='Nurse Joy', icon_url=joyUrl)
-		em.set_thumbnail(url=imageURL.format(pokemon.pId))
+		em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
 		em.set_footer(text='HINT: Pokemon healing at pokecenter? You can choose other pokemon to fight by typing {0}select #! Use {0}pokemon to see your full list of pokemon.'.format(commandPrefix))
 	
 	elif isHealing == False:
@@ -1367,13 +1396,13 @@ async def accept_challenge(message):
 		if levelUpMessage:
 			lem = discord.Embed(title='Level up!', description='{0}, your '.format(callout) + levelUpMessage, colour=0xDEADBF)
 			lem.set_author(name='Professor Oak', icon_url=oakUrl)
-			lem.set_thumbnail(url=imageURL.format(winner.pId))
+			lem.set_thumbnail(url=getImageUrl(winner.pId, winner.mega))
 			lem.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
 		
 		msg = '{0} and {1}, your {2} and {3} fought a beautiful battle against each other! Here are the details: \n\n'.format(challlengerCallout, message.author.mention, challengerPokemon.name, challengedPokemon.name)
 		em = discord.Embed(title='{} Lv. {} vs {} Lv. {}!'.format(challengerPokemon.name, challengerPokemon.pokeStats.level, challengedPokemon.name, challengedPokemon.pokeStats.level), description=msg+battleLog, colour=0xDEADBF)
 		em.set_author(name='Professor Oak', icon_url=oakUrl)
-		em.set_thumbnail(url=imageURL.format(winner.pId))
+		em.set_thumbnail(url=getImageUrl(winner.pId, winner.mega))
 		await client.send_message(message.channel, embed=em)
 		
 		if levelUpMessage:
@@ -1393,7 +1422,7 @@ def check_poketype(callout, pokemon, tId, tAlias, commandPrefix):
 def getGymInfo(serverId, gymId):
 	cursor = MySQL.getCursor()
 	cursor.execute("""
-		SELECT type.id, gym.type_id, gym.pokemon_id as gym_pokemon_id, player_pokemon.id, gym.holder_id, player_pokemon.player_id, player_pokemon.id, pokemon.id as pokemon_p_id, gym.holder_id, player.id, type.identifier as type_identifier, player.name as player_name, pokemon.identifier as pokemon_identifier, player_pokemon.level as pokemon_level, gym.date as gym_date, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, gym.server_id as server_id
+		SELECT type.id, gym.type_id, gym.pokemon_id as gym_pokemon_id, player_pokemon.id, gym.holder_id, player_pokemon.player_id, player_pokemon.id, pokemon.id as pokemon_p_id, gym.holder_id, player.id, type.identifier as type_identifier, player.name as player_name, pokemon.identifier as pokemon_identifier, player_pokemon.level as pokemon_level, gym.date as gym_date, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, gym.server_id as server_id, player_pokemon.is_mega as is_mega
 		FROM gym JOIN type JOIN player_pokemon JOIN pokemon JOIN player
 		WHERE type.id = gym.type_id
 		AND gym.pokemon_id = player_pokemon.id
@@ -1415,7 +1444,7 @@ async def display_info_gym(message, gymId, commandPrefix):
 	msg += '**Holding time:** {}.\n'.format(holdTime)
 
 	em = discord.Embed(title='Gyms.', description=msg, colour=0xDEADBF)
-	em.set_thumbnail(url=imageURL.format(row['pokemon_p_id']))
+	em.set_thumbnail(url=getImageUrl(row['pokemon_p_id'], row['is_mega']))
 	em.set_footer(text='HINT: Use {0}gym to get a the full list of gyms'.format(commandPrefix))
 	em.set_author(name='Professor Oak', icon_url=oakUrl)
 	await client.send_message(message.channel, embed=em)
@@ -1520,7 +1549,7 @@ async def display_gym(message):
 						msg = '{0.author.mention}, your {1} fought a beautiful battle against gym leader {2}\'s {3}! Here are the details: \n\n'.format(message, playerPokemon.name, row['player_name'], gymPokemon.name)
 						em = discord.Embed(title='{} Gym Battle: {} Lv. {} vs {} Lv. {}!'.format(row['type_identifier'], playerPokemon.name, playerPokemon.pokeStats.level, gymPokemon.name, gymPokemon.pokeStats.level), description=msg+battleLog, colour=0xDEADBF)
 						em.set_author(name='Professor Oak', icon_url=oakUrl)
-						em.set_thumbnail(url=imageURL.format(gymPokemon.pId))
+						em.set_thumbnail(url=getImageUrl(gymPokemon.pId, gymPokemon.mega))
 						em.set_footer(text='HINT: You need pokeballs to catch pokemon! Check your supply by typing {}me.'.format(commandPrefix))
 						await client.send_message(message.channel, embed=em)
 
@@ -1579,7 +1608,7 @@ async def display_gym(message):
 						msg = '{0.author.mention}, your {1} fought a beautiful battle against gym leader {2}\'s {3}! Here are the details: \n\n'.format(message, playerPokemon.name, row['player_name'], gymPokemon.name)
 						em = discord.Embed(title='Gym Battle: {} Lv. {} vs {} Lv. {}!'.format(playerPokemon.name, playerPokemon.pokeStats.level, gymPokemon.name, gymPokemon.pokeStats.level), description=msg+battleLog, colour=0xDEADBF)
 						em.set_author(name='Professor Oak', icon_url=oakUrl)
-						em.set_thumbnail(url=imageURL.format(gymPokemon.pId))
+						em.set_thumbnail(url=getImageUrl(gymPokemon.pId, gymPokemon.mega))
 						em.set_footer(text='HINT: You need pokeballs to catch pokemon! Check your supply by typing {}me.'.format(commandPrefix))
 						await client.send_message(message.channel, embed=em)
 
@@ -1593,7 +1622,7 @@ async def display_gym(message):
 
 							em = discord.Embed(title='{} is now the leader of the {} gym!'.format(message.author.name, row['type_identifier'].upper()), description='{0.author.mention}, you won against {1}\'s {2} and are now the leader of the {3} gym!'.format(message, row['player_name'], gymPokemon.name, row['type_identifier'].upper()), colour=0xDEADBF)
 							em.set_author(name='Professor Oak', icon_url=oakUrl)
-							em.set_thumbnail(url=imageURL.format(winner.pId))
+							em.set_thumbnail(url=getImageUrl(winner.pId, winner.mega))
 							em.set_footer(text='HINT: Taking too long to level up? Buy an EXP boost at the shop! Type {}shop for more information.'.format(commandPrefix))
 
 							cursor = MySQL.getCursor()
@@ -1638,6 +1667,119 @@ async def display_gym(message):
 		else:
 			await display_info_gyms(message, commandPrefix)
 
+async def display_donation(message):
+	try:
+		commandPrefix, spawnChannel = serverMap[message.server.id]
+	except KeyError as err:
+		return
+
+	msg = "PDA is a for fun project that I work on as a hobby, and I'm really happy with how it's turning out! If you want to support me, help me pay for the server, or even request a feature, you can send a donation directly to me via PayPal to __matheus.pinheiro@usp.br__. If you want to request a feature, send an email to contact@yfrit.com, and I'll be happy to talk to you!"
+	await client.send_message(message.channel, msg)
+
+async def ping(message):
+	time
+	channel = message.channel
+	t1 = time.perf_counter()
+	await client.send_typing(channel)
+	t2 = time.perf_counter()
+	return await client.send_message(message.channel, 'Pong! {}ms.'.format(round((t2-t1)*1000)).format(round((t2-t1)*1000)))
+
+megaEvolutionPrice = 250000
+async def display_mega_info_message(message, commandPrefix, pokemon, player):
+	msg = '{0.author.mention}, here\'s what you need for your Mega Evolution: \n\n'.format(message, megaEvolutionPrice)
+	msg += "**Level:** {0}/100.\n".format(pokemon.pokeStats.level)
+	msg += "**Badges:** \n"
+
+	for t in pokemon.types:
+		msg += "    {0}: {1}\n ".format(t.identifier.upper(), ("✓" if player.hasBadge(t.tId, t.identifier) else "򪪪"))
+
+	msg += "**Money:** {0}₽/{1}₽. \n".format(player.money, megaEvolutionPrice)
+
+	em = discord.Embed(title='Sorry, but you can\'t mega evolve yet!', description=msg, colour=0xDEADBF)
+	em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+	em.set_author(name='Professor Oak', icon_url=oakUrl)
+	em.set_footer(text='HINT: You can buy an EXP Boost on the PokeMart to level up your pokemon faster!')
+	await client.send_message(message.channel, embed=em)
+
+async def display_mega_evolved_message(message, commandPrefix, pokemon):
+	msg = '{0.author.mention}, congratulations, you now have a {1}!'.format(message, pokemon.name)
+	em = discord.Embed(title='What!? It\'s mega evolving!', description=msg, colour=0xDEADBF)
+	em.set_author(name='Professor Oak', icon_url=oakUrl)
+	em.set_footer(text='HINT: You can buy an EXP Boost on the PokeMart to level up your pokemon faster!')
+	em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+	await client.send_message(message.channel, embed=em)
+
+async def display_mega_nomega_message(message, commandPrefix, pokemon):
+	msg = '{0.author.mention}, that is a {1}! It cannot Mega Evolve.'.format(message, pokemon.name)
+	em = discord.Embed(title='That is not how this works!', description=msg, colour=0xDEADBF)
+	em.set_author(name='Professor Oak', icon_url=oakUrl)
+	em.set_footer(text='HINT: You can buy an EXP Boost on the PokeMart to level up your pokemon faster!')
+	em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+	await client.send_message(message.channel, embed=em)
+
+async def display_mega_ismega_message(message, commandPrefix, pokemon):
+	msg = '{0.author.mention}, that is a {1}! It is already Mega Evolved!'.format(message, pokemon.name)
+	em = discord.Embed(title='That is not how this works!', description=msg, colour=0xDEADBF)
+	em.set_author(name='Professor Oak', icon_url=oakUrl)
+	em.set_footer(text='HINT: You can buy an EXP Boost on the PokeMart to level up your pokemon faster!')
+	em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+	await client.send_message(message.channel, embed=em)
+
+async def display_mega_no_money_message(message, commandPrefix, player):
+	msg = '{0.author.mention}, you need {1}₽ to do that!'.format(message, megaEvolutionPrice)
+	em = discord.Embed(title='Out of cash... You only have {}₽.'.format(player.money), description=msg, colour=0xDEADBF)
+	em.set_author(name='Professor Oak', icon_url=oakUrl)
+	em.set_footer(text='HINT: Winning against trainers is a very good way of getting cash!')
+	await client.send_message(message.channel, embed=em)
+
+async def display_mega(message):
+	try:
+		commandPrefix, spawnChannel = serverMap[message.server.id]
+	except KeyError as err:
+		return
+
+	player = playerMap[message.author.id + message.server.id]
+		
+	hasMega, hasBadges, isMega, hasLevel = player.megaEvolveSelectedPokemon()
+	pokemon = player.getSelectedPokemon()
+
+	if not hasMega:
+		await display_mega_nomega_message(message, commandPrefix, pokemon)
+	elif isMega:
+		await display_mega_ismega_message(message, commandPrefix, pokemon)
+	elif not hasBadges or not hasLevel:
+		await display_mega_info_message(message, commandPrefix, pokemon, player)
+	else:
+		if player.removeMoney(megaEvolutionPrice):
+			await display_mega_evolved_message(message, commandPrefix, pokemon)
+		else:
+			await display_mega_info_message(message, commandPrefix, pokemon, player)
+
+
+async def display_rank(message):
+	serverId = message.server.id
+
+	cursor = MySQL.getCursor()
+	cursor.execute("""
+		SELECT *
+		FROM player
+		WHERE id like %s
+		ORDER BY level DESC
+		LIMIT 10
+	""", ('%' + str(serverId) + '%',))
+	rows = cursor.fetchall()
+
+	counter = 1
+	msg = ''
+	for row in rows:
+		msg += '**{0}.** {1}: Level {2} | {3} Pokemons owned | {4}₽\n'.format(counter, row['name'], row['level'], row['pokemon_caught'], row['money'])
+		counter += 1
+
+	em = discord.Embed(title='Top 10 PokeTrainers', description=msg, colour=0xDEADBF)
+	em.set_author(name='Professor Oak', icon_url=oakUrl)
+	em.set_footer(text='HINT: Winning against trainers is a very good way of getting cash!')
+	await client.send_message(message.channel, embed=em)
+
 #'welcome' : send_greeting,
 commandList = {
 	'start' : select_starter,
@@ -1672,7 +1814,11 @@ commandList = {
 	'a' : accept_challenge,
 	'accept' : accept_challenge,
 	'g' : display_gym,
-	'gym' : display_gym
+	'gym' : display_gym,
+	'donate' : display_donation,
+	'ping' : ping,
+	'mega' : display_mega,
+	'rank' : display_rank
 }
 
 admin = 229680411079475201
@@ -1738,7 +1884,7 @@ async def on_message(message):
 		if command in serverAdminCommandList and message.author.server_permissions.administrator:
 			await executeCommand(serverAdminCommandList, command, key, message)
 			return
-			
+
 serverMap = {}
 
 @client.event
@@ -1805,9 +1951,19 @@ def evaluate_server(server):
 
 		MySQL.commit()
 
-	serverMap[server.id] = [commandPrefix, spawnChannel]
+	serverMap[server.id] = [commandPrefix.lower(), spawnChannel]
 	print('Done.')
-	
+
+ONLINE_MESSAGE = "PDA was updated to version 2.0c!\n\n Fixed p!prefix not working with capital letters.\n\nPDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa). Thanks *Natsu dragneel6890#1771* for creating and managing the server! Have fun!"
+
+#ONLINE_MESSAGE = "My server went out of space. Cheap server, sorry about that everyon! Should be working fine (for real) now. \n\nPDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa). Thanks *Natsu dragneel6890#1771* for creating and managing the server! Have fun!"
+async def send_online_message(channel):
+	em = discord.Embed(title='PDA admin.', description=ONLINE_MESSAGE, colour=0xDEADBF)
+	try:
+		await client.send_message(channel, embed=em)
+	except Exception as e:
+		print("Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
+
 @client.event
 async def on_ready():
 	print('Logged in as')
@@ -1817,6 +1973,11 @@ async def on_ready():
 
 	for server in client.servers:
 		evaluate_server(server)
+		spawnChannel = serverMap[server.id][1]
+		if spawnChannel:
+			for channel in server.channels:
+				if channel.id == spawnChannel:
+					await send_online_message(channel)
 
 	client.loop.create_task(spawn_wild_pokemon())
 	print('------')
