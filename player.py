@@ -28,7 +28,7 @@ class Player:
 			""", (self.pId,))
 		row = cursor.fetchone()
 		if row:
-			self.selectedPokemon = Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], caughtWith=row['caught_with'])
+			self.selectedPokemon = Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], caughtWith=row['caught_with'], mega=row['is_mega']==1)
 
 	def __init__(self, pId, name=''):
 		cursor = MySQL.getCursor()
@@ -224,7 +224,7 @@ __Pokeball Stats:__
 		pokemonList = []
 		if rows:
 			for row in rows:
-				pokemonList.append([Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing']), row['selected'], row['in_gym']])
+				pokemonList.append([Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], mega=row['is_mega']==1), row['selected'], row['in_gym']])
 
 		cursor.execute("""
 			SELECT COUNT(*) 
@@ -255,7 +255,7 @@ __Pokeball Stats:__
 		pokemonList = []
 		if rows:
 			for row in rows:
-				pokemonList.append([Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing']), row['selected'], row['in_gym']])
+				pokemonList.append([Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], mega=row['is_mega']==1), row['selected'], row['in_gym']])
 
 		return pokemonList
 
@@ -287,7 +287,7 @@ __Pokeball Stats:__
 			if row['id'] == self.getSelectedPokemon().ownId:
 				return self.getSelectedPokemon(), False
 
-			return Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], caughtWith=row['caught_with']), row['in_gym'] > 0
+			return Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], caughtWith=row['caught_with'], mega=row['is_mega']==1), row['in_gym'] > 0
 		else:
 			return self.getSelectedPokemon(), False
 		
@@ -322,10 +322,11 @@ __Pokeball Stats:__
 				level = %s,
 				experience = %s,
 				current_hp = %s,
-				healing = %s
+				healing = %s,
+				is_mega = %s
 			WHERE id = %s
 			AND player_id = %s
-			""", (pokemon.pId, pokemon.pokeStats.level, pokemon.experience, pokemon.pokeStats.hp, pokemon.healing, pokemon.ownId, self.pId))
+			""", (pokemon.pId, pokemon.pokeStats.level, pokemon.experience, pokemon.pokeStats.hp, pokemon.healing, pokemon.mega, pokemon.ownId, self.pId))
 		MySQL.commit()
 
 	def update(self):
@@ -365,12 +366,12 @@ __Pokeball Stats:__
 		if selected:
 			self.selectPokemon(pokemon.ownId)
 
-	def addPokemon(self, level, name='', pokemonId=0, selected=False):
+	def addPokemon(self, level, name='', pokemonId=0, selected=False, mega=False):
 		pokemon = None
 		if pokemonId == 0:
 			pokemon = Pokemon(name, level, 1.5)
 		else:
-			pokemon = Pokemon(name='', pokemonId=pokemonId, level=level, wild=1.5)
+			pokemon = Pokemon(name='', pokemonId=pokemonId, level=level, wild=1.5, mega=mega)
 		
 		self.pokemonCaught += 1
 
@@ -594,3 +595,31 @@ __Pokeball Stats:__
 
 	def hasAllBadges(self):
 		return len(self.badges) == 18
+
+	def hasBadge(self, badgeId, badgeName):
+		return [badgeId, badgeName.upper()] in self.badges
+
+	def megaEvolveSelectedPokemon(self):
+		pokemon = self.getSelectedPokemon()
+
+		hasMega = False
+		hasBadges = True
+		hasLevel = False
+		isMega = False
+
+		hasMega = pokemon.canMegaEvolve()
+
+		for t in pokemon.types:
+			if not self.hasBadge(t.tId, t.identifier):
+				hasBadges = False
+				break
+		
+		isMega = pokemon.mega
+
+		if hasMega and hasBadges and not isMega:
+			pokemon.megaEvolve()
+			self.commitPokemonToDB(pokemon)
+
+		hasLevel = pokemon.pokeStats.level == 100
+		
+		return hasMega, hasBadges, isMega, hasLevel
