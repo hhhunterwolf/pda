@@ -9,16 +9,17 @@ from mysql import MySQL
 from datetime import timedelta
 
 class Pokemon:
-	def __init__(self, name, level, wild=1, iv=None, experience=0, pokemonId=0, ownId=0, currentHp=-1, healing=None, caughtWith=0, customHp=1):
+	def __init__(self, name, level, wild=1, iv=None, experience=0, pokemonId=0, ownId=0, currentHp=-1, healing=None, caughtWith=0, customHp=1, mega=False):
 		cursor = MySQL.getCursor()
 
 		self.wild = wild
 		self.ownId = ownId
 		self.healing = healing
 		self.caughtWith = caughtWith
+		self.mega = mega
 
 		if pokemonId == 0:
-			cursor.execute("""SELECT * FROM pokemon WHERE pokemon.identifier = %s""", (name,))		
+			cursor.execute("""SELECT * FROM pokemon WHERE pokemon.identifier = %s""", (name.replace('MEGA ', ''),))		
 			row = cursor.fetchone()
 			pId = row['id']
 		else:
@@ -28,6 +29,7 @@ class Pokemon:
 			pId = pokemonId
 
 		self.name = name.upper()
+		self.name = 'MEGA ' + self.name if self.mega else self.name
 		self.captureRate = row['capture_rate']
 
 		cursor.execute("""
@@ -42,11 +44,26 @@ class Pokemon:
 			t = PokeType(row['type_id'], row['identifier'])
 			self.types.append(t)
 
-		cursor.execute("""
-			SELECT * FROM pokemon_stat  JOIN stat
-			WHERE pokemon_stat.pokemon_id = %s 
-			AND stat.id = pokemon_stat.stat_id
-			""", (pId,))		
+		if not mega:
+			cursor.execute("""
+				SELECT * FROM pokemon_stat JOIN stat
+				WHERE pokemon_stat.pokemon_id = %s 
+				AND stat.id = pokemon_stat.stat_id
+				""", (pId,))		
+		else:
+			cursor.execute("""
+				SELECT * FROM mega_stat JOIN mega_pokemon JOIN stat
+				WHERE mega_pokemon.pokemon_id = %s
+				AND stat.id = mega_stat.stat_id
+				AND mega_pokemon.mega_id = mega_stat.mega_id
+				""", (pId,))
+			
+			cursor.execute("""
+				SELECT * FROM mega_stat JOIN mega_pokemon JOIN stat
+				WHERE mega_pokemon.pokemon_id = %s
+				AND stat.id = mega_stat.stat_id
+				AND mega_pokemon.mega_id = mega_stat.mega_id
+				""", (pId,))
 		rows = cursor.fetchall()
 		
 		stats = {}
@@ -145,6 +162,23 @@ __Experience:__
 		self.name = evolution.name
 		self.pokeStats = evolution.pokeStats
 		self.types = evolution.types
+		self.mega = evolution.mega
+
+	megaTime = 300
+	def getMegaTime(self):
+		return (datetime.datetime.now().timestamp() - self.mega.timestamp())
+
+	def canMegaEvolve(self):
+		cursor = MySQL.getCursor()
+		cursor.execute("""
+			SELECT * FROM mega_pokemon
+			WHERE mega_pokemon.pokemon_id = %s
+			""", (self.pId,))
+		
+		return cursor.fetchone() is not None
+
+	def megaEvolve(self):
+		self.evolve(Pokemon(name=self.name, level=self.pokeStats.level, wild=self.wild, iv=self.pokeStats.iv, mega=True))
 
 	def hasEvolved(self):
 		cursor = MySQL.getCursor()
