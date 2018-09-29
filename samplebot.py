@@ -834,6 +834,7 @@ async def change_prefix(message):
 		if len(option)>10:
 			msg = 'Invalid prefix. Prefix is too long. Maximum of 10 characters.'.format(commandPrefix)
 		else:
+			option = option.lower()
 			cursor = MySQL.getCursor()
 			cursor.execute("""
 				UPDATE server
@@ -1950,10 +1951,10 @@ def evaluate_server(server):
 
 		MySQL.commit()
 
-	serverMap[server.id] = [commandPrefix, spawnChannel]
+	serverMap[server.id] = [commandPrefix.lower(), spawnChannel]
 	print('Done.')
 
-ONLINE_MESSAGE = "PDA was updated to version 2.0b!\n\n Fixed the shop message not being shown, it's a little more spammy now, but it works. Added a 'rank' command. Main priorities now are: 1) fixing the spawn crashes when the bot loses connectivity with Discord; 2) Fixing the favorites system, I've pushed this aside for too long; 3) Implementing a 'trade' command. I will do my best to work on those things ASAP. \n\nPDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa). Thanks *Natsu dragneel6890#1771* for creating and managing the server! Have fun!"
+ONLINE_MESSAGE = "PDA was updated to version 2.0c!\n\n Fixed p!prefix not working with capital letters.\n\nPDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa). Thanks *Natsu dragneel6890#1771* for creating and managing the server! Have fun!"
 
 #ONLINE_MESSAGE = "My server went out of space. Cheap server, sorry about that everyon! Should be working fine (for real) now. \n\nPDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa). Thanks *Natsu dragneel6890#1771* for creating and managing the server! Have fun!"
 async def send_online_message(channel):
