@@ -24,7 +24,7 @@ TOKEN = os.environ['PDA_TOKEN']
 client = discord.Client()
 playerMap = {}
 #imageURL = 'http://microcubo.com.br/pokemon/{}.png'
-trainerURL = 'https://microcubo.com.br/pokemon/Trainer_{}.png'
+trainerURL = 'https://yfrit.com/pokemon/Trainer_{}.png'
 oakUrl = 'https://i.imgur.com/VbSBVi7.png'
 grassUrl = 'https://i.imgur.com/zdeDVpY.png'
 joyUrl = 'https://i.imgur.com/OIr3D6x.png'
@@ -35,9 +35,9 @@ pokeMartUrl = 'https://i.imgur.com/RkJQOOh.png'
 
 def getImageUrl(pId, mega=False):
 	if not mega:
-		return 'http://microcubo.com.br/pokemon/{}.png'.format(pId)
+		return 'https://yfrit.com/pokemon/{}.png'.format(pId)
 	else:
-		return 'http://microcubo.com.br/pokemon/{}-mega.png'.format(pId)
+		return 'https://yfrit.com/pokemon/{}-mega.png'.format(pId)
 
 async def send_greeting(message):
 	commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
