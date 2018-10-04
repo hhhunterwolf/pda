@@ -1,0 +1,7 @@
+PDA was updated to version 2.0f!
+
+Fixed Pokemon pictures not appearing.
+Fixed mega evolutions happening before level 100.
+Fixed some bugs and crashes.
+
+PDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa). Thanks *Natsu dragneel6890#1771* for creating and managing the server! Have fun!
