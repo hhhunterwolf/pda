@@ -331,18 +331,31 @@ async def select_pokemon(message):
 			except ValueError as err:
 				print(err)
 
+async def display_invite(message):
+	try:
+		commandPrefix, spawnChannel = serverMap[message.server.id]
+	except KeyError as err:
+		return
+
+	msg = 'If you like this bot and wish to add it to your server, feel free to do it, but please keep in mind it is still in alpha state, so bugs, crashes and restarts will happen now and then. You can add the bot to your server with this link: https://discordapp.com/oauth2/authorize?client_id=463744693910372362&scope=bot.'
+
+	em = discord.Embed(title='Invite the bot to your server!', description=msg, colour=0xDEADBF)
+	footerMsg = 'HINT: Don\'t forget to set the spawn channel with the spawn command, otherwise wild pokemon will not spawn until you do. The bot also has an "anti-afk" system, in which spawn channels that don\'t receive messages for a while will stop having pokemon spawned.'
+	em.set_footer(text=footerMsg)
+	em.set_author(name='Professor Oak', icon_url=oakUrl)
+	await client.send_message(message.channel, embed=em)
+
 async def display_help(message):
 	commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-	msg = 'Welcome to Pokemon Discord Adventure! This bot is in a very alpha state, and most things are still being worked on. Please expect it to crash, bug out and sudden restarts. If you have any questions, suggestions, or just have a chat, contact me at Discord Fairfruit#8973, or send me an email at contact@yfrit.com.\n\nIf you like this bot and wish to add to your server, feel free to do it, but please keep in mind all of te disclaimers above. You can add the bot to your server with this link: https://discordapp.com/oauth2/authorize?client_id=463744693910372362&scope=bot. **Want to play the game? [Join the official PDA Server!](https://discord.gg/rEkQWUa)**\n\n These are the possible commands: \n\n' \
-		'__Player Commands:__ \n\n' \
+	msg = 'Welcome to Pokemon Discord Adventure! This bot is in a very alpha state, and most things are still being worked on. Please expect it to crash, bug out and suddenly restart. If you have any questions, suggestions, or just want to have a chat, contact me at Discord Fairfruit#8973, or send me an email at contact@yfrit.com.\n\n' \
+		'__Player Commands:__ \n' \
 		'**{0}info or {0}i :** Shows stats of a specific pokemon (selected pokemon if none is specified) \n' \
 		'**{0}start:** Shows information on how to select a starter and start the adventure. \n' \
 		'**{0}pokemon or {0}p:** Shows a list of all your pokemon. \n' \
 		'**{0}select or {0}s:** Selects a pokemon in your list to use on your journey.\n' \
 		'**{0}favorite or {0}v:** Shows information on how to add pokemon to your favorite list.\n' \
 		'**{0}release or {0}r:** Releases a pokemon in your list pokemon. It will never come back.\n' \
-		'**{0}help:** Shows this help message. \n' \
 		'**{0}fight or {0}f:** Fights the currently spawned pokemon or poketrainer if available.\n' \
 		'**{0}catch or {0}c:** Fights and tries to catch the currently spawned pokemon if available.\n' \
 		'**{0}center or {0}h:** Heals wounded pokemon.\n' \
@@ -356,12 +369,26 @@ async def display_help(message):
 		'**{0}rank:** Shows the top 10 players in the server. \n' \
 		'**{0}ping:** Standard ping command. \n' \
 		'**{0}donate:** Displays information on donations. \n\n' \
-		'__Admin Commands:__ \n\n' \
+		'__Admin Commands:__ \n' \
 		'**{0}prefix:** Changes the prefix used to trigger bot commands (default is p). \n' \
 		'**{0}spawn:** Sets the channel where wild pokemon and poketrainers will spawn. \n'
 
 	msg = msg.format(commandPrefix)
 	em = discord.Embed(title='Help!', description=msg, colour=0xDEADBF)
+	footerMsg = 'HINT: Don\'t forget to set the spawn channel with the spawn command, otherwise wild pokemon will not spawn until you do. The bot also has an "anti-afk" system, in which spawn channels that don\'t receive messages for a while will stop having pokemon spawned.'
+	em.set_footer(text=footerMsg)
+	em.set_author(name='Professor Oak', icon_url=oakUrl)
+	await client.send_message(message.channel, embed=em)
+
+async def display_server(message):
+	try:
+		commandPrefix, spawnChannel = serverMap[message.server.id]
+	except KeyError as err:
+		return
+
+	msg = 'Want to play the game? PDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa).'
+
+	em = discord.Embed(title='Server!', description=msg, colour=0xDEADBF)
 	footerMsg = 'HINT: Don\'t forget to set the spawn channel with the spawn command, otherwise wild pokemon will not spawn until you do. The bot also has an "anti-afk" system, in which spawn channels that don\'t receive messages for a while will stop having pokemon spawned.'
 	em.set_footer(text=footerMsg)
 	em.set_author(name='Professor Oak', icon_url=oakUrl)
@@ -770,6 +797,31 @@ async def add_random_pokemon(message):
 	player = playerMap[message.author.id + message.server.id]
 	for i in range(1,100):
 		player.addPokemon(pokemonId=random.randint(1,500), level=random.randint(1,100))
+
+async def give_pokemon(message):
+	temp = message.content.split(' ')
+		
+	option = None
+	if len(temp)>1:
+		playerId = temp[1].replace('#', '').replace('@', '').replace('!', '').replace('<', '').replace('>', '')
+		print(playerId)
+		pokemonId = int(temp[2])
+		
+		cursor = MySQL.getCursor()
+		cursor.execute("""
+			SELECT *
+			FROM player
+			WHERE id LIKE %s
+		""", ('%%%s%%' % playerId,))
+		rows = cursor.fetchall()
+	
+	for row in rows:
+		player = None
+		if not player in playerMap:
+			player = Player(row['id'], row['name'])
+		else:
+			player = playerMap[row['id']]
+		player.addPokemon(pokemonId=pokemonId, level=5)
 
 async def stop_server(message):
 	await client.logout()
@@ -1718,6 +1770,8 @@ commandList = {
 	'r' : release_pokemon,
 	'release' : release_pokemon,
 	'help' : display_help,
+	'invite' : display_invite,
+	'server' : display_server,
 	'f' : display_fight,
 	'fight' : display_fight,
 	'c' : display_catch,
@@ -1747,7 +1801,8 @@ commandList = {
 admin = 229680411079475201
 adminCommandList = {
 	#'stop' : stop_server,
-	'add' : add_random_pokemon
+	'add' : add_random_pokemon,
+	'give' : give_pokemon,
 }
 
 serverAdminCommandList = {
@@ -1871,13 +1926,14 @@ def evaluate_server(server):
 	serverMap[server.id] = PokeServer(id=server.id, commandPrefix=commandPrefix.lower(), spawnChannel=spawnChannel)
 	print('Done.')
 
-ONLINE_MESSAGE = "PDA was updated to version 2.0c!\n\n Fixed p!prefix not working with capital letters.\n\nPDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa). Thanks *Natsu dragneel6890#1771* for creating and managing the server! Have fun!"
+ONLINE_MESSAGE = "PDA was updated to version 2.0e!\n\n Fixed some instability problems. \n\nPDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa). Thanks *Natsu dragneel6890#1771* for creating and managing the server! Have fun!"
 
 #ONLINE_MESSAGE = "My server went out of space. Cheap server, sorry about that everyon! Should be working fine (for real) now. \n\nPDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa). Thanks *Natsu dragneel6890#1771* for creating and managing the server! Have fun!"
 async def send_online_message(channel):
 	em = discord.Embed(title='PDA admin.', description=ONLINE_MESSAGE, colour=0xDEADBF)
 	try:
-		await client.send_message(channel, embed=em)
+		pass
+		#await client.send_message(channel, embed=em)
 	except Exception as e:
 		print("Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
 
