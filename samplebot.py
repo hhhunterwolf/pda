@@ -1926,14 +1926,13 @@ def evaluate_server(server):
 	serverMap[server.id] = PokeServer(id=server.id, commandPrefix=commandPrefix.lower(), spawnChannel=spawnChannel)
 	print('Done.')
 
-ONLINE_MESSAGE = "PDA was updated to version 2.0e!\n\n Fixed some instability problems. \n\nPDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa). Thanks *Natsu dragneel6890#1771* for creating and managing the server! Have fun!"
+messageFile = open("motd.txt", "r")
 
-#ONLINE_MESSAGE = "My server went out of space. Cheap server, sorry about that everyon! Should be working fine (for real) now. \n\nPDA now has an official Discord server! You can join it [here](https://discord.gg/rEkQWUa). Thanks *Natsu dragneel6890#1771* for creating and managing the server! Have fun!"
 async def send_online_message(channel):
-	em = discord.Embed(title='PDA admin.', description=ONLINE_MESSAGE, colour=0xDEADBF)
+	em = discord.Embed(title='PDA admin.', description=messageFile.read(), colour=0xDEADBF)
 	try:
 		pass
-		#await client.send_message(channel, embed=em)
+		await client.send_message(channel, embed=em)
 	except Exception as e:
 		print("Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
 
