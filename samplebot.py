@@ -8,6 +8,7 @@ import datetime
 import traceback
 import humanfriendly
 import time
+import os
 
 from pserver import PokeServer
 from player import Player
@@ -18,8 +19,7 @@ from datetime import timedelta
 from pitem import PokeItem
 from discord.ext import commands
 
-#TOKEN = '***REMOVED***'
-TOKEN = '***REMOVED***'
+TOKEN = os.environ['PDA_TOKEN']
 
 client = discord.Client()
 playerMap = {}
