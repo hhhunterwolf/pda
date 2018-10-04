@@ -616,10 +616,10 @@ __Pokeball Stats:__
 		
 		isMega = pokemon.mega
 
-		if hasMega and hasBadges and not isMega:
+		hasLevel = pokemon.pokeStats.level == 100
+
+		if hasMega and hasBadges and hasLevel and not isMega:
 			pokemon.megaEvolve()
 			self.commitPokemonToDB(pokemon)
 
-		hasLevel = pokemon.pokeStats.level == 100
-		
 		return hasMega, hasBadges, isMega, hasLevel
