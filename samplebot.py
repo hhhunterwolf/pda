@@ -297,10 +297,10 @@ async def release_pokemon(message):
 						pokemon = player.releasePokemon(option)
 						await display_release_success(message, pokemon)
 					except IndexError as error:
-						print(error)
+						print(datetime.datetime.now(), error)
 						traceback.print_exc()
 			except ValueError as err:
-				print(err)
+				print(datetime.datetime.now(), err)
 
 async def select_pokemon(message):
 	commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
@@ -326,10 +326,10 @@ async def select_pokemon(message):
 						else:
 							await display_pokemon_in_gym(message)
 					except IndexError as error:
-						print(error)
+						print(datetime.datetime.now(), error)
 						traceback.print_exc()
 			except ValueError as err:
-				print(err)
+				print(datetime.datetime.now(), err)
 
 async def display_invite(message):
 	try:
@@ -431,7 +431,7 @@ def get_random_pokemon_spawn():
 			""", (minR, maxR))
 		row = cursor.fetchone()
 
-	print(textwrap.dedent("""SPAWN INFO
+	print(datetime.datetime.now(), textwrap.dedent("""SPAWN INFO
 Capture Rate: %d
 Chance: %f
 """) % (
@@ -468,10 +468,10 @@ async def give_players_boss_prize(message, commandPrefix, spawn):
 		baseValue = int(valueMod*(damage/math.log10(3)))//3 + random.randint(20, 75)
 		exp = int(random.uniform(0.7, 1)*baseValue)
 		player.addExperience(exp)
-		print('Added Boss EXP: {}'.format(baseValue))
+		print(datetime.datetime.now(), 'Added Boss EXP: {}'.format(baseValue))
 		money = int(random.uniform(13.5,15.6)*baseValue)
 		player.addMoney(money)
-		print('Added Boss Money: {}'.format(money))
+		print(datetime.datetime.now(), 'Added Boss Money: {}'.format(money))
 
 		# pokemon exp
 		basePValue = int(random.randint(40, 43)*damage)
@@ -602,7 +602,7 @@ class SpawnManager:
 						spawn.fought.append(player.pId)
 
 						baseValue = int(valueMod*(wildPokemon.pokeStats.level*3/math.log10(wildPokemon.captureRate)))//3 + random.randint(20, 75)
-						print('Added EXP: {}'.format(baseValue))
+						print(datetime.datetime.now(), 'Added EXP: {}'.format(baseValue))
 						money = int(random.uniform(2.5,3.6)*baseValue)
 						player.addMoney(money)
 
@@ -715,7 +715,7 @@ class SpawnManager:
 					lastAct, actDelay = spawn.lastAct
 					canAct = datetime.datetime.now().timestamp() - lastAct.timestamp()
 					if canAct > actDelay:
-						print("Server '" + server.id + "' ready to act. Acting and updating delay.")
+						print(datetime.datetime.now(), "Server '" + server.id + "' ready to act. Acting and updating delay.")
 						if not spawn.spawned:
 							spawn.lastAct = [datetime.datetime.now(), random.randint(45, 55)]
 							isAfk = True
@@ -724,7 +724,7 @@ class SpawnManager:
 							localAfkTime = (datetime.datetime.now().timestamp() - pokeServer.serverMessageMap)
 							isAfk = localAfkTime > afkTime + spawn.restSpawn
 
-							print('Is afk?', isAfk, localAfkTime)
+							print(datetime.datetime.now(), 'Is afk?', isAfk, localAfkTime)
 							if isAfk:
 								break
 
@@ -804,7 +804,7 @@ async def give_pokemon(message):
 	option = None
 	if len(temp)>1:
 		playerId = temp[1].replace('#', '').replace('@', '').replace('!', '').replace('<', '').replace('>', '')
-		print(playerId)
+		print(datetime.datetime.now(), playerId)
 		pokemonId = int(temp[2])
 		
 		cursor = MySQL.getCursor()
@@ -961,7 +961,7 @@ async def display_catch(message):
 					em.set_footer(text='HINT: Low on pokeballs? You can buy more by typing {}shop. Or if you\'re low on cash, you get pokeballs by just staying online!'.format(commandPrefix))
 					await client.send_message(message.channel, embed=em)
 		except ValueError as err:
-			#print(err)
+			#print(datetime.datetime.now(), err)
 			await display_balls_message(message, player, commandPrefix)
 
 async def display_success_pokecenter(message, commandPrefix):
@@ -1871,11 +1871,11 @@ def evaluate_server(server):
 	commandPrefix = 'p!'
 	spawnChannel = None
 	if row:
-		print('Found server {} in database. Fetching configs.'.format(server.id))
+		print(datetime.datetime.now(), 'Found server {} in database. Fetching configs.'.format(server.id))
 		commandPrefix = row['prefix']
 		spawnChannel = row['spawn_channel']
 	else:
-		print('Server was not {} found in database. Adding.'.format(server.id))
+		print(datetime.datetime.now(), 'Server was not {} found in database. Adding.'.format(server.id))
 		cursor.execute("""
 			INSERT INTO server (id)
 			VALUES (%s)"""
@@ -1924,7 +1924,7 @@ def evaluate_server(server):
 		MySQL.commit()
 
 	serverMap[server.id] = PokeServer(id=server.id, commandPrefix=commandPrefix.lower(), spawnChannel=spawnChannel)
-	print('Done.')
+	print(datetime.datetime.now(), 'Done.')
 
 messageFile = open("motd.txt", "r")
 
@@ -1934,14 +1934,14 @@ async def send_online_message(channel):
 		pass
 		await client.send_message(channel, embed=em)
 	except Exception as e:
-		print("Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
+		print(datetime.datetime.now(), "Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
 
 @client.event
 async def on_ready():
-	print('Logged in as')
-	print(client.user.name)
-	print(client.user.id)
-	print('------')
+	print(datetime.datetime.now(), 'Logged in as')
+	print(datetime.datetime.now(), client.user.name)
+	print(datetime.datetime.now(), client.user.id)
+	print(datetime.datetime.now(), '------')
 
 	for server in client.servers:
 		evaluate_server(server)
@@ -1952,9 +1952,9 @@ async def on_ready():
 					await send_online_message(channel)
 
 	client.loop.create_task(spawn_wild_pokemon())
-	print('------')
+	print(datetime.datetime.now(), '------')
 	
-	print('Load item list')
+	print(datetime.datetime.now(), 'Load item list')
 	cursor = MySQL.getCursor()
 	cursor.execute("""SELECT * FROM item""")
 
@@ -1964,6 +1964,6 @@ async def on_ready():
 		items.append(item)
 		if row['price']>0:
 			shopItems.append(item)
-	print('------')
+	print(datetime.datetime.now(), '------')
 
 client.run(TOKEN)
