@@ -7,6 +7,7 @@ import asyncio
 import datetime
 import traceback
 import humanfriendly
+import os
 
 from player import Player
 from pokemon import Pokemon
@@ -19,8 +20,7 @@ from pitem import PokeItem
 # Make shop for multiple items
 # Fix pages for exactly %20 pokemon
 
-#TOKEN = 'NDYzNzQ0NjkzOTEwMzcyMzYy.Dh03cA.jaXIvI0zQdOieINXT46_Y9X-L2k'
-TOKEN = 'NDY4MDY3MDIxNTgyNDk5ODQw.Dizw5g.XLIpP3hINJLjSQm0rMEcE3onPeg'
+TOKEN = os.environ['PDA_TOKEN']
 
 client = discord.Client()
 
