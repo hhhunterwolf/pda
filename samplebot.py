@@ -819,6 +819,8 @@ async def give_pokemon(message):
 		player = None
 		if not player in playerMap:
 			player = Player(row['id'], row['name'])
+			key = message.author.id + message.server.id
+			playerMap[key] = player
 		else:
 			player = playerMap[row['id']]
 		player.addPokemon(pokemonId=pokemonId, level=5)
