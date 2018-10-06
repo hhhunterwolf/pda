@@ -884,7 +884,7 @@ async def set_spawn_channel(message):
 			msg = 'Spawn channel set to #{0}.'.format(selectedChannel)
 			MySQL.commit()
 
-			serverMap[message.server.id][1] = selectedChannel.id
+			serverMap[message.server.id].spawnChannel = selectedChannel.id
 
 	em = discord.Embed(title='Set Spawn Channel', description=msg, colour=0xDEADBF)
 	em.set_author(name='Professor Oak', icon_url=oakUrl)
