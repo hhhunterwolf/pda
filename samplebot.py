@@ -333,7 +333,7 @@ async def select_pokemon(message):
 
 async def display_invite(message):
 	try:
-		commandPrefix, spawnChannel = serverMap[message.server.id]
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 	except KeyError as err:
 		return
 
@@ -382,7 +382,7 @@ async def display_help(message):
 
 async def display_server(message):
 	try:
-		commandPrefix, spawnChannel = serverMap[message.server.id]
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 	except KeyError as err:
 		return
 
@@ -931,7 +931,7 @@ async def display_catch(message):
 						em.set_author(name='Professor Oak', icon_url=oakUrl)
 						await client.send_message(message.channel, embed=em)
 					else:
-						pokeServer = serverMap[server.id]
+						pokeServer = serverMap[message.server.id]
 						spawn = pokeServer.spawn
 
 						isTrainer, gender = spawn.trainer
@@ -1926,10 +1926,12 @@ def evaluate_server(server):
 	serverMap[server.id] = PokeServer(id=server.id, commandPrefix=commandPrefix.lower(), spawnChannel=spawnChannel)
 	print(datetime.datetime.now(), 'Done.')
 
-messageFile = open("motd.txt", "r")
+filePath = os.path.abspath('/home/mauzinho30000/pda/motd.txt')
+with open(filePath, "r") as file:
+	messageFile = file.read()
 
 async def send_online_message(channel):
-	em = discord.Embed(title='PDA admin.', description=messageFile.read(), colour=0xDEADBF)
+	em = discord.Embed(title='PDA admin.', description=messageFile, colour=0xDEADBF)
 	try:
 		pass
 		await client.send_message(channel, embed=em)
