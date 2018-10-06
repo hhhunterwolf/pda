@@ -819,6 +819,8 @@ async def give_pokemon(message):
 		player = None
 		if not player in playerMap:
 			player = Player(row['id'], row['name'])
+			key = message.author.id + message.server.id
+			playerMap[key] = player
 		else:
 			player = playerMap[row['id']]
 		player.addPokemon(pokemonId=pokemonId, level=5)
@@ -882,7 +884,7 @@ async def set_spawn_channel(message):
 			msg = 'Spawn channel set to #{0}.'.format(selectedChannel)
 			MySQL.commit()
 
-			serverMap[message.server.id][1] = selectedChannel.id
+			serverMap[message.server.id].spawnChannel = selectedChannel.id
 
 	em = discord.Embed(title='Set Spawn Channel', description=msg, colour=0xDEADBF)
 	em.set_author(name='Professor Oak', icon_url=oakUrl)
