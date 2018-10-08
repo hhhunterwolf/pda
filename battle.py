@@ -9,6 +9,12 @@ defaultCritModifier = 1.5
 expModifier = 2
 boostModifier = 0.5
 
+# This should probably be in a utils file. Logs should be done via a log lib. Meh.
+
+M_TYPE_INFO = 'INFO'
+M_TYPE_WARNING = 'WARNING'
+M_TYPE_ERROR = 'ERROR'
+
 class Battle:
 	def getModifiers(self):
 		cursor = MySQL.getCursor()
@@ -57,20 +63,20 @@ class Battle:
 			'loser' : 0
 		}
 		
-		print('Initializing battle between {} ({}) and {} ({}).'.format(challenger1.name, challenger1.pokeStats.level, challenger2.name, challenger2.pokeStats.level))
+		print(datetime.datetime.now(), M_TYPE_INFO, 'Initializing battle between {} ({}) and {} ({}).'.format(challenger1.name, challenger1.pokeStats.level, challenger2.name, challenger2.pokeStats.level))
 		speed1 = challenger1.pokeStats.current['speed']
 		speed2 = challenger2.pokeStats.current['speed']
 		
 		self.challenger1, self.challenger2 = challenger1, challenger2
 		self.modifier1, self.modifier2 = 0, 0
 		self.getModifiers()
-		print('Type modifier for {} is {} and for {} is {}.'.format(challenger1.name, self.modifier1, challenger2.name, self.modifier2))
+		print(datetime.datetime.now(), M_TYPE_INFO, 'Type modifier for {} is {} and for {} is {}.'.format(challenger1.name, self.modifier1, challenger2.name, self.modifier2))
 		if speed2 > speed1:
 			self.challenger1, self.challenger2 = self.challenger2, self.challenger1
 			self.modifier1, self.modifier2 = self.modifier2, self.modifier1
 		
-		#print(challenger1)
-		#print(challenger2)
+		#print(datetime.datetime.now(), M_TYPE_INFO, challenger1)
+		#print(datetime.datetime.now(), M_TYPE_INFO, challenger2)
 
 	def getDamage(self, challenger1, challenger2, modifier):
 		return math.floor(((((0.4*challenger1.pokeStats.level + 2) * defaultPower * (challenger1.pokeStats.current['attack'] / challenger2.pokeStats.current['defense']))/50) + 2) * modifier)
@@ -147,7 +153,7 @@ class Battle:
 			if bonusExp > 0:
 				bonusMsg = ' (+' + str(bonusExp) + ' boost)'
 			msg += ('{} earned '.format(winner.name) + str(exp) + bonusMsg + ' EXP points.\n')
-		#print(msg)
+		#print(datetime.datetime.now(), M_TYPE_INFO, msg)
 		msg += '```'
 
 		name = winner.name
@@ -160,10 +166,10 @@ class Battle:
 			levelUpMessage = ('{} leveled up to level {}!\n\n'.format(name, str(winner.pokeStats.level)))
 			if evolved:
 				levelUpMessage += ('What!? {} is evolving! It evolved into a {}!'.format(name, winner.name))
-				#print(winner)
+				#print(datetime.datetime.now(), M_TYPE_INFO, winner)
 		
 		if levelUpMessage:
-			#print(levelUpMessage)
+			#print(datetime.datetime.now(), M_TYPE_INFO, levelUpMessage)
 			pass
 
 		return winner, msg, levelUpMessage
