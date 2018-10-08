@@ -1,5 +1,6 @@
 import math
 import random
+import datetime
 
 from pokemon import Pokemon
 from mysql import MySQL
