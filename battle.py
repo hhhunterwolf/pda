@@ -158,6 +158,7 @@ class Battle:
 		msg += '```'
 
 		name = winner.name
+		print(datetime.datetime.now(), M_TYPE_INFO, "{} wins.".format(name))
 		if not self.gym:
 			leveledUp, evolved = winner.addExperience(exp+bonusExp)
 		else:
