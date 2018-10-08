@@ -682,10 +682,10 @@ while True: # Why do I do this to myself
 					
 					if not isBossBool:		
 						msg = '{0.author.mention}, your {1} fought a beautiful battle against {2}! Here are the details: \n\n'.format(message, playerPokemon.name, wildPokemon.name)
-						em = discord.Embed(title='Battle with {}{} Lv. {}!'.format('Trainer\'s ' if isTrainer else '', wildPokemon.name, newLevel), description=msg+battleLog+captureMessage, colour=0xDEADBF)
+						em = discord.Embed(title='Battle: {} (Lv. {}) vs. {}{} (Lv. {})!'.format(playerPokemon.name, playerPokemon.pokeStats.level, 'Trainer\'s ' if isTrainer else '', wildPokemon.name, newLevel), description=msg+battleLog+captureMessage, colour=0xDEADBF)
 					else:
 						msg = '{0.author.mention}, your {1} gave it all against the boss {2}! Here are the details: \n\n'.format(message, playerPokemon.name, wildPokemon.name)
-						em = discord.Embed(title='Boss Battle with {} Lv. 100!'.format(wildPokemon.name), description=msg+battleLog, colour=0xDEADBF)
+						em = discord.Embed(title='Boss Battle: {} (Lv. {}) against ({} Lv. 100)!'.format(playerPokemon.name, playerPokemon.pokeStats.level, wildPokemon.name), description=msg+battleLog, colour=0xDEADBF)
 					em.set_author(name='Professor Oak', icon_url=oakUrl)
 					em.set_thumbnail(url=getImageUrl(spawn.pId))
 					em.set_footer(text='HINT: You can check your pokeball supply by typing {}me.'.format(commandPrefix))
