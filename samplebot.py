@@ -18,11 +18,11 @@ from mysql import MySQL
 from datetime import timedelta
 from pitem import PokeItem
 from discord.ext import commands
+from logging.handlers import TimedRotatingFileHandler
 
 TOKEN = os.environ['PDA_TOKEN']
 
 client = discord.Client()
-#imageURL = 'http://microcubo.com.br/pokemon/{}.png'
 trainerURL = 'https://yfrit.com/pokemon/Trainer_{}.png'
 oakUrl = 'https://i.imgur.com/VbSBVi7.png'
 grassUrl = 'https://i.imgur.com/zdeDVpY.png'
@@ -30,7 +30,11 @@ joyUrl = 'https://i.imgur.com/OIr3D6x.png'
 pokeballUrl = 'https://i.imgur.com/2jQoEjs.png'
 pokeMartUrl = 'https://i.imgur.com/RkJQOOh.png'
 
-# lastPokemonEnabled = 649
+# This should probably be in a utils file. Logs should be done via a log lib. Meh.
+
+M_TYPE_INFO = 'INFO'
+M_TYPE_WARNING = 'WARNING'
+M_TYPE_ERROR = 'ERROR'
 
 def handle_exit():
 	client.loop.run_until_complete(client.logout())
@@ -316,10 +320,10 @@ while True: # Why do I do this to myself
 							pokemon = player.releasePokemon(option)
 							await display_release_success(message, pokemon)
 						except IndexError as error:
-							print(datetime.datetime.now(), error)
+							print(datetime.datetime.now(), M_TYPE_ERROR, error)
 							traceback.print_exc()
 				except ValueError as err:
-					print(datetime.datetime.now(), err)
+					print(datetime.datetime.now(), M_TYPE_ERROR, err)
 
 	async def select_pokemon(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
@@ -345,10 +349,10 @@ while True: # Why do I do this to myself
 							else:
 								await display_pokemon_in_gym(message)
 						except IndexError as error:
-							print(datetime.datetime.now(), error)
+							print(datetime.datetime.now(), M_TYPE_ERROR, error)
 							traceback.print_exc()
 				except ValueError as err:
-					print(datetime.datetime.now(), err)
+					print(datetime.datetime.now(), M_TYPE_ERROR, err)
 
 	async def display_invite(message):
 		try:
@@ -450,7 +454,7 @@ while True: # Why do I do this to myself
 				""", (minR, maxR))
 			row = cursor.fetchone()
 
-		print(datetime.datetime.now(), textwrap.dedent("""SPAWN INFO\tCapture Rate: %d\tChance: %f""") % (
+		print(datetime.datetime.now(), M_TYPE_INFO, textwrap.dedent("""Spawning: Capture Rate: %d, Chance: %f""") % (
 			maxR,
 			int(maxR**1.4) / len(rateList),
 		))
@@ -484,10 +488,10 @@ while True: # Why do I do this to myself
 			baseValue = int(valueMod*(damage/math.log10(3)))//3 + random.randint(20, 75)
 			exp = int(random.uniform(0.7, 1)*baseValue)
 			player.addExperience(exp)
-			print(datetime.datetime.now(), 'Added Boss EXP: {}'.format(baseValue))
+			print(datetime.datetime.now(), M_TYPE_INFO, 'Earned Boss EXP: {}'.format(baseValue))
 			money = int(random.uniform(13.5,15.6)*baseValue)
 			player.addMoney(money)
-			print(datetime.datetime.now(), 'Added Boss Money: {}'.format(money))
+			print(datetime.datetime.now(), M_TYPE_INFO, 'Earned Boss Money: {}'.format(money))
 
 			# pokemon exp
 			basePValue = int(random.randint(40, 43)*damage)
@@ -618,7 +622,7 @@ while True: # Why do I do this to myself
 							spawn.fought.append(player.pId)
 
 							baseValue = int(valueMod*(wildPokemon.pokeStats.level*3/math.log10(wildPokemon.captureRate)))//3 + random.randint(20, 75)
-							print(datetime.datetime.now(), 'Added EXP: {}'.format(baseValue))
+							print(datetime.datetime.now(), M_TYPE_INFO, 'Earned EXP: {}'.format(baseValue))
 							money = int(random.uniform(2.5,3.6)*baseValue)
 							player.addMoney(money)
 
@@ -731,7 +735,7 @@ while True: # Why do I do this to myself
 						lastAct, actDelay = spawn.lastAct
 						canAct = datetime.datetime.now().timestamp() - lastAct.timestamp()
 						if canAct > actDelay:
-							print(datetime.datetime.now(), "Server '" + server.id + "' ready to act. Acting and updating delay.")
+							print(datetime.datetime.now(), M_TYPE_INFO, "Server '" + server.id + "' ready to act. Acting and updating delay.")
 							if not spawn.spawned:
 								spawn.lastAct = [datetime.datetime.now(), random.randint(45, 55)]
 								isAfk = True
@@ -740,7 +744,7 @@ while True: # Why do I do this to myself
 								localAfkTime = (datetime.datetime.now().timestamp() - pokeServer.serverMessageMap)
 								isAfk = localAfkTime > afkTime + spawn.restSpawn
 
-								print(datetime.datetime.now(), 'Is afk?', isAfk, localAfkTime)
+								print(datetime.datetime.now(), M_TYPE_INFO, 'Server AFK Status: {2}/{1} ({0})'.format(isAfk, afkTime, localAfkTime)) # Why am I so lazy
 								if isAfk:
 									break
 
@@ -796,7 +800,7 @@ while True: # Why do I do this to myself
 								spawn.isBoss = False, None
 								try:
 									await client.send_message(channel, embed=em)
-								except Exception as e:
+								except Exception as e: # I am very disappointed in you, past self
 									traceback.print_exc()
 
 			await asyncio.sleep(10)
@@ -820,8 +824,8 @@ while True: # Why do I do this to myself
 		option = None
 		if len(temp)>1:
 			playerId = temp[1].replace('#', '').replace('@', '').replace('!', '').replace('<', '').replace('>', '')
-			print(datetime.datetime.now(), playerId)
 			pokemonId = int(temp[2])
+			print(datetime.datetime.now(), M_TYPE_INFO, 'Giving player {} a level 5 Pokemon (ID: {}).'.format(playerId, pokemonId))
 			
 			cursor = MySQL.getCursor()
 			cursor.execute("""
@@ -979,7 +983,6 @@ while True: # Why do I do this to myself
 						em.set_footer(text='HINT: Low on pokeballs? You can buy more by typing {}shop. Or if you\'re low on cash, you get pokeballs by just staying online!'.format(commandPrefix))
 						await client.send_message(message.channel, embed=em)
 			except ValueError as err:
-				#print(datetime.datetime.now(), err)
 				await display_balls_message(message, player, commandPrefix)
 
 	async def display_success_pokecenter(message, commandPrefix):
@@ -1889,11 +1892,11 @@ while True: # Why do I do this to myself
 		commandPrefix = 'p!'
 		spawnChannel = None
 		if row:
-			print(datetime.datetime.now(), 'Found server {} in database. Fetching configs.'.format(server.id))
+			print(datetime.datetime.now(), M_TYPE_INFO, 'Found server \'{}\' in database. Fetching configs.'.format(server.id))
 			commandPrefix = row['prefix']
 			spawnChannel = row['spawn_channel']
 		else:
-			print(datetime.datetime.now(), 'Server was not {} found in database. Adding.'.format(server.id))
+			print(datetime.datetime.now(), M_TYPE_INFO, 'Server \'{}\' was not found in database. Adding.'.format(server.id))
 			cursor.execute("""
 				INSERT INTO server (id)
 				VALUES (%s)"""
@@ -1942,7 +1945,7 @@ while True: # Why do I do this to myself
 			MySQL.commit()
 
 		serverMap[server.id] = PokeServer(id=server.id, commandPrefix=commandPrefix.lower(), spawnChannel=spawnChannel)
-		print(datetime.datetime.now(), 'Done.')
+		print(datetime.datetime.now(), M_TYPE_INFO, 'Done.')
 
 	filePath = os.path.abspath('motd.txt')
 	with open(filePath, "r") as file:
@@ -1954,14 +1957,14 @@ while True: # Why do I do this to myself
 			pass
 			await client.send_message(channel, embed=em)
 		except Exception as e:
-			print(datetime.datetime.now(), "Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
+			print(datetime.datetime.now(), M_TYPE_WARNING, "Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
 
 	@client.event
 	async def on_ready():
-		print(datetime.datetime.now(), 'Logged in as')
-		print(datetime.datetime.now(), client.user.name)
-		print(datetime.datetime.now(), client.user.id)
-		print(datetime.datetime.now(), '------')
+		print(datetime.datetime.now(), M_TYPE_INFO, 'Logged in as')
+		print(datetime.datetime.now(), M_TYPE_INFO, client.user.name)
+		print(datetime.datetime.now(), M_TYPE_INFO, client.user.id)
+		print(datetime.datetime.now(), M_TYPE_INFO, '------')
 
 		for server in client.servers:
 			evaluate_server(server)
@@ -1976,9 +1979,9 @@ while True: # Why do I do this to myself
 		except Exception: # This is disgusting, but so am I
 			pass
 
-		print(datetime.datetime.now(), '------')
+		print(datetime.datetime.now(), M_TYPE_INFO, '------')
 		
-		print(datetime.datetime.now(), 'Load item list')
+		print(datetime.datetime.now(), M_TYPE_INFO, 'Load item list')
 		cursor = MySQL.getCursor()
 		cursor.execute("""SELECT * FROM item""")
 
@@ -1988,18 +1991,18 @@ while True: # Why do I do this to myself
 			items.append(item)
 			if row['price']>0:
 				shopItems.append(item)
-		print(datetime.datetime.now(), '------')
+		print(datetime.datetime.now(), M_TYPE_INFO, '------')
 
 	try:
-		print(datetime.datetime.now(), "Starting PDA Bot.")
+		print(datetime.datetime.now(), M_TYPE_INFO, "Starting PDA Bot.")
 		client.loop.run_until_complete(client.start(TOKEN))
 	except SystemExit:
 		handle_exit()
 	except KeyboardInterrupt:
 		handle_exit()
 		client.loop.close()
-		print(datetime.datetime.now(), "PDA was interrupted.")
+		print(datetime.datetime.now(), M_TYPE_ERROR, "PDA was interrupted.")
 		break
 
-	print(datetime.datetime.now(), "A problem occurred, PDA is restarting.")
+	print(datetime.datetime.now(), M_TYPE_ERROR, "A problem occurred, PDA is restarting.")
 	client = discord.Client(loop=client.loop)
