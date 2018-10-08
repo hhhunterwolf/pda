@@ -274,6 +274,7 @@ while True: # Why do I do this to myself
 
 			em = discord.Embed(title='{}\'s Pokemon List'.format(message.author.name), description=string, colour=0xDEADBF)
 			em.set_author(name='Professor Oak', icon_url=oakUrl)
+			em.set_thumbnail(url=message.author.avatar_url)
 			em.set_footer(text='HINT: Page {}/{}. Use {}pokemon # to select a different page.'.format(curPage, pages, commandPrefix))
 			await client.send_message(message.channel, embed=em)
 
@@ -622,7 +623,7 @@ while True: # Why do I do this to myself
 							spawn.fought.append(player.pId)
 
 							baseValue = int(valueMod*(wildPokemon.pokeStats.level*3/math.log10(wildPokemon.captureRate)))//3 + random.randint(20, 75)
-							print(datetime.datetime.now(), M_TYPE_INFO, 'Earned EXP: {}'.format(baseValue))
+							print(datetime.datetime.now(), M_TYPE_INFO, 'Earned Player EXP: {}'.format(baseValue))
 							money = int(random.uniform(2.5,3.6)*baseValue)
 							player.addMoney(money)
 
@@ -703,6 +704,7 @@ while True: # Why do I do this to myself
 				else:
 					msg = '{0.author.mention}, your pokemon has 0 HP, it is in no condition to fight! Take it to the pokemon center by typing ``{1}center.``'.format(message, commandPrefix)
 					em = discord.Embed(title='Your {} is fainted!'.format(playerPokemon.name), description=msg, colour=0xDEADBF)
+					em.set_thumbnail(url=getImageUrl(playerPokemon.pId, playerPokemon.mega))
 					em.set_author(name='Professor Oak', icon_url=oakUrl)
 					await client.send_message(message.channel, embed=em)
 			elif spawn.spawned:
@@ -1311,6 +1313,7 @@ while True: # Why do I do this to myself
 		if pokemon.pokeStats.hp <= 0:
 			msg = '{0}, your pokemon has 0 HP, it is in no condition to fight! Take it to the pokemon center by typing ``{1}center``.'.format(callout, commandPrefix)
 			em = discord.Embed(title='Your {} is fainted!'.format(pokemon.name), description=msg, colour=0xDEADBF)
+			em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
 			em.set_author(name='Professor Oak', icon_url=oakUrl)
 		
 		return em
