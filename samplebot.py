@@ -1965,7 +1965,7 @@ while True: # Why do I do this to myself
 		if content.startswith(commandPrefix):
 			key = message.author.id + message.server.id
 			if not key in playerMap:
-				playerMap[key] = Player(key, message.author.name)
+				playerMap[key] = Player(key, message.author.name if message.author.name not '' else 'Unknown')
 				playerMessageMap[key] = 0
 
 			random.seed()
