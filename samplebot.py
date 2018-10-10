@@ -446,7 +446,7 @@ while True: # Why do I do this to myself
 
 		return row['id'], row['identifier'].upper()
 
-	GHOST_SPAWN_CHANCE = 13500
+	GHOST_SPAWN_CHANCE = 135
 	def get_random_pokemon_spawn():
 		rates = [[3,8], [15,45], [46,255]]
 		rateList = []
@@ -559,7 +559,7 @@ while True: # Why do I do this to myself
 			if leveledUp:
 				await client.send_message(message.channel, embed=lem)
 
-	bossChance = 4000
+	bossChance = 4
 	afkTime = 150
 	valueMod = 8.75*0.45
 	ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
@@ -1965,7 +1965,7 @@ while True: # Why do I do this to myself
 		if content.startswith(commandPrefix):
 			key = message.author.id + message.server.id
 			if not key in playerMap:
-				playerMap[key] = Player(key, message.author.name if message.author.name not '' else 'Unknown')
+				playerMap[key] = Player(key, message.author.name if (message.author.name is not '') else 'Unknown')
 				playerMessageMap[key] = 0
 
 			random.seed()
