@@ -341,14 +341,15 @@ __Pokeball Stats:__
 		cursor = MySQL.getCursor()
 		cursor.execute("""
 				UPDATE player
-				SET level = %s,
+				SET name = %s,
+					level = %s,
 					experience = %s,
 					money = %s,
 					candy = %s,
 					pokemon_caught = %s,
 					exp_boost = %s
 				WHERE id = %s
-			""", (self.level, self.experience, self.money, self.candy, self.pokemonCaught, self.boost, self.pId))
+			""", (self.name, self.level, self.experience, self.money, self.candy, self.pokemonCaught, self.boost, self.pId))
 
 		for i in range(0,PokeItem.NUMBER_OF_ITEMS):
 			cursor.execute("""
