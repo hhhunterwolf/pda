@@ -420,18 +420,33 @@ while True: # Why do I do this to myself
 
 	def get_random_boss_pokemon():
 		cursor = MySQL.getCursor()
-		cursor.execute("""
-			SELECT * 
-			FROM pokemon
-			WHERE enabled = 1 
-			AND capture_rate <= 3
-			ORDER BY RAND()
-			LIMIT 1
-			""")
+		if Player.HALLOWEEN and random.randint(0, 255) >= GHOST_SPAWN_CHANCE:
+			cursor.execute("""
+				SELECT * 
+				FROM pokemon
+				JOIN pokemon_type
+				WHERE enabled = 1 
+				AND capture_rate <= 3
+				ORDER BY RAND()
+				LIMIT 1
+				""")
+		else:
+			cursor.execute("""
+				SELECT * 
+				FROM pokemon
+				JOIN pokemon_type
+				WHERE enabled = 1
+				AND pokemon_type.type_id = 8
+				AND  pokemon_type.pokemon_id = pokemon.id 
+				AND capture_rate <= 3
+				ORDER BY RAND()
+				LIMIT 1
+				""")
 		row = cursor.fetchone()
 
 		return row['id'], row['identifier'].upper()
 
+	GHOST_SPAWN_CHANCE = 13500
 	def get_random_pokemon_spawn():
 		rates = [[3,8], [15,45], [46,255]]
 		rateList = []
@@ -444,15 +459,30 @@ while True: # Why do I do this to myself
 			captureRate = random.choice(rateList)
 			minR, maxR = captureRate
 			cursor = MySQL.getCursor()
-			cursor.execute("""
-				SELECT * 
-				FROM pokemon
-				WHERE enabled = 1 
-				AND capture_rate >= %s
-				AND capture_rate <= %s
-				ORDER BY RAND()
-				LIMIT 1
-				""", (minR, maxR))
+			if Player.HALLOWEEN and random.randint(0, 255) >= GHOST_SPAWN_CHANCE:
+				cursor.execute("""
+					SELECT * 
+					FROM pokemon
+					JOIN pokemon_type
+					WHERE enabled = 1
+					AND pokemon_type.type_id = 8
+					AND  pokemon_type.pokemon_id = pokemon.id
+					AND capture_rate >= %s
+					AND capture_rate <= %s
+					ORDER BY RAND()
+					LIMIT 1
+					""", (minR, maxR))
+			else:
+				cursor.execute("""
+					SELECT * 
+					FROM pokemon
+					WHERE enabled = 1 
+					AND capture_rate >= %s
+					AND capture_rate <= %s
+					ORDER BY RAND()
+					LIMIT 1
+					""", (minR, maxR))
+
 			row = cursor.fetchone()
 
 		print(datetime.datetime.now(), M_TYPE_INFO, textwrap.dedent("""Spawning: Capture Rate: %d, Chance: %f""") % (
@@ -465,7 +495,7 @@ while True: # Why do I do this to myself
 	def convertDeltaToHuman(deltaTime):
 		return humanfriendly.format_timespan(deltaTime)
 
-	async def give_players_boss_prize(message, commandPrefix, spawn):
+	async def give_players_boss_prize(message, commandPrefix, spawn, candy):
 		serverId = message.server.id
 		rand = random.randint(0, 255)
 		item = None
@@ -511,11 +541,15 @@ while True: # Why do I do this to myself
 			baseAmount = int(math.log10(damage/10) + 1) + 1
 			amount = 1 if not numerous else int(random.uniform(baseAmount*3, baseAmount*5))
 			player.addItem(item.id-1, amount)
+			halloweenStr = ''
+			if Player.HALLOWEEN and candy>0:
+				player.addCandy(candy)
+				halloweenStr = 'You also got **{}** 🍬!'.format(candy)
 
 			# update
 			player.update()
 
-			msg = '<@{}>, you participated in the boss fight, your reward is {} EXP for you, {} EXP for your {}, {}P and {} unit(s) of {}!'.format(player.pId.replace(serverId, ''), exp, basePValue, pokemon.name, money, amount, item.name)
+			msg = '<@{}>, you participated in the boss fight, your reward is {} EXP for you, {} EXP for your {}, {}P and {} unit(s) of {}! {}'.format(player.pId.replace(serverId, ''), exp, basePValue, pokemon.name, money, amount, item.name, halloweenStr)
 			em = discord.Embed(title='Well done!', description=msg, colour=0xDEADBF)
 			em.set_author(name='Professor Oak', icon_url=oakUrl)
 			em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
@@ -525,7 +559,7 @@ while True: # Why do I do this to myself
 			if leveledUp:
 				await client.send_message(message.channel, embed=lem)
 
-	bossChance = 4
+	bossChance = 4000
 	afkTime = 150
 	valueMod = 8.75*0.45
 	ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
@@ -639,7 +673,8 @@ while True: # Why do I do this to myself
 									captureMessage += '```css\nIt escaped...\n```'
 
 							player.addExperience(baseValue)
-							captureMessage += getPlayerEarnedMoneyEXP(message.author.mention, baseValue, money)
+							player.addCandy(wildPokemon.candyDrop)
+							captureMessage += getPlayerEarnedMoneyEXP(message.author.mention, baseValue, money, wildPokemon.candyDrop)
 
 							if levelUpMessage:
 								lem = discord.Embed(title='Level up!', description='{0.author.mention}, your '.format(message) + levelUpMessage, colour=0xDEADBF)
@@ -655,7 +690,7 @@ while True: # Why do I do this to myself
 							}
 							spawn.isBoss = False, None
 							spawn.spawned = False
-							await give_players_boss_prize(message, commandPrefix, spawn)
+							await give_players_boss_prize(message, commandPrefix, spawn, wildPokemon.candyDrop)
 							bossMsg = '{} was defeated! All the participant were rewarded according to the damage dealt! '.format(spawn.name)
 							bem = discord.Embed(title='The boss is down!', description=bossMsg, colour=0xDEADBF)
 							bem.set_author(name='Professor Oak', icon_url=oakUrl)
@@ -1163,6 +1198,74 @@ while True: # Why do I do this to myself
 			else:
 				await display_info_shop(message, player, commandPrefix)
 
+	def get_candy_shop_pokemon_list():
+		cursor = MySQL.getCursor()
+		cursor.execute("""
+			SELECT *
+			FROM pokemon
+			WHERE candy_cost > 0
+		""")
+		return cursor.fetchall()
+
+	async def display_fail_candy_shop(message, commandPrefix):
+		msg = '{0.author.mention}, you don\'t have enough candy 🍬 for that!'.format(message)
+		em = discord.Embed(title='Erm...', description=msg, colour=0xFFA500)
+		em.set_author(name='Spooky Poke Mart', icon_url=pokeballUrl)
+		em.set_thumbnail(url=pokeMartUrl)
+		await client.send_message(message.channel, embed=em)
+
+	async def display_info_candy_shop(message, player, commandPrefix):
+		msg = '{0.author.mention}, welcome to the Spooky Poke Mart! Here you can trade your candy for spooky Pokemon! Just type ``{1}trade pokemon_number``. These are the available pokemon:\n\n'.format(message, commandPrefix)
+		
+		pokemonList = get_candy_shop_pokemon_list()
+		counter = 1
+		for row in pokemonList:
+			msg += '**{0}.** {1}: {2} 🍬\n'.format(counter, row['identifier'].upper(), row['candy_cost'])
+			counter += 1
+
+		em = discord.Embed(title='Hello there, {0}. You have {1} 🍬.'.format(message.author.name, player.candy), description=msg, colour=0xFFA500)
+		em.set_author(name='Spooky Poke Mart', icon_url=pokeballUrl)
+		em.set_thumbnail(url=pokeMartUrl)
+		em.set_footer(text='HINT: To use an item, type {0}item #. You can see your items by typing {0}item.'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
+
+	async def display_success_candy_shop(message, pokemon, commandPrefix):
+		msg = '{0.author.mention}, here is your {1}! And it only costed you {2} 🍬!'.format(message, pokemon['identifier'].upper(), pokemon['candy_cost'])
+		em = discord.Embed(title='Thanks!', description=msg, colour=0xFFA500)
+		em.set_author(name='Spooky Poke Mart', icon_url=pokeballUrl)
+		em.set_thumbnail(url=getImageUrl(pokemon['id']))
+		em.set_footer(text='HINT: Pokemon healing at pokecenter? You can choose other pokemon to fight by typing {0}select #! Use {0}pokemon to see your full list of pokemon.'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
+
+	async def display_candy_shop(message):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		player = playerMap[message.author.id + message.server.id]
+
+		pokemonList = get_candy_shop_pokemon_list()
+
+		msg = ''
+		if not player.hasStarted():
+			await display_not_started(message, commandPrefix)
+		else:
+			temp = message.content.split(' ')
+			option = None
+			if len(temp)>1:
+				try:
+					option = int(temp[1]) - 1
+					if option >=0 and option < len(pokemonList):
+						pokemon = pokemonList[option]
+						if player.removeCandy(pokemon['candy_cost']):
+							player.addPokemon(pokemonId=pokemon['id'], level=5)
+							await display_success_candy_shop(message, pokemon, commandPrefix)
+						else:
+							await display_fail_candy_shop(message, commandPrefix)
+
+				except ValueError as err:
+					traceback.print_exc()
+			else:
+				await display_info_candy_shop(message, player, commandPrefix)
+
 	async def display_me(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
@@ -1327,8 +1430,11 @@ while True: # Why do I do this to myself
 			em.set_footer(text='HINT: Use {}start # to select a starter pokemon.'.format(commandPrefix))
 		return em
 
-	def getPlayerEarnedMoneyEXP(callout, exp, money):
-		return '\n{} earned **{} EXP** and **{}₽** for this battle.'.format(callout, int(exp), money)
+	def getPlayerEarnedMoneyEXP(callout, exp, money, candy):
+		halloweenStr = ''
+		if Player.HALLOWEEN and candy>0:
+			halloweenStr = ' You also got **{}** 🍬!'.format(candy)
+		return '\n{} earned **{} EXP** and **{}₽** for this battle.{}'.format(callout, int(exp), money, halloweenStr)
 
 	duelCooldown = 300
 	async def accept_challenge(message):
@@ -1819,7 +1925,8 @@ while True: # Why do I do this to myself
 		'donate' : display_donation,
 		'ping' : ping,
 		'mega' : display_mega,
-		'rank' : display_rank
+		'rank' : display_rank,
+		'trade' : display_candy_shop
 	}
 
 	admin = 229680411079475201
