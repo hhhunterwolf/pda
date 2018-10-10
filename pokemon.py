@@ -31,6 +31,7 @@ class Pokemon:
 		self.name = name.upper()
 		self.name = 'MEGA ' + self.name if self.mega else self.name
 		self.captureRate = row['capture_rate']
+		self.candyDrop = row['candy_drop']
 
 		cursor.execute("""
 			SELECT * FROM `type` JOIN pokemon_type 
