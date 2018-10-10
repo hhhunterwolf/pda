@@ -11,6 +11,7 @@ from datetime import timedelta
 
 class Player:
 	START_MONEY = 3000
+	HALLOWEEN = True # This should not be here...
 
 	def strip_non_ascii(string):
 	    ''' Returns the string without non ASCII characters'''
@@ -56,6 +57,7 @@ class Player:
 			self.level = row['level']
 			self.experience = row['experience']
 			self.money = row['money']
+			self.candy = row['candy']
 			self.pokemonCaught = row['pokemon_caught']
 			self.boost = row['exp_boost']
 
@@ -87,6 +89,7 @@ class Player:
 			self.level = 1
 			self.experience = 0
 			self.money = Player.START_MONEY
+			self.candy = 0
 			self.pokemonCaught = 0
 			self.boost = None
 
@@ -166,13 +169,17 @@ class Player:
 		if boostTime>0:
 			expBoostStr += "**\n50\% EXP Boost:** {} remaining.".format(humanfriendly.format_timespan(boostTime))
 
+		candyStr = ''
+		if Player.HALLOWEEN:
+			candyStr = '\n**Candy:** {} 🍬'.format(self.candy)
+
 		return textwrap.dedent("""
 __General Stats:__
 
 **Name:** %s
 **Level:** %s
 **Experience:** %d / %d%s
-**Money:** %d₽
+**Money:** %d₽%s
 
 __Pokemon Stats:__
 
@@ -194,6 +201,7 @@ __Pokeball Stats:__
 			self.calculateExp(self.level + 1),
 			expBoostStr,
 			self.money,
+			candyStr,
 			self.pokemonCaught,
 			averageLevel,
 			highLevelStr,
@@ -333,13 +341,15 @@ __Pokeball Stats:__
 		cursor = MySQL.getCursor()
 		cursor.execute("""
 				UPDATE player
-				SET level = %s,
+				SET name = %s,
+					level = %s,
 					experience = %s,
 					money = %s,
+					candy = %s,
 					pokemon_caught = %s,
 					exp_boost = %s
 				WHERE id = %s
-			""", (self.level, self.experience, self.money, self.pokemonCaught, self.boost, self.pId))
+			""", (self.name, self.level, self.experience, self.money, self.candy, self.pokemonCaught, self.boost, self.pId))
 
 		for i in range(0,PokeItem.NUMBER_OF_ITEMS):
 			cursor.execute("""
@@ -412,6 +422,15 @@ __Pokeball Stats:__
 	def removeMoney(self, money):
 		if(self.money >= money):
 			self.money -= money
+			return True
+		return False
+
+	def addCandy(self, candy):
+		self.candy += candy
+
+	def removeCandy(self, candy):
+		if(self.candy >= candy):
+			self.candy -= candy
 			return True
 		return False
 
