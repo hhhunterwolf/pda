@@ -94,7 +94,7 @@ while True: # Why do I do this to myself
 	async def select_starter(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 		
 		msg = 'Hello {0.author.mention}, and welcome to Pokemon Discord Adventure! To begin your journey, you will have to choose a starter. That is easy! Type ``{1}start #``, where # is the number of one of the starter pokemon listed below: \n\n'.format(message, commandPrefix)
 		msg += getStartersString()
@@ -125,7 +125,7 @@ while True: # Why do I do this to myself
 	async def display_pokemon_info(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 
 		if player.hasStarted():
 			temp = message.content.split(' ')
@@ -185,7 +185,7 @@ while True: # Why do I do this to myself
 	async def display_favorite_pokemons(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 		if player.hasStarted():
 			temp = message.content.split(' ')
 			
@@ -245,7 +245,7 @@ while True: # Why do I do this to myself
 	async def display_pokemons(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 		if player.hasStarted():
 			temp = message.content.split(' ')
 			
@@ -299,7 +299,7 @@ while True: # Why do I do this to myself
 	async def release_pokemon(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 		
 		msg = ''
 		if not player.hasStarted():
@@ -329,7 +329,7 @@ while True: # Why do I do this to myself
 	async def select_pokemon(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 		
 		msg = ''
 		if not player.hasStarted():
@@ -583,7 +583,7 @@ while True: # Why do I do this to myself
 			if spawnChannel != message.channel.id:
 				return
 
-			player = playerMap[message.author.id + message.server.id]
+			player = playerMap[message.author.id]
 
 			if not spawn:
 				msg = '{0.author.mention}, there are no wild pokemon or trainers willing to fight near you at this time.'.format(message)
@@ -776,8 +776,6 @@ while True: # Why do I do this to myself
 							if not spawn.spawned:
 								spawn.lastAct = [datetime.datetime.now(), random.randint(45, 55)]
 								isAfk = True
-								localAfkTime = 0
-								key = server.id + channel.id
 								localAfkTime = (datetime.datetime.now().timestamp() - pokeServer.serverMessageMap)
 								isAfk = localAfkTime > afkTime + spawn.restSpawn
 
@@ -851,7 +849,7 @@ while True: # Why do I do this to myself
 			await SpawnManager.spawn()
 			
 	async def add_random_pokemon(message):
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 		for i in range(1,100):
 			player.addPokemon(pokemonId=random.randint(1,500), level=random.randint(1,100))
 
@@ -876,7 +874,7 @@ while True: # Why do I do this to myself
 			player = None
 			if not player in playerMap:
 				player = Player(row['id'], row['name'])
-				key = message.author.id + message.server.id
+				key = message.author.id
 				playerMap[key] = player
 			else:
 				player = playerMap[row['id']]
@@ -971,7 +969,7 @@ while True: # Why do I do this to myself
 	async def display_catch(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 
 		temp = message.content.split(' ')
 		option = None
@@ -1057,7 +1055,7 @@ while True: # Why do I do this to myself
 	async def display_center(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 
 		msg = ''
 		if not player.hasStarted():
@@ -1168,7 +1166,7 @@ while True: # Why do I do this to myself
 	async def display_shop(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 
 		msg = ''
 		if not player.hasStarted():
@@ -1240,7 +1238,7 @@ while True: # Why do I do this to myself
 	async def display_candy_shop(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 
 		pokemonList = get_candy_shop_pokemon_list()
 
@@ -1269,7 +1267,7 @@ while True: # Why do I do this to myself
 	async def display_me(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 		finalStr = str(player) + getBallsString(player)
 
 		em = discord.Embed(title='{}\'s player information!'.format(message.author.name), description=str(finalStr), colour=0xDEADBF)
@@ -1330,7 +1328,7 @@ while True: # Why do I do this to myself
 	async def display_item(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 
 		msg = ''
 		if not player.hasStarted():
@@ -1367,7 +1365,7 @@ while True: # Why do I do this to myself
 		if len(temp)<=1:
 			msg = 'Type ``{}duel @player`` to challenge a player for a duel.'.format(commandPrefix)
 		else:
-			player = playerMap[message.author.id + message.server.id]
+			player = playerMap[message.author.id]
 			
 			option = temp[1].replace('@', '').replace('!', '').replace('<', '').replace('>', '')
 			if str(message.author.id) == option:
@@ -1380,7 +1378,7 @@ while True: # Why do I do this to myself
 					member = message.server.get_member(option)
 					if member:
 						msg = '{0}, {1} is challenging you to a duel! Type ``{2}accept`` to accept!'.format(temp[1], message.author.mention, commandPrefix)
-						duelMap[option + message.server.id] = [message.author.id + message.server.id, message.author.mention]
+						duelMap[option] = [message.author.id, message.author.mention]
 					else:
 						msg = 'No member with that name could be found!'
 
@@ -1440,7 +1438,7 @@ while True: # Why do I do this to myself
 	async def accept_challenge(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		challengedKey = message.author.id + message.server.id
+		challengedKey = message.author.id
 		if challengedKey in duelMap:
 			challengerKey, challlengerCallout = duelMap[challengedKey]
 			
@@ -1533,10 +1531,10 @@ while True: # Why do I do this to myself
 			em.set_footer(text='HINT: Use {}start # to select a starter pokemon.'.format(commandPrefix))
 		return em
 
-	def getGymInfo(serverId, gymId):
+	def getGymInfo(gymId):
 		cursor = MySQL.getCursor()
 		cursor.execute("""
-			SELECT type.id, gym.type_id, gym.pokemon_id as gym_pokemon_id, player_pokemon.id, gym.holder_id, player_pokemon.player_id, player_pokemon.id, pokemon.id as pokemon_p_id, gym.holder_id, player.id, type.identifier as type_identifier, player.name as player_name, pokemon.identifier as pokemon_identifier, player_pokemon.level as pokemon_level, gym.date as gym_date, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, gym.server_id as server_id, player_pokemon.is_mega as is_mega
+			SELECT type.id, gym.type_id, gym.pokemon_id as gym_pokemon_id, player_pokemon.id, gym.holder_id, player_pokemon.player_id, player_pokemon.id, pokemon.id as pokemon_p_id, gym.holder_id, player.id, type.identifier as type_identifier, player.name as player_name, pokemon.identifier as pokemon_identifier, player_pokemon.level as pokemon_level, gym.date as gym_date, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, player_pokemon.is_mega as is_mega
 			FROM gym JOIN type JOIN player_pokemon JOIN pokemon JOIN player
 			WHERE type.id = gym.type_id
 			AND gym.pokemon_id = player_pokemon.id
@@ -1544,12 +1542,11 @@ while True: # Why do I do this to myself
 			AND player_pokemon.pokemon_id = pokemon.id
 			AND gym.holder_id = player.id
 			AND gym.type_id = %s
-			AND gym.server_id = %s
-			""", (gymId, serverId))
+			""", (gymId,))
 		return cursor.fetchone()
 
 	async def display_info_gym(message, gymId, commandPrefix):
-		row = getGymInfo(message.server.id, gymId)
+		row = getGymInfo(gymId)
 
 		holdTime = convertDeltaToHuman(datetime.datetime.now().timestamp() - row['gym_date'].timestamp())
 		msg = 'Here\'s the information about the {} type gym:\n\n'.format(row['type_identifier'].upper())
@@ -1609,7 +1606,7 @@ while True: # Why do I do this to myself
 	async def display_gym(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 
 		msg = ''
 		if not player.hasStarted():
@@ -1631,7 +1628,7 @@ while True: # Why do I do this to myself
 							em.set_author(name='Professor Oak', icon_url=oakUrl)
 							await client.send_message(message.channel, embed=em)
 						else:
-							row = getGymInfo(message.server.id, gymId)
+							row = getGymInfo(gymId)
 
 							gymPokemon = Pokemon(name='', pokemonId=row['pokemon_p_id'], level=row['pokemon_level'], iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']})
 
@@ -1680,7 +1677,7 @@ while True: # Why do I do this to myself
 							em.set_author(name='Professor Oak', icon_url=oakUrl)
 							await client.send_message(message.channel, embed=em)
 						else:
-							row = getGymInfo(message.server.id, gymId)
+							row = getGymInfo(gymId)
 
 							gymPokemon = Pokemon(name='', pokemonId=row['pokemon_p_id'], level=row['pokemon_level'], iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']})
 
@@ -1843,7 +1840,7 @@ while True: # Why do I do this to myself
 	async def display_mega(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 			
 		hasMega, hasBadges, isMega, hasLevel = player.megaEvolveSelectedPokemon()
 		pokemon = player.getSelectedPokemon()
@@ -1963,7 +1960,7 @@ while True: # Why do I do this to myself
 
 		content = message.content.lower()
 		if content.startswith(commandPrefix):
-			key = message.author.id + message.server.id
+			key = message.author.id
 			if not key in playerMap:
 				playerMap[key] = Player(key, message.author.name if (message.author.name is not '') else 'Unknown')
 				playerMessageMap[key] = 0
@@ -2008,54 +2005,64 @@ while True: # Why do I do this to myself
 		else:
 			print(datetime.datetime.now(), M_TYPE_INFO, 'Server \'{}\' was not found in database. Adding.'.format(server.id))
 			cursor.execute("""
-				INSERT INTO server (id)
-				VALUES (%s)"""
-				, (server.id,))
-
-			cursor.execute("""
-			SELECT * FROM type
-			WHERE id <= 18
-			""")
-
-			rows = cursor.fetchall()
-			for row in rows:
-				random.seed()
-				lastPokemon = random.getrandbits(24)
-
-				cursor.execute("""
-					SELECT *
-					FROM (
-						SELECT pokemon.id as pokemon_id, SUM(base_stat) as sum_var
-					  FROM type JOIN pokemon_type JOIN pokemon JOIN pokemon_stat
-					  WHERE pokemon_type.type_id = type.id
-					  AND pokemon_type.pokemon_id = pokemon.id
-					  AND pokemon_stat.pokemon_id = pokemon.id
-					  AND type.id = %s
-					  AND pokemon_type.pokemon_id < 722
-					  GROUP BY pokemon.id
-					) as temp
-					WHERE sum_var > 450
-					ORDER BY RAND()
-					LIMIT 1
-					""", (row['id'],))
-				rowPokemon = cursor.fetchone()
-
-				pokemon = Pokemon(name='', pokemonId=rowPokemon['pokemon_id'], level=100)
-				
-				cursor.execute("""
-					INSERT INTO player_pokemon (id, player_id, pokemon_id, level, experience, current_hp, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, selected, caught_with)
-					VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-					""", (lastPokemon, "PDA", pokemon.pId, pokemon.pokeStats.level, pokemon.experience, pokemon.pokeStats.hp, pokemon.pokeStats.iv['hp'], pokemon.pokeStats.iv['attack'], pokemon.pokeStats.iv['defense'], pokemon.pokeStats.iv['special-attack'], pokemon.pokeStats.iv['special-defense'], pokemon.pokeStats.iv['speed'], 0, pokemon.caughtWith))		
-
-				cursor.execute("""
-					INSERT INTO gym (server_id, type_id, holder_id, pokemon_id)
-					VALUES (%s, %s, 'PDA', %s)
-					""", (server.id, row['id'], lastPokemon))
-
-			MySQL.commit()
-
+			INSERT INTO server (id)
+			VALUES (%s)"""
+			, (server.id,))
+			
 		serverMap[server.id] = PokeServer(id=server.id, commandPrefix=commandPrefix.lower(), spawnChannel=spawnChannel)
 		print(datetime.datetime.now(), M_TYPE_INFO, 'Done.')
+
+	def isGymFirstPokemonExist():
+		return getGymInfo(1) is not None
+
+	def createFirstGymPokemon():
+		if isGymFirstPokemonExist():
+			return
+
+		print(datetime.datetime.now(), M_TYPE_INFO, 'No Gym pokemon found. Creating.')
+		cursor = MySQL.getCursor()
+		
+		cursor.execute("""
+		SELECT * FROM type
+		WHERE id <= 18
+		""")
+
+		rows = cursor.fetchall()
+		for row in rows:
+			random.seed()
+			lastPokemon = random.getrandbits(24)
+
+			cursor.execute("""
+				SELECT *
+				FROM (
+					SELECT pokemon.id as pokemon_id, SUM(base_stat) as sum_var
+				  FROM type JOIN pokemon_type JOIN pokemon JOIN pokemon_stat
+				  WHERE pokemon_type.type_id = type.id
+				  AND pokemon_type.pokemon_id = pokemon.id
+				  AND pokemon_stat.pokemon_id = pokemon.id
+				  AND type.id = %s
+				  GROUP BY pokemon.id
+				) as temp
+				WHERE sum_var > 450
+				ORDER BY RAND()
+				LIMIT 1
+				""", (row['id'],))
+			rowPokemon = cursor.fetchone()
+
+			pokemon = Pokemon(name='', pokemonId=rowPokemon['pokemon_id'], level=100)
+			
+			cursor.execute("""
+				INSERT INTO player_pokemon (id, player_id, pokemon_id, level, experience, current_hp, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, selected, caught_with)
+				VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+				""", (lastPokemon, "PDA", pokemon.pId, pokemon.pokeStats.level, pokemon.experience, pokemon.pokeStats.hp, pokemon.pokeStats.iv['hp'], pokemon.pokeStats.iv['attack'], pokemon.pokeStats.iv['defense'], pokemon.pokeStats.iv['special-attack'], pokemon.pokeStats.iv['special-defense'], pokemon.pokeStats.iv['speed'], 0, pokemon.caughtWith))		
+
+			cursor.execute("""
+				INSERT INTO gym (type_id, holder_id, pokemon_id)
+				VALUES (%s, 'PDA', %s)
+				""", (row['id'], lastPokemon))
+
+		MySQL.commit()
+		print(datetime.datetime.now(), M_TYPE_INFO, 'Gym pokemon added.')
 
 	filePath = os.path.abspath('motd.txt')
 	with open(filePath, "r") as file:
@@ -2075,6 +2082,8 @@ while True: # Why do I do this to myself
 		print(datetime.datetime.now(), M_TYPE_INFO, client.user.name)
 		print(datetime.datetime.now(), M_TYPE_INFO, client.user.id)
 		print(datetime.datetime.now(), M_TYPE_INFO, '------')
+
+		createFirstGymPokemon()
 
 		for server in client.servers:
 			evaluate_server(server)
