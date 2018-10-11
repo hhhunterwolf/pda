@@ -1531,10 +1531,10 @@ while True: # Why do I do this to myself
 			em.set_footer(text='HINT: Use {}start # to select a starter pokemon.'.format(commandPrefix))
 		return em
 
-	def getGymInfo(serverId, gymId):
+	def getGymInfo(gymId):
 		cursor = MySQL.getCursor()
 		cursor.execute("""
-			SELECT type.id, gym.type_id, gym.pokemon_id as gym_pokemon_id, player_pokemon.id, gym.holder_id, player_pokemon.player_id, player_pokemon.id, pokemon.id as pokemon_p_id, gym.holder_id, player.id, type.identifier as type_identifier, player.name as player_name, pokemon.identifier as pokemon_identifier, player_pokemon.level as pokemon_level, gym.date as gym_date, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, gym.server_id as server_id, player_pokemon.is_mega as is_mega
+			SELECT type.id, gym.type_id, gym.pokemon_id as gym_pokemon_id, player_pokemon.id, gym.holder_id, player_pokemon.player_id, player_pokemon.id, pokemon.id as pokemon_p_id, gym.holder_id, player.id, type.identifier as type_identifier, player.name as player_name, pokemon.identifier as pokemon_identifier, player_pokemon.level as pokemon_level, gym.date as gym_date, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, player_pokemon.is_mega as is_mega
 			FROM gym JOIN type JOIN player_pokemon JOIN pokemon JOIN player
 			WHERE type.id = gym.type_id
 			AND gym.pokemon_id = player_pokemon.id
@@ -1542,12 +1542,11 @@ while True: # Why do I do this to myself
 			AND player_pokemon.pokemon_id = pokemon.id
 			AND gym.holder_id = player.id
 			AND gym.type_id = %s
-			AND gym.server_id = %s
-			""", (gymId, serverId))
+			""", (gymId,))
 		return cursor.fetchone()
 
 	async def display_info_gym(message, gymId, commandPrefix):
-		row = getGymInfo(message.server.id, gymId)
+		row = getGymInfo(gymId)
 
 		holdTime = convertDeltaToHuman(datetime.datetime.now().timestamp() - row['gym_date'].timestamp())
 		msg = 'Here\'s the information about the {} type gym:\n\n'.format(row['type_identifier'].upper())
@@ -1629,7 +1628,7 @@ while True: # Why do I do this to myself
 							em.set_author(name='Professor Oak', icon_url=oakUrl)
 							await client.send_message(message.channel, embed=em)
 						else:
-							row = getGymInfo(message.server.id, gymId)
+							row = getGymInfo(gymId)
 
 							gymPokemon = Pokemon(name='', pokemonId=row['pokemon_p_id'], level=row['pokemon_level'], iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']})
 
@@ -1678,7 +1677,7 @@ while True: # Why do I do this to myself
 							em.set_author(name='Professor Oak', icon_url=oakUrl)
 							await client.send_message(message.channel, embed=em)
 						else:
-							row = getGymInfo(message.server.id, gymId)
+							row = getGymInfo(gymId)
 
 							gymPokemon = Pokemon(name='', pokemonId=row['pokemon_p_id'], level=row['pokemon_level'], iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']})
 
@@ -2006,54 +2005,64 @@ while True: # Why do I do this to myself
 		else:
 			print(datetime.datetime.now(), M_TYPE_INFO, 'Server \'{}\' was not found in database. Adding.'.format(server.id))
 			cursor.execute("""
-				INSERT INTO server (id)
-				VALUES (%s)"""
-				, (server.id,))
-
-			cursor.execute("""
-			SELECT * FROM type
-			WHERE id <= 18
-			""")
-
-			rows = cursor.fetchall()
-			for row in rows:
-				random.seed()
-				lastPokemon = random.getrandbits(24)
-
-				cursor.execute("""
-					SELECT *
-					FROM (
-						SELECT pokemon.id as pokemon_id, SUM(base_stat) as sum_var
-					  FROM type JOIN pokemon_type JOIN pokemon JOIN pokemon_stat
-					  WHERE pokemon_type.type_id = type.id
-					  AND pokemon_type.pokemon_id = pokemon.id
-					  AND pokemon_stat.pokemon_id = pokemon.id
-					  AND type.id = %s
-					  AND pokemon_type.pokemon_id < 722
-					  GROUP BY pokemon.id
-					) as temp
-					WHERE sum_var > 450
-					ORDER BY RAND()
-					LIMIT 1
-					""", (row['id'],))
-				rowPokemon = cursor.fetchone()
-
-				pokemon = Pokemon(name='', pokemonId=rowPokemon['pokemon_id'], level=100)
-				
-				cursor.execute("""
-					INSERT INTO player_pokemon (id, player_id, pokemon_id, level, experience, current_hp, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, selected, caught_with)
-					VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-					""", (lastPokemon, "PDA", pokemon.pId, pokemon.pokeStats.level, pokemon.experience, pokemon.pokeStats.hp, pokemon.pokeStats.iv['hp'], pokemon.pokeStats.iv['attack'], pokemon.pokeStats.iv['defense'], pokemon.pokeStats.iv['special-attack'], pokemon.pokeStats.iv['special-defense'], pokemon.pokeStats.iv['speed'], 0, pokemon.caughtWith))		
-
-				cursor.execute("""
-					INSERT INTO gym (server_id, type_id, holder_id, pokemon_id)
-					VALUES (%s, %s, 'PDA', %s)
-					""", (server.id, row['id'], lastPokemon))
-
-			MySQL.commit()
-
+			INSERT INTO server (id)
+			VALUES (%s)"""
+			, (server.id,))
+			
 		serverMap[server.id] = PokeServer(id=server.id, commandPrefix=commandPrefix.lower(), spawnChannel=spawnChannel)
 		print(datetime.datetime.now(), M_TYPE_INFO, 'Done.')
+
+	def isGymFirstPokemonExist():
+		return getGymInfo(1) is not None
+
+	def createFirstGymPokemon():
+		if isGymFirstPokemonExist():
+			return
+
+		print(datetime.datetime.now(), M_TYPE_INFO, 'No Gym pokemon found. Creating.')
+		cursor = MySQL.getCursor()
+		
+		cursor.execute("""
+		SELECT * FROM type
+		WHERE id <= 18
+		""")
+
+		rows = cursor.fetchall()
+		for row in rows:
+			random.seed()
+			lastPokemon = random.getrandbits(24)
+
+			cursor.execute("""
+				SELECT *
+				FROM (
+					SELECT pokemon.id as pokemon_id, SUM(base_stat) as sum_var
+				  FROM type JOIN pokemon_type JOIN pokemon JOIN pokemon_stat
+				  WHERE pokemon_type.type_id = type.id
+				  AND pokemon_type.pokemon_id = pokemon.id
+				  AND pokemon_stat.pokemon_id = pokemon.id
+				  AND type.id = %s
+				  GROUP BY pokemon.id
+				) as temp
+				WHERE sum_var > 450
+				ORDER BY RAND()
+				LIMIT 1
+				""", (row['id'],))
+			rowPokemon = cursor.fetchone()
+
+			pokemon = Pokemon(name='', pokemonId=rowPokemon['pokemon_id'], level=100)
+			
+			cursor.execute("""
+				INSERT INTO player_pokemon (id, player_id, pokemon_id, level, experience, current_hp, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, selected, caught_with)
+				VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+				""", (lastPokemon, "PDA", pokemon.pId, pokemon.pokeStats.level, pokemon.experience, pokemon.pokeStats.hp, pokemon.pokeStats.iv['hp'], pokemon.pokeStats.iv['attack'], pokemon.pokeStats.iv['defense'], pokemon.pokeStats.iv['special-attack'], pokemon.pokeStats.iv['special-defense'], pokemon.pokeStats.iv['speed'], 0, pokemon.caughtWith))		
+
+			cursor.execute("""
+				INSERT INTO gym (type_id, holder_id, pokemon_id)
+				VALUES (%s, 'PDA', %s)
+				""", (row['id'], lastPokemon))
+
+		MySQL.commit()
+		print(datetime.datetime.now(), M_TYPE_INFO, 'Gym pokemon added.')
 
 	filePath = os.path.abspath('motd.txt')
 	with open(filePath, "r") as file:
@@ -2073,6 +2082,8 @@ while True: # Why do I do this to myself
 		print(datetime.datetime.now(), M_TYPE_INFO, client.user.name)
 		print(datetime.datetime.now(), M_TYPE_INFO, client.user.id)
 		print(datetime.datetime.now(), M_TYPE_INFO, '------')
+
+		createFirstGymPokemon()
 
 		for server in client.servers:
 			evaluate_server(server)
