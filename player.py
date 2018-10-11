@@ -365,9 +365,9 @@ __Pokeball Stats:__
 		self.pokemonCaught += 1
 		cursor = MySQL.getCursor()
 		cursor.execute("""
-			INSERT INTO player_pokemon (id, player_id, pokemon_id, level, experience, current_hp, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, selected, caught_with)
-			VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-			""", (self.pokemonCaught, self.pId, pokemon.pId, pokemon.pokeStats.level, pokemon.experience, pokemon.pokeStats.hp, pokemon.pokeStats.iv['hp'], pokemon.pokeStats.iv['attack'], pokemon.pokeStats.iv['defense'], pokemon.pokeStats.iv['special-attack'], pokemon.pokeStats.iv['special-defense'], pokemon.pokeStats.iv['speed'], 1 if selected else 0, pokemon.caughtWith))
+			INSERT INTO player_pokemon (id, player_id, pokemon_id, level, experience, current_hp, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, selected, caught_with, is_mega)
+			VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+			""", (self.pokemonCaught, self.pId, pokemon.pId, pokemon.pokeStats.level, pokemon.experience, pokemon.pokeStats.hp, pokemon.pokeStats.iv['hp'], pokemon.pokeStats.iv['attack'], pokemon.pokeStats.iv['defense'], pokemon.pokeStats.iv['special-attack'], pokemon.pokeStats.iv['special-defense'], pokemon.pokeStats.iv['speed'], 1 if selected else 0, pokemon.caughtWith, 1 if pokemon.mega else 0))
 		MySQL.commit()
 
 		self.update()
@@ -404,6 +404,16 @@ __Pokeball Stats:__
 	def calculateExp(self, level):
 		exp = (88) * (level**3) - 15*(level**2) + 100*level - 140
 		return exp if exp>0 else 0
+
+	def calibrateLevel(self):
+		while(True):
+			nextLevel = self.level + 1
+			if self.experience < self.calculateExp(nextLevel):
+				break
+			else:
+				self.level += 1
+		self.update()
+
 
 	def addExperience(self, experience):
 		if self.level == 50:
