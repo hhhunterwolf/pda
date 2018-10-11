@@ -94,7 +94,7 @@ while True: # Why do I do this to myself
 	async def select_starter(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 		
 		msg = 'Hello {0.author.mention}, and welcome to Pokemon Discord Adventure! To begin your journey, you will have to choose a starter. That is easy! Type ``{1}start #``, where # is the number of one of the starter pokemon listed below: \n\n'.format(message, commandPrefix)
 		msg += getStartersString()
@@ -125,7 +125,7 @@ while True: # Why do I do this to myself
 	async def display_pokemon_info(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 
 		if player.hasStarted():
 			temp = message.content.split(' ')
@@ -185,7 +185,7 @@ while True: # Why do I do this to myself
 	async def display_favorite_pokemons(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 		if player.hasStarted():
 			temp = message.content.split(' ')
 			
@@ -245,7 +245,7 @@ while True: # Why do I do this to myself
 	async def display_pokemons(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 		if player.hasStarted():
 			temp = message.content.split(' ')
 			
@@ -299,7 +299,7 @@ while True: # Why do I do this to myself
 	async def release_pokemon(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 		
 		msg = ''
 		if not player.hasStarted():
@@ -329,7 +329,7 @@ while True: # Why do I do this to myself
 	async def select_pokemon(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 		
 		msg = ''
 		if not player.hasStarted():
@@ -583,7 +583,7 @@ while True: # Why do I do this to myself
 			if spawnChannel != message.channel.id:
 				return
 
-			player = playerMap[message.author.id + message.server.id]
+			player = playerMap[message.author.id]
 
 			if not spawn:
 				msg = '{0.author.mention}, there are no wild pokemon or trainers willing to fight near you at this time.'.format(message)
@@ -776,8 +776,6 @@ while True: # Why do I do this to myself
 							if not spawn.spawned:
 								spawn.lastAct = [datetime.datetime.now(), random.randint(45, 55)]
 								isAfk = True
-								localAfkTime = 0
-								key = server.id + channel.id
 								localAfkTime = (datetime.datetime.now().timestamp() - pokeServer.serverMessageMap)
 								isAfk = localAfkTime > afkTime + spawn.restSpawn
 
@@ -851,7 +849,7 @@ while True: # Why do I do this to myself
 			await SpawnManager.spawn()
 			
 	async def add_random_pokemon(message):
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 		for i in range(1,100):
 			player.addPokemon(pokemonId=random.randint(1,500), level=random.randint(1,100))
 
@@ -876,7 +874,7 @@ while True: # Why do I do this to myself
 			player = None
 			if not player in playerMap:
 				player = Player(row['id'], row['name'])
-				key = message.author.id + message.server.id
+				key = message.author.id
 				playerMap[key] = player
 			else:
 				player = playerMap[row['id']]
@@ -971,7 +969,7 @@ while True: # Why do I do this to myself
 	async def display_catch(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 
 		temp = message.content.split(' ')
 		option = None
@@ -1057,7 +1055,7 @@ while True: # Why do I do this to myself
 	async def display_center(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 
 		msg = ''
 		if not player.hasStarted():
@@ -1168,7 +1166,7 @@ while True: # Why do I do this to myself
 	async def display_shop(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 
 		msg = ''
 		if not player.hasStarted():
@@ -1240,7 +1238,7 @@ while True: # Why do I do this to myself
 	async def display_candy_shop(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 
 		pokemonList = get_candy_shop_pokemon_list()
 
@@ -1269,7 +1267,7 @@ while True: # Why do I do this to myself
 	async def display_me(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 		finalStr = str(player) + getBallsString(player)
 
 		em = discord.Embed(title='{}\'s player information!'.format(message.author.name), description=str(finalStr), colour=0xDEADBF)
@@ -1330,7 +1328,7 @@ while True: # Why do I do this to myself
 	async def display_item(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 
 		msg = ''
 		if not player.hasStarted():
@@ -1367,7 +1365,7 @@ while True: # Why do I do this to myself
 		if len(temp)<=1:
 			msg = 'Type ``{}duel @player`` to challenge a player for a duel.'.format(commandPrefix)
 		else:
-			player = playerMap[message.author.id + message.server.id]
+			player = playerMap[message.author.id]
 			
 			option = temp[1].replace('@', '').replace('!', '').replace('<', '').replace('>', '')
 			if str(message.author.id) == option:
@@ -1380,7 +1378,7 @@ while True: # Why do I do this to myself
 					member = message.server.get_member(option)
 					if member:
 						msg = '{0}, {1} is challenging you to a duel! Type ``{2}accept`` to accept!'.format(temp[1], message.author.mention, commandPrefix)
-						duelMap[option + message.server.id] = [message.author.id + message.server.id, message.author.mention]
+						duelMap[option] = [message.author.id, message.author.mention]
 					else:
 						msg = 'No member with that name could be found!'
 
@@ -1440,7 +1438,7 @@ while True: # Why do I do this to myself
 	async def accept_challenge(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		challengedKey = message.author.id + message.server.id
+		challengedKey = message.author.id
 		if challengedKey in duelMap:
 			challengerKey, challlengerCallout = duelMap[challengedKey]
 			
@@ -1609,7 +1607,7 @@ while True: # Why do I do this to myself
 	async def display_gym(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 
 		msg = ''
 		if not player.hasStarted():
@@ -1843,7 +1841,7 @@ while True: # Why do I do this to myself
 	async def display_mega(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		player = playerMap[message.author.id + message.server.id]
+		player = playerMap[message.author.id]
 			
 		hasMega, hasBadges, isMega, hasLevel = player.megaEvolveSelectedPokemon()
 		pokemon = player.getSelectedPokemon()
@@ -1963,7 +1961,7 @@ while True: # Why do I do this to myself
 
 		content = message.content.lower()
 		if content.startswith(commandPrefix):
-			key = message.author.id + message.server.id
+			key = message.author.id
 			if not key in playerMap:
 				playerMap[key] = Player(key, message.author.name if (message.author.name is not '') else 'Unknown')
 				playerMessageMap[key] = 0
