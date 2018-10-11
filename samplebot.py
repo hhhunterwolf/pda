@@ -1860,16 +1860,13 @@ while True: # Why do I do this to myself
 
 
 	async def display_rank(message):
-		serverId = message.server.id
-
 		cursor = MySQL.getCursor()
 		cursor.execute("""
 			SELECT *
 			FROM player
-			WHERE id like %s
 			ORDER BY level DESC
 			LIMIT 10
-		""", ('%' + str(serverId) + '%',))
+		""")
 		rows = cursor.fetchall()
 
 		counter = 1
