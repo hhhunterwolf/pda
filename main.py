@@ -58,21 +58,24 @@ def main():
 				for pokemonRow in pokemonRows:
 					print(datetime.datetime.now(), M_TYPE_INFO, 'Merging pokemon: {}/{}'.format(counter, row['pokemon_caught']))
 					hasPokemon = True
-					player.addPokemonViaInstace(Pokemon(name='', 
-														level=pokemonRow['level'], 
-														pokemonId=pokemonRow['pokemon_id'], 
-														experience=pokemonRow['experience'],
-														mega=pokemonRow['is_mega']==1,
-														caughtWith=pokemonRow['caught_with'],
-														iv={
-															'iv_hp': pokemonRow['iv_hp'],
-															'iv_attack': pokemonRow['iv_attack'],
-															'iv_defense': pokemonRow['iv_defense'],
-															'iv_special_attack': pokemonRow['iv_special_attack'],
-															'iv_special_defense': pokemonRow['iv_special_defense'],
-															'iv_speed': pokemonRow['iv_speed'],
-														}
-														))
+					pokemon = Pokemon(
+										name='', 
+										level=pokemonRow['level'], 
+										pokemonId=pokemonRow['pokemon_id'], 
+										experience=pokemonRow['experience'],
+										mega=pokemonRow['is_mega']==1,
+										caughtWith=pokemonRow['caught_with'],
+										iv={
+											'hp': pokemonRow['iv_hp'],
+											'attack': pokemonRow['iv_attack'],
+											'defense': pokemonRow['iv_defense'],
+											'special_attack': pokemonRow['iv_special_attack'],
+											'special_defense': pokemonRow['iv_special_defense'],
+											'speed': pokemonRow['iv_speed']
+										}
+									)
+					player.addPokemonViaInstace(pokemon)
+
 					counter += 1
 					if hasPokemon:
 						player.selectPokemon(1)
