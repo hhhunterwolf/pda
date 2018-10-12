@@ -69,8 +69,8 @@ def main():
 											'hp': pokemonRow['iv_hp'],
 											'attack': pokemonRow['iv_attack'],
 											'defense': pokemonRow['iv_defense'],
-											'special_attack': pokemonRow['iv_special_attack'],
-											'special_defense': pokemonRow['iv_special_defense'],
+											'special-attack': pokemonRow['iv_special_attack'],
+											'special-defense': pokemonRow['iv_special_defense'],
 											'speed': pokemonRow['iv_speed']
 										}
 									)
