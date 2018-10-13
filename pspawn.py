@@ -1,5 +1,6 @@
 import math
 import datetime
+import random
 
 from mysql import MySQL
 from player import Player
@@ -15,7 +16,7 @@ class Spawn:
 		self.fought = []
 		self.trainer = [False, 0]
 		self.isBoss = False, None
-		self.lastAct = [datetime.datetime.now(), 60]
+		self.lastAct = [datetime.datetime.now(), random.randint(20, 65)]
 		self.restSpawn = 0
 
 	
