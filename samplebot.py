@@ -9,6 +9,7 @@ import traceback
 import humanfriendly
 import time
 import os
+import copy
 
 from pserver import PokeServer
 from player import Player
@@ -51,6 +52,8 @@ def handle_exit():
 		except asyncio.TimeoutError:
 			pass
 		except asyncio.CancelledError:
+			pass
+		except Exception:
 			pass
 
 while True: # Why do I do this to myself
@@ -846,8 +849,10 @@ while True: # Why do I do this to myself
 		await client.wait_until_ready()
 
 		while True:
-			#await asyncio.sleep(5)
-			await SpawnManager.spawn()
+			try:
+				await SpawnManager.spawn()
+			except Exception as e: # Still disgusting
+				traceback.print_exc()
 			
 	async def add_random_pokemon(message):
 		player = playerMap[message.author.id]
@@ -1739,9 +1744,8 @@ while True: # Why do I do this to myself
 									UPDATE gym
 									SET holder_id = %s,
 										pokemon_id = %s
-									WHERE server_id = %s
 									AND type_id = %s
-									""", (player.pId, playerPokemon.ownId, message.server.id, gymId))
+									""", (player.pId, playerPokemon.ownId, gymId))
 								
 								cursor.execute("""
 									UPDATE player_pokemon
@@ -1903,6 +1907,7 @@ while True: # Why do I do this to myself
 		'catch' : display_catch,
 		'h' : display_center,
 		'center' : display_center,
+		'hospitalize' : display_center,
 		'heal' : display_center,
 		'me' : display_me,
 		'b' : display_shop,
@@ -2070,7 +2075,7 @@ while True: # Why do I do this to myself
 		em = discord.Embed(title='PDA admin.', description=messageFile, colour=0xDEADBF)
 		try:
 			pass
-			await client.send_message(channel, embed=em)
+			#await client.send_message(channel, embed=em)
 		except Exception as e:
 			print(datetime.datetime.now(), M_TYPE_WARNING, "Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
 
@@ -2091,10 +2096,7 @@ while True: # Why do I do this to myself
 					if channel.id == spawnChannel:
 						await send_online_message(channel)
 
-		try:
-			client.loop.create_task(spawn_wild_pokemon())
-		except Exception: # This is disgusting, but so am I
-			pass
+		client.loop.create_task(spawn_wild_pokemon())
 
 		print(datetime.datetime.now(), M_TYPE_INFO, '------')
 		
