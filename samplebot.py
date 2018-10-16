@@ -450,12 +450,12 @@ while True: # Why do I do this to myself
 
 		return row['id'], row['identifier'].upper()
 
-	GHOST_SPAWN_CHANCE = 135
+	GHOST_SPAWN_CHANCE = 230
 	def get_random_pokemon_spawn():
 		rates = [[3,8], [15,45], [46,255]]
 		rateList = []
 		for i in range(0,len(rates)):
-			rate = int(rates[i][1]**1.4)
+			rate = int(rates[i][1]**1.15)
 			rateList += rate * [rates[i]]
 		
 		row = None
@@ -491,7 +491,7 @@ while True: # Why do I do this to myself
 
 		print(datetime.datetime.now(), M_TYPE_INFO, textwrap.dedent("""Spawning: Capture Rate: %d, Chance: %f""") % (
 			maxR,
-			int(maxR**1.4) / len(rateList),
+			int(maxR**1.15) / len(rateList),
 		))
 		
 		return row['id'], row['identifier'].upper()
@@ -885,6 +885,7 @@ while True: # Why do I do this to myself
 			else:
 				player = playerMap[row['id']]
 			player.addPokemon(pokemonId=pokemonId, level=5)
+			player.update()
 
 	async def stop_server(message):
 		await client.logout()
