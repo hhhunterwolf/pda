@@ -362,7 +362,7 @@ __Pokeball Stats:__
 
 		MySQL.commit()
 
-	def addPokemonViaInstace(self, pokemon, selected=False):
+	def addPokemonViaInstance(self, pokemon, selected=False):
 		self.pokemonCaught += 1
 		cursor = MySQL.getCursor()
 		cursor.execute("""
