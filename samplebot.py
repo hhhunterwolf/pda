@@ -397,7 +397,8 @@ while True: # Why do I do this to myself
 			'**{0}mega:** Shows info on how to mega evolve pokemon. \n' \
 			'**{0}rank:** Shows the top 10 players in the server. \n' \
 			'**{0}ping:** Standard ping command. \n' \
-			'**{0}trade:** Displays the Halloween Event Poke Mart. \n' \
+			'**{0}halloween:** Displays the Halloween Event Poke Mart. \n' \
+			'**{0}trade:** Shows information on how to trade pokemon. \n' \
 			'**{0}donate:** Displays information on donations. \n\n' \
 			'__Admin Commands:__ \n' \
 			'**{0}prefix:** Changes the prefix used to trigger bot commands (default is p). \n' \
@@ -873,6 +874,7 @@ while True: # Why do I do this to myself
 				playerMap[playerId] = Player(playerId)
 				playerMessageMap[playerId] = 0 # FIX THIS CRAP
 			player = playerMap[playerId]
+
 			player.addPokemon(pokemonId=pokemonId, level=5)
 			player.update()
 
