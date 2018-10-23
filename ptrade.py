@@ -49,7 +49,8 @@ class Trade:
 
 	def makeOffer(self, player, pokemonId):
 		self.offerMap[player.pId] = pokemonId
-		self.confirmationMap[player.pId] = False
+		for key, value in self.confirmationMap.items():
+			self.confirmationMap[key] = False
 
 	def confirmOffer(self, player):
 		self.confirmationMap[player.pId] = True
