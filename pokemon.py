@@ -80,6 +80,14 @@ class Pokemon:
 		self.pId = pId
 		self.experience = experience if experience!=0 else self.calculateExp(level)
 
+	def getAverageIV(self):
+		ivAverage = 0
+		for key, value in self.pokeStats.iv.items():
+			ivAverage += value
+		ivAverage = ivAverage // len(self.pokeStats.iv)
+
+		return ivAverage
+
 	def __str__(self):
 		t = self.types[0].identifier
 		ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
@@ -88,10 +96,7 @@ class Pokemon:
 		except IndexError:
 			pass
 
-		ivAverage = 0
-		for key, value in self.pokeStats.iv.items():
-			ivAverage += value
-		ivAverage = ivAverage // len(self.pokeStats.iv)
+		ivAverage = self.getAverageIV()
 
 		isHealing, delta = self.isHealing()
 		deltaStr = Pokemon.convertDeltaToHuman(delta)

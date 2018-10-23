@@ -31,7 +31,7 @@ class Player:
 		if row:
 			self.selectedPokemon = Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], caughtWith=row['caught_with'], mega=row['is_mega']==1)
 
-	def __init__(self, pId, name=''):
+	def __init__(self, pId, name='Unknown'):
 		cursor = MySQL.getCursor()
 		cursor.execute("""
 			SELECT * 
@@ -45,7 +45,6 @@ class Player:
 		self.lastDuel = datetime.datetime.now() - timedelta(days=1)
 		self.lastGym = datetime.datetime.now() - timedelta(days=1)
 		self.selectedPokemon = None
-		self.name = name
 		self.pId = pId
 		self.items = []
 		self.badges = []
@@ -60,6 +59,7 @@ class Player:
 			self.candy = row['candy']
 			self.pokemonCaught = row['pokemon_caught']
 			self.boost = row['exp_boost']
+			self.name = row['name'] if row['name'] != '' else 'Unknown'
 
 			cursor.execute("""
 				SELECT *
@@ -92,6 +92,7 @@ class Player:
 			self.candy = 0
 			self.pokemonCaught = 0
 			self.boost = None
+			self.name = name
 
 			cursor.execute("""
 				INSERT INTO player (id, name)
@@ -361,7 +362,7 @@ __Pokeball Stats:__
 
 		MySQL.commit()
 
-	def addPokemonViaInstace(self, pokemon, selected=False):
+	def addPokemonViaInstance(self, pokemon, selected=False):
 		self.pokemonCaught += 1
 		cursor = MySQL.getCursor()
 		cursor.execute("""
