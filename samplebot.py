@@ -1961,6 +1961,16 @@ while True: # Why do I do this to myself
 		em.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
 		await client.send_message(message.channel, embed=em)
 
+	TRADE_LEVEL = 5
+	def check_can_trade(callout, player, commandPrefix):
+		em = None
+		if player.level < TRADE_LEVEL:
+			msg = '{0} is still at level {1}! You need to be at least level {2} to trade.'.format(callout, player.level, TRADE_LEVEL)
+			em = discord.Embed(title='Ops!', description=msg, colour=0xDEADBF)
+			em.set_author(name='Professor Oak', icon_url=oakUrl)
+			em.set_footer(text='HINT: Pokemon healing at pokecenter? You can choose other pokemon to fight by typing {0}select #! Use {0}pokemon to see your full list of pokemon.'.format(commandPrefix))
+		return em
+
 	def check_is_trading(callout, player, commandPrefix):
 		em = None
 		if TradeManager.isTrading(player):
@@ -2059,6 +2069,16 @@ while True: # Why do I do this to myself
 						return
 
 					em = check_is_trading(receiverCallout, receiver, commandPrefix)
+					if em:
+						await client.send_message(message.channel, embed=em)
+						return
+
+					em = check_can_trade(message.author.mention, offeror, commandPrefix)
+					if em:
+						await client.send_message(message.channel, embed=em)
+						return
+
+					em = check_can_trade(receiverCallout, receiver, commandPrefix)
 					if em:
 						await client.send_message(message.channel, embed=em)
 						return
