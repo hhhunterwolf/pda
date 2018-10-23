@@ -11,6 +11,8 @@ import time
 import os
 import copy
 
+from ptrade import Trade
+from ptrade import TradeManager
 from pserver import PokeServer
 from player import Player
 from pokemon import Pokemon
@@ -395,7 +397,8 @@ while True: # Why do I do this to myself
 			'**{0}mega:** Shows info on how to mega evolve pokemon. \n' \
 			'**{0}rank:** Shows the top 10 players in the server. \n' \
 			'**{0}ping:** Standard ping command. \n' \
-			'**{0}trade:** Displays the Halloween Event Poke Mart. \n' \
+			'**{0}halloween:** Displays the Halloween Event Poke Mart. \n' \
+			'**{0}trade:** Shows information on how to trade pokemon. \n' \
 			'**{0}donate:** Displays information on donations. \n\n' \
 			'__Admin Commands:__ \n' \
 			'**{0}prefix:** Changes the prefix used to trigger bot commands (default is p). \n' \
@@ -672,7 +675,7 @@ while True: # Why do I do this to myself
 									captureMessage += '```fix\nGotcha! {} was added to your pokemon list!\n```'.format(wildPokemon.name)
 									wildPokemon.caughtWith = capture
 									baseValue *= math.log10(wildPokemon.pokeStats.level)
-									player.addPokemonViaInstace(wildPokemon)
+									player.addPokemonViaInstance(wildPokemon)
 								else:
 									captureMessage += '```css\nIt escaped...\n```'
 
@@ -862,28 +865,16 @@ while True: # Why do I do this to myself
 	async def give_pokemon(message):
 		temp = message.content.split(' ')
 			
-		option = None
 		if len(temp)>1:
 			playerId = temp[1].replace('#', '').replace('@', '').replace('!', '').replace('<', '').replace('>', '')
 			pokemonId = int(temp[2])
 			print(datetime.datetime.now(), M_TYPE_INFO, 'Giving player {} a level 5 Pokemon (ID: {}).'.format(playerId, pokemonId))
 			
-			cursor = MySQL.getCursor()
-			cursor.execute("""
-				SELECT *
-				FROM player
-				WHERE id LIKE %s
-			""", ('%%%s%%' % playerId,))
-			rows = cursor.fetchall()
-		
-		for row in rows:
-			player = None
-			if not player in playerMap:
-				player = Player(row['id'], row['name'])
-				key = message.author.id
-				playerMap[key] = player
-			else:
-				player = playerMap[row['id']]
+			if playerId not in playerMap:
+				playerMap[playerId] = Player(playerId)
+				playerMessageMap[playerId] = 0 # FIX THIS CRAP
+			player = playerMap[playerId]
+
 			player.addPokemon(pokemonId=pokemonId, level=5)
 			player.update()
 
@@ -1885,6 +1876,204 @@ while True: # Why do I do this to myself
 		em.set_footer(text='HINT: Winning against trainers is a very good way of getting cash!')
 		await client.send_message(message.channel, embed=em)
 
+	async def display_cancel_trade(message):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		temp = message.content.split(' ')
+
+		player = playerMap[message.author.id]
+		em = check_not_started(message.author.mention, player, commandPrefix)
+		if em:
+			await client.send_message(message.channel, embed=em)
+			return
+
+		trade = TradeManager.getTrade(player)		
+		title = 'Trade canceled'
+		msg = '{0}, you don\'t have any trade offers to cancel. Type ``{1}trade`` for information on how to trade.'.format(message.author.mention, commandPrefix)	
+		if trade:
+			TradeManager.endTrade(player)
+			msg = '{0}, your current trade has been canceled.'.format(message.author.mention)
+
+		em = discord.Embed(title=title, description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
+
+	def get_trade_message(trade, commandPrefix):
+		msg = """Trading is easy! Type ``{0}offer`` to offer a pokemon for trading. If you are ready to make the trade, type ``{0}ready``. If you want to cancel the trade, type ``{0}cancel``.
+
+			""".format(commandPrefix)
+		msg += trade.getTradeInfo()
+		return msg
+
+	async def display_ready_trade(message):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		temp = message.content.split(' ')
+
+		player = playerMap[message.author.id]
+		em = check_not_started(message.author.mention, player, commandPrefix)
+		if em:
+			await client.send_message(message.channel, embed=em)
+			return
+
+		title = 'Trade offer'
+		trade = TradeManager.getTrade(player)		
+		if trade:
+			trade.confirmOffer(player)
+			msg = get_trade_message(trade, commandPrefix)
+			if trade.isTradeConfirmed():
+				offerorCallout = '<@{0}>'.format(trade.offeror.pId)
+				receiverCallout = '<@{0}>'.format(trade.receiver.pId)
+				msg = '{0}, and {1}, your trade was successfully completed. Check your pokemon lists.'.format(offerorCallout, receiverCallout)
+				trade.makeTrade()
+		else:
+			msg = '{0}, you don\'t have any trade offers to ready. Type ``{1}trade`` for information on how to trade.'.format(message.author.mention, commandPrefix)	
+		em = discord.Embed(title=title, description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
+
+	async def display_confirm_trade(message):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		temp = message.content.split(' ')
+
+		player = playerMap[message.author.id]
+		em = check_not_started(message.author.mention, player, commandPrefix)
+		if em:
+			await client.send_message(message.channel, embed=em)
+			return
+
+		title = 'Trade offer'
+		trade = TradeManager.getTrade(player)		
+		if trade:
+			if trade.isReceiver(player):
+				title = 'Trade ongoing...'
+				msg = get_trade_message(trade, commandPrefix)
+			else:
+				msg = '{0}, you already made a trade offer. Wait until the other person confirms it.'.format(message.author.mention)
+		else:
+			msg = '{0}, you don\'t have any trade offers to confirm. Type ``{1}trade`` for information on how to trade.'.format(message.author.mention, commandPrefix)	
+
+		em = discord.Embed(title=title, description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
+
+	def check_is_trading(callout, player, commandPrefix):
+		em = None
+		if TradeManager.isTrading(player):
+			msg = '{0} is already trading with someone. Wait for the trade to end.'.format(callout)
+			em = discord.Embed(title='Ops!', description=msg, colour=0xDEADBF)
+			em.set_author(name='Professor Oak', icon_url=oakUrl)
+			em.set_footer(text='HINT: Pokemon healing at pokecenter? You can choose other pokemon to fight by typing {0}select #! Use {0}pokemon to see your full list of pokemon.'.format(commandPrefix))
+		return em
+
+	async def display_trade_make_offer(message):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		temp = message.content.split(' ')
+
+		offeror = playerMap[message.author.id]
+		em = check_not_started(message.author.mention, offeror, commandPrefix)
+		if em:
+			await client.send_message(message.channel, embed=em)
+			return
+
+		msg = ''
+		option = None
+		if len(temp)<=1:
+			trade = TradeManager.getTrade(offeror)
+			if not trade:
+				msg = 'Type ``{}trade @player`` to start a trade offer with someone.'.format(commandPrefix)
+			else:
+				msg = trade.getTradeInfo()
+		else:
+			option = int(temp[1])
+			if str(message.author.id) == option:
+				msg = 'You cannot trade with yourself.'
+			else:
+				if option not in playerMap:
+					player = playerMap[message.author.id]
+
+					if TradeManager.isTrading(player):
+						trade = TradeManager.getTrade(player)
+
+						em = check_hold_availability(message.author.mention, player, commandPrefix)
+						if em:
+							await client.send_message(message.channel, embed=em)
+							return
+
+						trade.makeOffer(player, option)
+						msg = trade.getTradeInfo()
+					else:
+						msg = '{0}, you don\'t have any trade offers active right now. Type ``{1}trade`` for information on how to trade.'.format(message.author.mention, commandPrefix)
+
+		em = discord.Embed(title='Trade offer', description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
+
+	# All these god damn commands should be classes, why am I so lazy
+	async def display_trade_offer(message):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		temp = message.content.split(' ')
+
+		offeror = playerMap[message.author.id]
+		em = check_not_started(message.author.mention, offeror, commandPrefix)
+		if em:
+			await client.send_message(message.channel, embed=em)
+			return
+
+		msg = ''
+		option = None
+		if len(temp)<=1:
+			trade = TradeManager.getTrade(offeror)
+			if not trade:
+				msg = 'Type ``{}trade @player`` to start a trade offer with someone.'.format(commandPrefix)
+			else:
+				msg = trade.getTradeInfo()
+		else:
+			option = temp[1].replace('@', '').replace('!', '').replace('<', '').replace('>', '')
+			if str(message.author.id) == option:
+				msg = 'You cannot trade with yourself.'
+			else:
+				member = message.server.get_member(option)
+				if member:
+					if option not in playerMap:
+						playerMap[option] = Player(option, member.name)
+						playerMessageMap[option] = 0 # FIX THIS CRAP
+					
+					receiver = playerMap[option]
+					receiverCallout = '<@{0}>'.format(receiver.pId)
+					em = check_not_started(receiverCallout, receiver, commandPrefix)
+					if em:
+						await client.send_message(message.channel, embed=em)
+						return
+
+					em = check_is_trading(message.author.mention, offeror, commandPrefix)
+					if em:
+						await client.send_message(message.channel, embed=em)
+						return
+
+					em = check_is_trading(receiverCallout, receiver, commandPrefix)
+					if em:
+						await client.send_message(message.channel, embed=em)
+						return
+
+					trade = TradeManager.getTrade(offeror, receiver, True)
+
+					msg = '{1}, {0} initiated a trade offer with you. Use ``{2}offer #`` to offer pokemon. When you\'re ready, type ``{2}ready`` to confirm your offer **If you change your offer, you will have to confirm the offer by typing ``{2}ready`` again**. The trade will trigger once both traders are ready. \n\nThe trade can be cancelled anytime, by any trader, by typing ``{2}cancel``.\n\n Trade information can be seen by typing ``{2}trade``.'.format(message.author.mention, receiverCallout, commandPrefix)
+				else:
+					msg = 'No member with that name could be found!'
+
+		em = discord.Embed(title='Trade offer', description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
+		
 	#'welcome' : send_greeting,
 	commandList = {
 		'start' : select_starter,
@@ -1927,7 +2116,12 @@ while True: # Why do I do this to myself
 		'ping' : ping,
 		'mega' : display_mega,
 		'rank' : display_rank,
-		'trade' : display_candy_shop
+		'halloween' : display_candy_shop,
+		'trade' : display_trade_offer,
+		'offer' : display_trade_make_offer,
+		'confirm' : display_confirm_trade,
+		'cancel' : display_cancel_trade,
+		'ready' : display_ready_trade,
 	}
 
 	admin = 229680411079475201
@@ -1966,7 +2160,7 @@ while True: # Why do I do this to myself
 		if content.startswith(commandPrefix):
 			key = message.author.id
 			if not key in playerMap:
-				playerMap[key] = Player(key, message.author.name if (message.author.name is not '') else 'Unknown')
+				playerMap[key] = Player(key, message.author.name)
 				playerMessageMap[key] = 0
 
 			random.seed()
