@@ -672,7 +672,7 @@ while True: # Why do I do this to myself
 									captureMessage += '```fix\nGotcha! {} was added to your pokemon list!\n```'.format(wildPokemon.name)
 									wildPokemon.caughtWith = capture
 									baseValue *= math.log10(wildPokemon.pokeStats.level)
-									player.addPokemonViaInstace(wildPokemon)
+									player.addPokemonViaInstance(wildPokemon)
 								else:
 									captureMessage += '```css\nIt escaped...\n```'
 
