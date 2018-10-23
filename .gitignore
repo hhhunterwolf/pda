@@ -102,3 +102,13 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+csv
+old
+old_pokemon
+pokemon
+scrapped
+SQLiteStudio
+Catching System
+run.bat
+test.bat
