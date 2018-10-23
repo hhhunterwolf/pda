@@ -864,28 +864,15 @@ while True: # Why do I do this to myself
 	async def give_pokemon(message):
 		temp = message.content.split(' ')
 			
-		option = None
 		if len(temp)>1:
 			playerId = temp[1].replace('#', '').replace('@', '').replace('!', '').replace('<', '').replace('>', '')
 			pokemonId = int(temp[2])
 			print(datetime.datetime.now(), M_TYPE_INFO, 'Giving player {} a level 5 Pokemon (ID: {}).'.format(playerId, pokemonId))
 			
-			cursor = MySQL.getCursor()
-			cursor.execute("""
-				SELECT *
-				FROM player
-				WHERE id LIKE %s
-			""", ('%%%s%%' % playerId,))
-			rows = cursor.fetchall()
-		
-		for row in rows:
-			player = None
-			if not player in playerMap:
-				player = Player(row['id'], row['name'])
-				key = message.author.id
-				playerMap[key] = player
-			else:
-				player = playerMap[row['id']]
+			if playerId not in playerMap:
+				playerMap[playerId] = Player(playerId)
+				playerMessageMap[playerId] = 0 # FIX THIS CRAP
+			player = playerMap[playerId]
 			player.addPokemon(pokemonId=pokemonId, level=5)
 			player.update()
 
@@ -2127,7 +2114,6 @@ while True: # Why do I do this to myself
 		'ping' : ping,
 		'mega' : display_mega,
 		'rank' : display_rank,
-		'trade' : display_candy_shop
 		'halloween' : display_candy_shop,
 		'trade' : display_trade_offer,
 		'offer' : display_trade_make_offer,
