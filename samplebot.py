@@ -11,6 +11,7 @@ import time
 import os
 import copy
 
+from pcommand import Command
 from ptrade import Trade
 from ptrade import TradeManager
 from pserver import PokeServer
@@ -197,7 +198,7 @@ while True: # Why do I do this to myself
 			option = 1
 			if len(temp)>2:
 				option = temp[1]
-				param = temp[2]
+				param = int(temp[2])
 				if option.lower() == 'add':
 					addResult, pokemon, favId = player.addFavorite(param)
 					if addResult == 'success':
@@ -209,7 +210,9 @@ while True: # Why do I do this to myself
 					elif addResult == 'full':
 						await display_fail_full_favorite(message, commandPrefix)
 						return
-				elif option.lower() == 'remove':
+					elif addResult == 'error':
+						return
+				elif option.lower() == 'remove' or option.lower() == 'rem':
 					removeResult, pokemon = player.removeFavorite(param)
 					if removeResult:
 						await display_success_rem_favorite(message, pokemon, commandPrefix)
@@ -2102,8 +2105,8 @@ while True: # Why do I do this to myself
 		'p' : display_pokemons,
 		'pokemon' : display_pokemons,
 		'a' : display_favorite_pokemons,
-	#	'v' : display_favorite_pokemons,
-	#	'favorite' : display_favorite_pokemons,
+		'v' : display_favorite_pokemons,
+		'favorite' : display_favorite_pokemons,
 		's' : select_pokemon,
 		'select' : select_pokemon,
 		'r' : release_pokemon,
