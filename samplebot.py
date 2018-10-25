@@ -11,7 +11,7 @@ import time
 import os
 import copy
 
-from pcommand import Command
+#from pcommand import Command
 from ptrade import Trade
 from ptrade import TradeManager
 from pserver import PokeServer
