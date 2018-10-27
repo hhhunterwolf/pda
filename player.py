@@ -12,6 +12,7 @@ from datetime import timedelta
 class Player:
 	START_MONEY = 3000
 	HALLOWEEN = True # This should not be here...
+	EXP_MOD = 3.5
 
 	def strip_non_ascii(string):
 	    ''' Returns the string without non ASCII characters'''
