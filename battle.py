@@ -54,9 +54,8 @@ class Battle:
 					self.modifier2 = max(tempMod, self.modifier2)
 		self.modifier2 = self.modifier2/100
 
-	def __init__(self, challenger1, challenger2, trainer=False, boost=None, gym=False):
+	def __init__(self, challenger1, challenger2, boost=None, gym=False):
 		random.seed()
-		self.trainer = trainer
 		self.boost = boost
 		self.gym = gym
 		self.damageDealt = {
