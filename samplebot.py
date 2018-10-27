@@ -527,7 +527,7 @@ while True: # Why do I do this to myself
 
 			# player exp and money
 			baseValue = int(valueMod*(damage/math.log10(3)))//3 + random.randint(20, 75)
-			exp = int(random.uniform(0.7, 1)*baseValue)
+			exp = int(random.uniform(0.7, 1)*baseValue*Player.EXP_MOD)
 			player.addExperience(exp)
 			print(datetime.datetime.now(), M_TYPE_INFO, 'Earned Boss EXP: {}'.format(baseValue))
 			money = int(random.uniform(13.5,15.6)*baseValue)
@@ -682,7 +682,7 @@ while True: # Why do I do this to myself
 								else:
 									captureMessage += '```css\nIt escaped...\n```'
 
-							player.addExperience(baseValue)
+							player.addExperience(baseValue*Player.EXP_MOD)
 							player.addCandy(wildPokemon.candyDrop)
 							captureMessage += getPlayerEarnedMoneyEXP(message.author.mention, baseValue, money, wildPokemon.candyDrop)
 
