@@ -17,7 +17,9 @@ M_TYPE_WARNING = 'WARNING'
 M_TYPE_ERROR = 'ERROR'
 
 class Battle:
-	def getModifiers(self):
+	PLAYER_HANDICAP = 1.5
+
+	def getModifiers(self, playerHandicap=False):
 		cursor = MySQL.getCursor()
 
 		for pokeType1 in self.challenger1.types:
@@ -36,6 +38,8 @@ class Battle:
 				else:
 					self.modifier1 = max(self.modifier1, tempMod)
 		self.modifier1 = self.modifier1/100
+		if playerHandicap:
+			self.modifier1 *= Battle.PLAYER_HANDICAP
 
 		for pokeType1 in self.challenger2.types:
 			tempMod = 0
@@ -62,15 +66,20 @@ class Battle:
 			'winner' : 0,
 			'loser' : 0
 		}
+
+		# Handicap is for players against wild pokemon. This code is a mess.
+		playerHandicap = challenger1.wild==1.5 and challenger2.wild==1 and not gym
 		
-		print(datetime.datetime.now(), M_TYPE_INFO, 'Initializing battle between {} ({}) and {} ({}).'.format(challenger1.name, challenger1.pokeStats.level, challenger2.name, challenger2.pokeStats.level))
+		# print(datetime.datetime.now(), M_TYPE_INFO, 'Initializing battle between {} ({}) and {} ({}).'.format(challenger1.name, challenger1.pokeStats.level, challenger2.name, challenger2.pokeStats.level))
 		speed1 = challenger1.pokeStats.current['speed']
+		if playerHandicap:
+			speed1 *= Battle.PLAYER_HANDICAP
 		speed2 = challenger2.pokeStats.current['speed']
 		
 		self.challenger1, self.challenger2 = challenger1, challenger2
 		self.modifier1, self.modifier2 = 0, 0
-		self.getModifiers()
-		print(datetime.datetime.now(), M_TYPE_INFO, 'Type modifier for {} is {} and for {} is {}.'.format(challenger1.name, self.modifier1, challenger2.name, self.modifier2))
+		self.getModifiers(playerHandicap)
+		# print(datetime.datetime.now(), M_TYPE_INFO, 'Type modifier for {} is {} and for {} is {}.'.format(challenger1.name, self.modifier1, challenger2.name, self.modifier2))
 		if speed2 > speed1:
 			self.challenger1, self.challenger2 = self.challenger2, self.challenger1
 			self.modifier1, self.modifier2 = self.modifier2, self.modifier1
@@ -157,7 +166,7 @@ class Battle:
 		msg += '```'
 
 		name = winner.name
-		print(datetime.datetime.now(), M_TYPE_INFO, "{} wins.".format(name))
+		# print(datetime.datetime.now(), M_TYPE_INFO, "{} wins.".format(name))
 		if not self.gym:
 			leveledUp, evolved = winner.addExperience(exp+bonusExp)
 		else:
