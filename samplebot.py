@@ -1247,7 +1247,7 @@ while True: # Why do I do this to myself
 		await client.send_message(message.channel, embed=em)
 
 	async def display_info_candy_shop(message, player, commandPrefix):
-		msg = '{0.author.mention}, welcome to the Spooky Poke Mart! Here you can trade your candy for spooky Pokemon! Just type ``{1}trade pokemon_number``. These are the available pokemon:\n\n'.format(message, commandPrefix)
+		msg = '{0.author.mention}, welcome to the Spooky Poke Mart! Here you can trade your candy for spooky Pokemon! Just type ``{1}halloween pokemon_number``. These are the available pokemon:\n\n'.format(message, commandPrefix)
 		
 		pokemonList = get_candy_shop_pokemon_list()
 		counter = 1
@@ -2420,7 +2420,7 @@ while True: # Why do I do this to myself
 		em = discord.Embed(title='PDA admin.', description=messageFile, colour=0xDEADBF)
 		try:
 			pass
-			await client.send_message(channel, embed=em)
+			#await client.send_message(channel, embed=em)
 		except Exception as e:
 			print(datetime.datetime.now(), M_TYPE_WARNING, "Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
 
