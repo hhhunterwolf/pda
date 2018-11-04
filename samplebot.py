@@ -871,6 +871,10 @@ while True: # Why do I do this to myself
 		if len(temp)>1:
 			playerId = temp[1].replace('#', '').replace('@', '').replace('!', '').replace('<', '').replace('>', '')
 			pokemonId = int(temp[2])
+			if len(temp)>3:
+				caughtWith = int(temp[3])
+			else:
+				caughtWith = 6
 			print(datetime.datetime.now(), M_TYPE_INFO, 'Giving player {} a level 5 Pokemon (ID: {}).'.format(playerId, pokemonId))
 			
 			if playerId not in playerMap:
@@ -878,7 +882,7 @@ while True: # Why do I do this to myself
 				playerMessageMap[playerId] = 0 # FIX THIS CRAP
 			player = playerMap[playerId]
 
-			player.addPokemon(pokemonId=pokemonId, level=5)
+			player.addPokemon(pokemonId=pokemonId, level=5, caughtWith=caughtWith)
 			player.update()
 
 	async def stop_server(message):
