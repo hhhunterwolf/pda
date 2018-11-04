@@ -13,6 +13,8 @@ class Player:
 	START_MONEY = 3000
 	HALLOWEEN = True # This should not be here...
 	EXP_MOD = 3.5
+	DAY_CARE_PRICE_MOD = 1.25
+	DAY_CARE_TIME_MOD = 1.25 * 1000
 
 	def strip_non_ascii(string):
 	    ''' Returns the string without non ASCII characters'''
@@ -53,6 +55,7 @@ class Player:
 			'pokemon' : None,
 			'damage' : 0
 		}
+		self.dayCareRequest = None, 0
 		if row is not None:
 			self.level = row['level']
 			self.experience = row['experience']
@@ -249,6 +252,56 @@ __Pokeball Stats:__
 		
 		return pokemonList, pages
 
+	def getDayCarePokemonList(self):
+		pokemonPerPage = Player.pokemonPerPage
+
+		cursor = MySQL.getCursor()
+		cursor.execute("""
+			SELECT * 
+			FROM player_pokemon
+			WHERE player_id = %s
+			AND in_day_care IS NOT NULL
+			ORDER BY in_day_care ASC
+			""", (self.pId,))
+		rows = cursor.fetchall()
+		
+		pokemonList = []
+		if rows:
+			for row in rows:
+				pokemon = Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], mega=row['is_mega']==1, inDayCare=row['in_day_care'], dayCareLevel=row['day_care_level'])
+				isDone, delta = self.removeFromDayCare(pokemon)
+				if isDone:
+					continue
+				pokemonList.append([pokemon, delta, row['day_care_level']])
+
+		return pokemonList
+
+	def removeFromDayCare(self, pokemon):
+		level = pokemon.dayCareLevel
+		if not level:
+			return True, 0
+		timeAdded = pokemon.inDayCare
+		cost, time = self.getDayCareCost(pokemon=pokemon, level=level)
+		delta = datetime.datetime.now().timestamp() - timeAdded.timestamp()
+		isDone = delta >= time
+		remaining = time + timeAdded.timestamp() - datetime.datetime.now().timestamp()
+		if isDone:
+			pokemon.setLevel(level)
+			self.commitPokemonToDB(pokemon)
+			cursor = MySQL.getCursor()
+			cursor.execute("""
+				UPDATE player_pokemon
+				SET in_day_care = NULL,
+					day_care_level = NULL
+				WHERE player_id = %s
+				AND id = %s
+				""", (self.pId, pokemon.ownId))
+			MySQL.commit()
+
+			return True, remaining
+
+		return False, remaining
+
 	def getFavoritePokemonList(self):
 		pokemonPerPage = Player.pokemonPerPage
 
@@ -269,7 +322,8 @@ __Pokeball Stats:__
 
 		return pokemonList
 
-	def getPokemon(self, pId, isFav=False, returnSelected=True):
+	# isFav and isDayCare cannot both be true. This sucks, yes, but XGH.
+	def getPokemon(self, pId, isFav=False, returnSelected=True, isDayCare=False):
 		cursor = MySQL.getCursor()
 		if isFav:
 			cursor.execute("""
@@ -278,6 +332,21 @@ __Pokeball Stats:__
 				WHERE player_id = %s
 				AND favorite IS NOT NULL
 				ORDER BY favorite ASC
+				""", (self.pId,))
+			rows = cursor.fetchall()
+
+			row = None
+			if rows:
+				if pId <= len(rows):
+					row = rows[pId-1]
+
+		if isDayCare:
+			cursor.execute("""
+				SELECT * 
+				FROM player_pokemon
+				WHERE player_id = %s
+				AND in_day_care IS NOT NULL
+				ORDER BY in_day_care ASC
 				""", (self.pId,))
 			rows = cursor.fetchall()
 
@@ -300,7 +369,7 @@ __Pokeball Stats:__
 			if row['id'] == self.getSelectedPokemon().ownId:
 				return self.getSelectedPokemon(), False
 
-			return Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], caughtWith=row['caught_with'], mega=row['is_mega']==1), row['in_gym'] > 0
+			return Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], caughtWith=row['caught_with'], mega=row['is_mega']==1, inDayCare=row['in_day_care'], dayCareLevel=row['day_care_level']), row['in_gym'] > 0 # You should fucking change this inGym trash, it SUCKS
 		elif returnSelected:
 			return self.getSelectedPokemon(), False
 		else:
@@ -338,10 +407,12 @@ __Pokeball Stats:__
 				experience = %s,
 				current_hp = %s,
 				healing = %s,
-				is_mega = %s
+				is_mega = %s,
+				in_day_care = %s,
+				day_care_level = %s
 			WHERE id = %s
 			AND player_id = %s
-			""", (pokemon.pId, pokemon.pokeStats.level, pokemon.experience, pokemon.pokeStats.hp, pokemon.healing, pokemon.mega, pokemon.ownId, self.pId))
+			""", (pokemon.pId, pokemon.pokeStats.level, pokemon.experience, pokemon.pokeStats.hp, pokemon.healing, pokemon.mega, pokemon.inDayCare, pokemon.dayCareLevel, pokemon.ownId, self.pId))
 		MySQL.commit()
 
 	def update(self):
@@ -372,9 +443,9 @@ __Pokeball Stats:__
 		self.pokemonCaught += 1
 		cursor = MySQL.getCursor()
 		cursor.execute("""
-			INSERT INTO player_pokemon (id, player_id, pokemon_id, level, experience, current_hp, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, selected, caught_with, is_mega)
-			VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-			""", (self.pokemonCaught, self.pId, pokemon.pId, pokemon.pokeStats.level, pokemon.experience, pokemon.pokeStats.hp, pokemon.pokeStats.iv['hp'], pokemon.pokeStats.iv['attack'], pokemon.pokeStats.iv['defense'], pokemon.pokeStats.iv['special-attack'], pokemon.pokeStats.iv['special-defense'], pokemon.pokeStats.iv['speed'], 1 if selected else 0, pokemon.caughtWith, 1 if pokemon.mega else 0))
+			INSERT INTO player_pokemon (id, player_id, pokemon_id, level, experience, current_hp, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, selected, caught_with, is_mega, in_day_care, day_care_level)
+			VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+			""", (self.pokemonCaught, self.pId, pokemon.pId, pokemon.pokeStats.level, pokemon.experience, pokemon.pokeStats.hp, pokemon.pokeStats.iv['hp'], pokemon.pokeStats.iv['attack'], pokemon.pokeStats.iv['defense'], pokemon.pokeStats.iv['special-attack'], pokemon.pokeStats.iv['special-defense'], pokemon.pokeStats.iv['speed'], 1 if selected else 0, pokemon.caughtWith, 1 if pokemon.mega else 0, pokemon.inDayCare, pokemon.dayCareLevel))
 		MySQL.commit()
 
 		self.update()
@@ -383,12 +454,12 @@ __Pokeball Stats:__
 		if selected:
 			self.selectPokemon(pokemon.ownId)
 
-	def addPokemon(self, level, name='', pokemonId=0, selected=False, mega=False):
+	def addPokemon(self, level, name='', pokemonId=0, selected=False, mega=False, caughtWith=0):
 		pokemon = None
 		if pokemonId == 0:
 			pokemon = Pokemon(name, level, 1.5)
 		else:
-			pokemon = Pokemon(name='', pokemonId=pokemonId, level=level, wild=1.5, mega=mega)
+			pokemon = Pokemon(name='', pokemonId=pokemonId, level=level, wild=1.5, mega=mega, caughtWith=caughtWith)
 		
 		self.pokemonCaught += 1
 
@@ -439,6 +510,7 @@ __Pokeball Stats:__
 	def removeMoney(self, money):
 		if(self.money >= money):
 			self.money -= money
+			self.update()
 			return True
 		return False
 
@@ -500,6 +572,19 @@ __Pokeball Stats:__
 			return True
 		return False
 
+	def reselectPokemon(self):
+		cursor = MySQL.getCursor()
+		cursor.execute("""
+			SELECT * 
+			FROM player_pokemon
+			WHERE player_id = %s
+			AND in_gym = 0
+			AND in_day_care is NULL
+			""", (self.pId,))
+
+		row = cursor.fetchone()
+		self.selectPokemon(row['id'])
+
 	def releasePokemon(self, pId):
 		pokemon, inGym = self.getPokemon(pId)
 
@@ -524,15 +609,7 @@ __Pokeball Stats:__
 		self.update()
 
 		if pId == self.getSelectedPokemon().ownId:
-			cursor.execute("""
-				SELECT * 
-				FROM player_pokemon
-				WHERE player_id = %s
-				AND in_gym = 0
-				""", (self.pId,))
-
-			row = cursor.fetchone()
-			self.selectPokemon(row['id'])
+			self.reselectPokemon()
 		else:
 			cursor.execute("""
 				SELECT * 
@@ -625,3 +702,73 @@ __Pokeball Stats:__
 			self.commitPokemonToDB(pokemon)
 
 		return hasMega, hasBadges, isMega, hasLevel
+
+	def isPokemonOnDayCare(self, pId):
+		cursor = MySQL.getCursor()
+		cursor.execute("""
+			SELECT * 
+			FROM player_pokemon
+			WHERE player_id = %s
+			AND id = %s
+			""", (self.pId, pId))
+		row = cursor.fetchone()
+
+		return row and row['in_day_care'] is not None
+
+	# Returns [cost, time]
+	def getDayCareCost(self, pId=0, level=0, pokemon=None):
+		if not pokemon:
+			pokemon, inGym = self.getPokemon(pId)
+
+		deltaExp = int(pokemon.calculateExp(level) - pokemon.experience)
+
+		# Use raw EXP for cost
+		cost = (500 + int(math.log10(1 + deltaExp//200))) * deltaExp//750
+		
+		# Use log of EXP to stabilize the time, space it out and shit, the expression is right there
+		time = 5000 + int(math.log10(1 + deltaExp//200)) * deltaExp//20
+		
+		return cost, time
+
+	def requestAddPokemonToDayCare(self, pId, level):
+		alreadyIn = self.isPokemonOnDayCare(pId)
+		pokemon, inGym = self.getPokemon(pId, returnSelected=False)
+		if alreadyIn:
+			return 'already_in', pokemon, None, 0
+
+		if not pokemon:
+			return 'invalid_id', None, None, 0
+
+		if pokemon.pokeStats.level >= level:
+			return 'higher_level', pokemon, None, 0
+
+		cost, time = self.getDayCareCost(pId, level)
+		self.dayCareRequest = pokemon, level
+		return 'success', pokemon, cost, time
+
+	def confirmAddPokemonToDayCare(self):
+		pokemon, level = self.dayCareRequest
+		if pokemon:
+			cost, time = self.getDayCareCost(pokemon.ownId, level)
+			if self.removeMoney(cost):
+				cursor = MySQL.getCursor()
+				cursor.execute("""
+					UPDATE player_pokemon
+					SET in_day_care = %s,
+						day_care_level = %s,
+						selected = 0
+					WHERE player_id = %s
+					AND id = %s
+					""", (datetime.datetime.now(), level, self.pId, pokemon.ownId))
+				MySQL.commit()
+
+				if pokemon.ownId == self.getSelectedPokemon().ownId:
+					self.reselectPokemon()
+				
+				self.dayCareRequest = None, 0
+				return 'added', pokemon, level, cost, time
+			else:
+				return 'no_money', pokemon, level, cost, time
+		return None, None, 0, 0, 0
+
+
