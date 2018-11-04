@@ -1974,7 +1974,7 @@ while True: # Why do I do this to myself
 		em = None
 		if TradeManager.isTrading(player):
 			msg = '{0} is already trading with someone. Wait for the trade to end.'.format(callout)
-			em = discord.Embed(title='Ops!', description=msg, colour=0xDEADBF)
+			em = discord.Embed(title='Oops!', description=msg, colour=0xDEADBF)
 			em.set_author(name='Professor Oak', icon_url=oakUrl)
 			em.set_footer(text='HINT: Pokemon healing at pokecenter? You can choose other pokemon to fight by typing {0}select #! Use {0}pokemon to see your full list of pokemon.'.format(commandPrefix))
 		return em
