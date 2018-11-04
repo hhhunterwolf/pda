@@ -383,12 +383,12 @@ __Pokeball Stats:__
 		if selected:
 			self.selectPokemon(pokemon.ownId)
 
-	def addPokemon(self, level, name='', pokemonId=0, selected=False, mega=False):
+	def addPokemon(self, level, name='', pokemonId=0, selected=False, mega=False, caughtWith=0):
 		pokemon = None
 		if pokemonId == 0:
 			pokemon = Pokemon(name, level, 1.5)
 		else:
-			pokemon = Pokemon(name='', pokemonId=pokemonId, level=level, wild=1.5, mega=mega)
+			pokemon = Pokemon(name='', pokemonId=pokemonId, level=level, wild=1.5, mega=mega, caughtWith=caughtWith)
 		
 		self.pokemonCaught += 1
 
