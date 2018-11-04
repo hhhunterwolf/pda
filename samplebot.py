@@ -188,6 +188,17 @@ while True: # Why do I do this to myself
 		em.set_thumbnail(url=message.author.avatar_url)
 		await client.send_message(message.channel, embed=em)
 
+	MAX_DAY_CARE = 10
+	def check_full_daycare(callout, player, commandPrefix):
+		em = None
+		pokemonList = player.getDayCarePokemonList()
+		if len(pokemonList) == MAX_DAY_CARE:
+			msg = '{0}, we can only take care of {1} pokemon at the same time. Please wait until one of those is out before you add another pokemon to our day care.'.format(callout, MAX_DAY_CARE)
+			em = discord.Embed(title='Day Care', description=msg, colour=0xDEADBF)
+			em.set_author(name='Professor Oak', icon_url=oakUrl)
+		
+		return em
+
 	async def display_favorite_pokemons(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
@@ -334,6 +345,18 @@ while True: # Why do I do this to myself
 				except ValueError as err:
 					print(datetime.datetime.now(), M_TYPE_ERROR, err)
 
+	def check_player_pokemon_daycare(callout, player, pokemon, commandPrefix):
+		em = None
+		inDayCare, remaining = player.removeFromDayCare(pokemon)
+		if not inDayCare:
+			msg = '{0}, your pokemon is currently on day care. It will stay there for {1}, until it reaches level {2}.\nPlease select another pokemon.'.format(callout, humanfriendly.format_timespan(remaining), pokemon.dayCareLevel, commandPrefix)
+			em = discord.Embed(title='Your {} is on day care!'.format(pokemon.name), description=msg, colour=0xDEADBF)
+			em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+			em.set_author(name='Professor Oak', icon_url=oakUrl)
+			em.set_footer(text='HINT: To use an item, type {0}item #. You can see your items by typing {0}item.'.format(commandPrefix))
+		
+		return em
+
 	async def select_pokemon(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
@@ -352,6 +375,11 @@ while True: # Why do I do this to myself
 					if option:
 						try:
 							pokemon, inGym = player.getPokemon(option)
+
+							em = check_player_pokemon_daycare(message.author.mention, player, pokemon, commandPrefix)
+							if em:
+								return await client.send_message(message.channel, embed=em)
+
 							if not inGym:
 								player.selectPokemon(pokemon.ownId)
 								await display_pokemon_info(message)
@@ -402,6 +430,7 @@ while True: # Why do I do this to myself
 			'**{0}ping:** Standard ping command. \n' \
 			'**{0}halloween:** Displays the Halloween Event Poke Mart. \n' \
 			'**{0}trade:** Shows information on how to trade pokemon. \n' \
+			'**{0}daycare:** Displays information on the day care. \n' \
 			'**{0}donate:** Displays information on donations. \n\n' \
 			'__Admin Commands:__ \n' \
 			'**{0}prefix:** Changes the prefix used to trigger bot commands (default is p). \n' \
@@ -1596,6 +1625,7 @@ while True: # Why do I do this to myself
 			FROM player_pokemon
 			WHERE selected <> 1
 			AND in_gym = 0
+			AND in_day_care is NULL
 			AND player_id = %s
 		""", (player.pId,))
 		row = cursor.fetchone()
@@ -1743,7 +1773,7 @@ while True: # Why do I do this to myself
 									UPDATE gym
 									SET holder_id = %s,
 										pokemon_id = %s
-									AND type_id = %s
+									WHERE id = %s
 									""", (player.pId, playerPokemon.ownId, gymId))
 								
 								cursor.execute("""
@@ -1925,7 +1955,8 @@ while True: # Why do I do this to myself
 				offerorCallout = '<@{0}>'.format(trade.offeror.pId)
 				receiverCallout = '<@{0}>'.format(trade.receiver.pId)
 				msg = '{0}, and {1}, your trade was successfully completed. Check your pokemon lists.'.format(offerorCallout, receiverCallout)
-				trade.makeTrade()
+				if trade.makeTrade():
+					TradeManager.endTrade(player)
 		else:
 			msg = '{0}, you don\'t have any trade offers to ready. Type ``{1}trade`` for information on how to trade.'.format(message.author.mention, commandPrefix)	
 		em = discord.Embed(title=title, description=msg, colour=0xDEADBF)
@@ -1960,7 +1991,7 @@ while True: # Why do I do this to myself
 		em.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
 		await client.send_message(message.channel, embed=em)
 
-	TRADE_LEVEL = 5
+	TRADE_LEVEL = 5 
 	def check_can_trade(callout, player, commandPrefix):
 		em = None
 		if player.level < TRADE_LEVEL:
@@ -2014,8 +2045,10 @@ while True: # Why do I do this to myself
 							await client.send_message(message.channel, embed=em)
 							return
 
-						trade.makeOffer(player, option)
-						msg = trade.getTradeInfo()
+						if trade.makeOffer(player, option):
+							msg = trade.getTradeInfo()
+						else:
+							msg = '{0}, you cannot offer that pokemon. It is either holding a gym, or in day care.'.format(message.author.mention, commandPrefix)
 					else:
 						msg = '{0}, you don\'t have any trade offers active right now. Type ``{1}trade`` for information on how to trade.'.format(message.author.mention, commandPrefix)
 
@@ -2092,6 +2125,103 @@ while True: # Why do I do this to myself
 		em.set_author(name='Professor Oak', icon_url=oakUrl)
 		em.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
 		await client.send_message(message.channel, embed=em)
+
+	async def display_already_in_daycare(message, player, pokemon, commandPrefix):
+		msg = '{0.author.mention}, your  *{1}* is already on day care! Type ``{2}daycare`` see all the pokemon you have on day care, and for how much time they will stay there.'.format(message, pokemon.name, commandPrefix)
+		em = discord.Embed(title='Already there!', description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+		em.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
+
+	async def display_level_daycare(message, player, pokemon, commandPrefix):
+		msg = '{0.author.mention}, your  *{1}* is already at level {2}!'.format(message, pokemon.name, pokemon.pokeStats.level)
+		em = discord.Embed(title='Not possible!', description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+		em.set_footer(text='HINT: Higher level players have a bigger chance of catching wild pokemon.')
+		await client.send_message(message.channel, embed=em)
+
+	async def display_confirm_daycare(message):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		player = playerMap[message.author.id]
+		
+		result, pokemon, level, cost, time = player.confirmAddPokemonToDayCare()
+		if result == 'added':
+			msg = '{0}, thank you for using the day care! Your {1} will reach level {2} in {3}.'.format(message.author.mention, pokemon.name, level, humanfriendly.format_timespan(time))	
+		elif result == 'no_money':
+			msg = '{0}, sorry, but yout don\'t have enough money! You need {1}₽ for that.'.format(message.author.mention, cost)
+		else:
+			message.content = commandPrefix + 'daycare' # This is just disgusting tbh
+			await display_daycare(message)
+			return 
+
+		em = discord.Embed(title='Day Care', description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+		em.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
+
+	async def display_confirm_add_daycare(message, pokemon, level, cost, time, commandPrefix):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		player = playerMap[message.author.id]
+		msg = '{0}, leveling up your {1} up to level {2} will cost you {3}₽, and will take {4}. Type ``{5}confirm`` to confirm.'.format(message.author.mention, pokemon.name, level, cost, humanfriendly.format_timespan(time), commandPrefix)	
+		em = discord.Embed(title='Confirm Day Care', description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+		em.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
+
+	async def display_daycare(message):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		player = playerMap[message.author.id]
+		if player.hasStarted():
+			temp = message.content.split(' ')
+			
+			option = 1
+			if len(temp)>2:
+				option = temp[0]
+				pokemonId = int(temp[1])
+				level = int(temp[2])
+				if level > 0 and level <= 100:
+					em = check_full_daycare(message.author.mention, player, commandPrefix)
+					if em:
+						await client.send_message(message.channel, embed=em)
+						return
+
+					addResult, pokemon, cost, time = player.requestAddPokemonToDayCare(pokemonId, level)
+					if addResult == 'success':
+						await display_confirm_add_daycare(message, pokemon, level, cost, time, commandPrefix)
+						return
+					elif addResult == 'already_in':
+						await display_already_in_daycare(message, player, pokemon, commandPrefix)
+						return
+					elif addResult == 'higher_level':
+						await display_level_daycare(message, player, pokemon, commandPrefix)
+						return
+					elif addResult == 'invalid_id':
+						return
+			
+			pokemonList = player.getDayCarePokemonList()
+
+			string = ''
+			counter = 1
+			if len(pokemonList)>0:
+				for pokemon, time, level in pokemonList:
+					avg = sum(pokemon.pokeStats.iv.values()) // 6
+					string += '**' + str(counter) + ':** ' + pokemon.name + ' - {} until level {}.'.format(humanfriendly.format_timespan(time), level) + '\n'
+					counter += 1
+			else:
+				string = 'No pokemon in day care.'
+
+			msg = '{0.author.mention}, welcome to the Day Care! Here you can leave your pokemon for us to level up! Type ``{1}daycare # level``, where # is your pokemon number, and "level" is the level you want it to be when it comes out of day care. These are the pokemon currently being trained: \n\n'.format(message, commandPrefix)
+			em = discord.Embed(title='{}\'s Day Care'.format(message.author.name), description=msg+string, colour=0xDEADBF)
+			em.set_author(name='Professor Oak', icon_url=oakUrl)
+			em.set_footer(text='HINT: Day Care prices are based on EXP earned, the higher the level, the higher the price.'.format(commandPrefix))
+			await client.send_message(message.channel, embed=em)
 		
 	#'welcome' : send_greeting,
 	commandList = {
@@ -2138,9 +2268,10 @@ while True: # Why do I do this to myself
 		'halloween' : display_candy_shop,
 		'trade' : display_trade_offer,
 		'offer' : display_trade_make_offer,
-		'confirm' : display_confirm_trade,
+		'confirm' : display_confirm_daycare,
 		'cancel' : display_cancel_trade,
 		'ready' : display_ready_trade,
+		'daycare' : display_daycare,
 	}
 
 	admin = 229680411079475201
@@ -2289,7 +2420,7 @@ while True: # Why do I do this to myself
 		em = discord.Embed(title='PDA admin.', description=messageFile, colour=0xDEADBF)
 		try:
 			pass
-			#await client.send_message(channel, embed=em)
+			await client.send_message(channel, embed=em)
 		except Exception as e:
 			print(datetime.datetime.now(), M_TYPE_WARNING, "Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
 
