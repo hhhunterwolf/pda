@@ -2314,12 +2314,13 @@ while True: # Why do I do this to myself
 		cursor = MySQL.getCursor()
 		cursor.execute("""SELECT * FROM item""")
 
-		rows = cursor.fetchall() 
-		for row in rows:
-			item = PokeItem(id=row['id'], itemType=row['type'], name=row['name'], price=row['price'], description=row['description'], value=row['value'])
-			items.append(item)
-			if row['price']>0:
-				shopItems.append(item)
+		rows = cursor.fetchall()
+		if len(shopItems) == 0:
+			for row in rows:
+				item = PokeItem(id=row['id'], itemType=row['type'], name=row['name'], price=row['price'], description=row['description'], value=row['value'])
+				items.append(item)
+				if row['price']>0:
+					shopItems.append(item)
 		print(datetime.datetime.now(), M_TYPE_INFO, '------')
 
 	try:
