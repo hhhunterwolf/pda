@@ -78,6 +78,9 @@ class Trade:
 				
 			if receiverPokemon:
 				self.offeror.addPokemonViaInstance(receiverPokemon)
+
+			return True
+		return False
 				
 	def hasPlayerConfirmed(self, player):
 		return player.pId in self.confirmationMap and self.confirmationMap[player.pId]
