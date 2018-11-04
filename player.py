@@ -339,8 +339,8 @@ __Pokeball Stats:__
 			if rows:
 				if pId <= len(rows):
 					row = rows[pId-1]
-
-		if isDayCare:
+			
+		elif isDayCare:
 			cursor.execute("""
 				SELECT * 
 				FROM player_pokemon
@@ -354,8 +354,7 @@ __Pokeball Stats:__
 			if rows:
 				if pId <= len(rows):
 					row = rows[pId-1]
-					
-
+		
 		else:
 			cursor.execute("""
 				SELECT * 

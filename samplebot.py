@@ -233,7 +233,7 @@ while True: # Why do I do this to myself
 						return
 			elif len(temp)==2:
 				option = int(temp[1])
-				pokemon, inGym = player.getPokemon(option, True)
+				pokemon, inGym = player.getPokemon(pId=option, isFav=True)
 				if not inGym:
 					player.selectPokemon(pokemon.ownId)
 					message.content = ''
@@ -1768,6 +1768,7 @@ while True: # Why do I do this to myself
 								em.set_thumbnail(url=getImageUrl(winner.pId, winner.mega))
 								em.set_footer(text='HINT: Taking too long to level up? Buy an EXP boost at the shop! Type {}shop for more information.'.format(commandPrefix))
 
+								print(player.pId, playerPokemon.ownId, gymId)
 								cursor = MySQL.getCursor()
 								cursor.execute("""
 									UPDATE gym
