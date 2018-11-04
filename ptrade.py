@@ -48,9 +48,13 @@ class Trade:
 		self.receiver = receiver
 
 	def makeOffer(self, player, pokemonId):
-		self.offerMap[player.pId] = pokemonId
-		for key, value in self.confirmationMap.items():
-			self.confirmationMap[key] = False
+		pokemon, inGym = player.getPokemon(pokemonId)
+		if not inGym and not pokemon.inDayCare:
+			self.offerMap[player.pId] = pokemonId
+			for key, value in self.confirmationMap.items():
+				self.confirmationMap[key] = False
+			return True
+		return False
 
 	def confirmOffer(self, player):
 		self.confirmationMap[player.pId] = True
