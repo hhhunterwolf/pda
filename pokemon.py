@@ -90,7 +90,7 @@ class Pokemon:
 
 	def __str__(self):
 		t = self.types[0].identifier
-		ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
+		caughtStrings = ['Starter','Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball', '💸', 'Giveaway', '🎃']
 		try: 
 			t = t + ', ' + self.types[1].identifier
 		except IndexError:
@@ -110,7 +110,7 @@ __Information:__
 **Pokedex:** %d
 **Level:** %s
 **Types:** %s
-**Ball Used:** %s
+**Caught with:** %s
 
 __Stats and IV:__
 
@@ -130,7 +130,7 @@ __Experience:__
 			self.pId, 
 			self.pokeStats.level,
 			t,
-			ballList[self.caughtWith-1] if self.caughtWith > 0 else 'Starter',
+			caughtStrings[self.caughtWith],
 			self.pokeStats.hp,
 			self.pokeStats.current['hp'], 
 			self.pokeStats.iv['hp'],
