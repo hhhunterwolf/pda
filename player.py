@@ -439,6 +439,7 @@ __Pokeball Stats:__
 	def removeMoney(self, money):
 		if(self.money >= money):
 			self.money -= money
+			self.update()
 			return True
 		return False
 
