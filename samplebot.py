@@ -597,7 +597,7 @@ while True: # Why do I do this to myself
 
 			if not spawn:
 				msg = '{0.author.mention}, there are no wild pokemon or trainers willing to fight near you at this time.'.format(message)
-				em = discord.Embed(title='Ops!', description=msg, colour=0xDEADBF)
+				em = discord.Embed(title='Oops!', description=msg, colour=0xDEADBF)
 				em.set_author(name='Tall Grass', icon_url=grassUrl)
 				em.set_footer(text='HINT: No wild pokemon? Challenge a friend to a duel by typing {}duel @nickname!'.format(commandPrefix))
 				await client.send_message(message.channel, embed=em)
@@ -673,7 +673,7 @@ while True: # Why do I do this to myself
 
 							if capture>0:
 								player.items[capture-1] -= 1
-								captureMessage += '\nYou threw a {} into {} and...\n'.format(ballList[capture-1], wildPokemon.name)
+								captureMessage += '\nYou threw a {} on {} and...\n'.format(ballList[capture-1], wildPokemon.name)
 								if wildPokemon.attemptCapture(capture-1, player.getCaptureMod()):
 									captureMessage += '```fix\nGotcha! {} was added to your pokemon list!\n```'.format(wildPokemon.name)
 									wildPokemon.caughtWith = capture
@@ -753,15 +753,15 @@ while True: # Why do I do this to myself
 					em.set_author(name='Professor Oak', icon_url=oakUrl)
 					await client.send_message(message.channel, embed=em)
 			elif spawn.spawned:
-				msg = '{0.author.mention}, you you already fought {1}! You can\'t fight it twice.'.format(message, spawn.name)
-				em = discord.Embed(title='Ops!', description=msg, colour=0xDEADBF)
+				msg = '{0.author.mention}, you already fought {1}! You can\'t fight it twice.'.format(message, spawn.name)
+				em = discord.Embed(title='Oops!', description=msg, colour=0xDEADBF)
 				em.set_author(name='Tall Grass', icon_url=grassUrl)
 				em.set_thumbnail(url=getImageUrl(spawn.pId))
 				em.set_footer(text='HINT: No wild pokemon? Challenge a friend to a duel by typing {}duel @nickname!'.format(commandPrefix))
 				await client.send_message(message.channel, embed=em)
 			else:
 				msg = '{0.author.mention}, there are no wild pokemon or trainers willing to fight near you at this time.'.format(message)
-				em = discord.Embed(title='Ops!', description=msg, colour=0xDEADBF)
+				em = discord.Embed(title='Oops!', description=msg, colour=0xDEADBF)
 				em.set_author(name='Tall Grass', icon_url=grassUrl)
 				em.set_footer(text='HINT: No wild pokemon? Challenge a friend to a duel by typing {}duel @nickname!'.format(commandPrefix))
 				await client.send_message(message.channel, embed=em)
@@ -1656,7 +1656,7 @@ while True: # Why do I do this to myself
 							winner, battleLog, levelUpMessage = battle.execute()
 
 							msg = '{0.author.mention}, your {1} fought a beautiful battle against gym leader {2}\'s {3}! Here are the details: \n\n'.format(message, playerPokemon.name, row['player_name'], gymPokemon.name)
-							em = discord.Embed(title='{} Gym Battle: {} Lv. {} vs {} Lv. {}!'.format(row['type_identifier'], playerPokemon.name, playerPokemon.pokeStats.level, gymPokemon.name, gymPokemon.pokeStats.level), description=msg+battleLog, colour=0xDEADBF)
+							em = discord.Embed(title='{} Gym Battle: {} Lv. {} vs {} Lv. {}!'.format(row['type_identifier'].upper(), playerPokemon.name, playerPokemon.pokeStats.level, gymPokemon.name, gymPokemon.pokeStats.level), description=msg+battleLog, colour=0xDEADBF)
 							em.set_author(name='Professor Oak', icon_url=oakUrl)
 							em.set_thumbnail(url=getImageUrl(gymPokemon.pId, gymPokemon.mega))
 							em.set_footer(text='HINT: You need pokeballs to catch pokemon! Check your supply by typing {}me.'.format(commandPrefix))
@@ -1961,7 +1961,7 @@ while True: # Why do I do this to myself
 		em = None
 		if player.level < TRADE_LEVEL:
 			msg = '{0} is still at level {1}! You need to be at least level {2} to trade.'.format(callout, player.level, TRADE_LEVEL)
-			em = discord.Embed(title='Ops!', description=msg, colour=0xDEADBF)
+			em = discord.Embed(title='Oops!', description=msg, colour=0xDEADBF)
 			em.set_author(name='Professor Oak', icon_url=oakUrl)
 			em.set_footer(text='HINT: Pokemon healing at pokecenter? You can choose other pokemon to fight by typing {0}select #! Use {0}pokemon to see your full list of pokemon.'.format(commandPrefix))
 		return em
