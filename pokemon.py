@@ -9,7 +9,7 @@ from mysql import MySQL
 from datetime import timedelta
 
 class Pokemon:
-	def __init__(self, name, level, wild=1, iv=None, experience=0, pokemonId=0, ownId=0, currentHp=-1, healing=None, caughtWith=0, customHp=1, mega=False):
+	def __init__(self, name, level, wild=1, iv=None, experience=0, pokemonId=0, ownId=0, currentHp=-1, healing=None, caughtWith=0, customHp=1, mega=False, inDayCare=None, dayCareLevel=None):
 		cursor = MySQL.getCursor()
 
 		self.wild = wild
@@ -17,7 +17,9 @@ class Pokemon:
 		self.healing = healing
 		self.caughtWith = caughtWith
 		self.mega = mega
-
+		self.inDayCare = inDayCare
+		self.dayCareLevel = dayCareLevel
+		
 		if pokemonId == 0:
 			cursor.execute("""SELECT * FROM pokemon WHERE pokemon.identifier = %s""", (name.replace('MEGA ', ''),))		
 			row = cursor.fetchone()
@@ -90,7 +92,7 @@ class Pokemon:
 
 	def __str__(self):
 		t = self.types[0].identifier
-		ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
+		caughtStrings = ['Starter','Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball', '💸', 'Giveaway', '🎃']
 		try: 
 			t = t + ', ' + self.types[1].identifier
 		except IndexError:
@@ -110,7 +112,7 @@ __Information:__
 **Pokedex:** %d
 **Level:** %s
 **Types:** %s
-**Ball Used:** %s
+**Caught with:** %s
 
 __Stats and IV:__
 
@@ -130,7 +132,7 @@ __Experience:__
 			self.pId, 
 			self.pokeStats.level,
 			t,
-			ballList[self.caughtWith-1] if self.caughtWith > 0 else 'Starter',
+			caughtStrings[self.caughtWith],
 			self.pokeStats.hp,
 			self.pokeStats.current['hp'], 
 			self.pokeStats.iv['hp'],
@@ -214,6 +216,13 @@ __Experience:__
 		print('Capture chance is: {}/{}'.format(dice, chance))
 		return chance >= dice
 
+	def setLevel(self, level):
+		self.experience = self.calculateExp(level)
+		self.pokeStats.level = level
+		while True:
+			if not self.hasEvolved():
+				break
+
 	def addExperience(self, experience):
 		if self.pokeStats.level == 100 or self.isWild():
 			return [False, False]
@@ -221,7 +230,7 @@ __Experience:__
 		self.experience += experience
 		if self.experience >= self.getNextLevelExp():
 			self.pokeStats.level += 1
-			self.evolve(Pokemon(self.name, self.pokeStats.level, self.wild, self.pokeStats.iv))
+			# self.evolve(Pokemon(self.name, self.pokeStats.level, self.wild, self.pokeStats.iv)) THIS LOOKS WRONG
 			return [True, self.hasEvolved()]
 		else:
 			return [False, False]
