@@ -502,6 +502,18 @@ __Pokeball Stats:__
 		return False
 
 	def reselectPokemon(self):
+		cursor = MySQL.getCursor()
+		cursor.execute("""
+			SELECT * 
+			FROM player_pokemon
+			WHERE player_id = %s
+			AND in_gym = 0
+			AND in_day_care is NULL
+			""", (self.pId,))
+
+		row = cursor.fetchone()
+		self.selectPokemon(row['id'])
+
 	def releasePokemon(self, pId):
 		pokemon, inGym = self.getPokemon(pId)
 
@@ -526,15 +538,7 @@ __Pokeball Stats:__
 		self.update()
 
 		if pId == self.getSelectedPokemon().ownId:
-			cursor.execute("""
-				SELECT * 
-				FROM player_pokemon
-				WHERE player_id = %s
-				AND in_gym = 0
-				""", (self.pId,))
-
-			row = cursor.fetchone()
-			self.selectPokemon(row['id'])
+			self.reselectPokemon()
 		else:
 			cursor.execute("""
 				SELECT * 

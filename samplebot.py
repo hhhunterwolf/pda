@@ -1759,15 +1759,7 @@ while True: # Why do I do this to myself
 									""", (row['holder_id'], row['gym_pokemon_id']))
 								MySQL.commit()
 
-								cursor.execute("""
-									SELECT * 
-									FROM player_pokemon
-									WHERE player_id = %s
-									AND in_gym = 0
-									""", (player.pId,))
-								row = cursor.fetchone()
-
-								player.selectPokemon(row['id'])
+								player.reselectPokemon()
 
 								await client.send_message(message.channel, embed=em)
 				else:
