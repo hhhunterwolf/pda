@@ -11,7 +11,7 @@ from datetime import timedelta
 
 class Player:
 	START_MONEY = 3000
-	HALLOWEEN = True # This should not be here...
+	HALLOWEEN = False # This should not be here...
 	EXP_MOD = 3.5
 	DAY_CARE_PRICE_MOD = 1.25
 	DAY_CARE_TIME_MOD = 1.25 * 1000
