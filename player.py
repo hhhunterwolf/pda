@@ -284,7 +284,7 @@ __Pokeball Stats:__
 		cost, time = self.getDayCareCost(pokemon=pokemon, level=level)
 		delta = datetime.datetime.now().timestamp() - timeAdded.timestamp()
 		isDone = delta >= time
-		remaining = time + timeAdded.timestamp() - datetime.datetime.now().timestamp()
+		remaining = round(time + timeAdded.timestamp() - datetime.datetime.now().timestamp())
 		if isDone:
 			pokemon.setLevel(level)
 			self.commitPokemonToDB(pokemon)
