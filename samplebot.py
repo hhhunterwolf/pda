@@ -485,9 +485,9 @@ while True: # Why do I do this to myself
 
 		return row['id'], row['identifier'].upper()
 
-	GHOST_SPAWN_CHANCE = 230
+	GHOST_SPAWN_CHANCE = 255
 	def get_random_pokemon_spawn():
-		rates = [[3,8], [15,45], [46,255]]
+		rates = [[3,8], [15,85], [86,255]]
 		rateList = []
 		for i in range(0,len(rates)):
 			rate = int(rates[i][1]**1.15)
@@ -2266,7 +2266,7 @@ while True: # Why do I do this to myself
 		'ping' : ping,
 		'mega' : display_mega,
 		'rank' : display_rank,
-		'halloween' : display_candy_shop,
+		# 'halloween' : display_candy_shop,
 		'trade' : display_trade_offer,
 		'offer' : display_trade_make_offer,
 		'confirm' : display_confirm_daycare,
