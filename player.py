@@ -237,7 +237,9 @@ __Pokeball Stats:__
 		pokemonList = []
 		if rows:
 			for row in rows:
-				pokemonList.append([Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], mega=row['is_mega']==1), row['selected'], row['in_gym']])
+				pokemon = Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], mega=row['is_mega']==1, inDayCare=row['in_day_care'], dayCareLevel=row['day_care_level'])
+				self.removeFromDayCare(pokemon)
+				pokemonList.append([pokemon, row['selected'], row['in_gym']])
 
 		cursor.execute("""
 			SELECT COUNT(*) 
@@ -298,6 +300,9 @@ __Pokeball Stats:__
 				""", (self.pId, pokemon.ownId))
 			MySQL.commit()
 
+			pokemon.inDayCare = None
+			pokemon.dayCareLevel = None
+
 			return True, remaining
 
 		return False, remaining
@@ -318,7 +323,9 @@ __Pokeball Stats:__
 		pokemonList = []
 		if rows:
 			for row in rows:
-				pokemonList.append([Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], mega=row['is_mega']==1), row['selected'], row['in_gym']])
+				pokemon = Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], mega=row['is_mega']==1, inDayCare=row['in_day_care'], dayCareLevel=row['day_care_level'])
+				self.removeFromDayCare(pokemon)
+				pokemonList.append([pokemon, row['selected'], row['in_gym']])
 
 		return pokemonList
 

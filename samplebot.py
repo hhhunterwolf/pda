@@ -128,6 +128,14 @@ while True: # Why do I do this to myself
 		em.set_footer(text='HINT: Use {}start # to select a starter pokemon.'.format(commandPrefix))
 		await client.send_message(message.channel, embed=em)
 
+	async def display_in_daycare(message, player, pokemon, commandPrefix):
+		msg = '{0.author.mention}, your  *{1}* is on day care! Type ``{2}daycare`` to see all the pokemon you have on day care, and for how much time they will stay there.'.format(message, pokemon.name, commandPrefix)
+		em = discord.Embed(title='Day Care', description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+		em.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
+
 	async def display_pokemon_info(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
@@ -144,6 +152,9 @@ while True: # Why do I do this to myself
 				pokemon, inGym = player.getPokemon(option)
 			else:
 				pokemon = player.getSelectedPokemon()
+
+			if pokemon.inDayCare:
+				return await display_in_daycare(message, player, pokemon, commandPrefix)
 			
 			em = discord.Embed(title='{}\'s Pokemon'.format(message.author.name), description=str(pokemon), colour=0xDEADBF)
 			em.set_author(name='Professor Oak', icon_url=oakUrl)
@@ -250,7 +261,10 @@ while True: # Why do I do this to myself
 			if len(pokemonList)>0:
 				for pokemon, selected, inGym in pokemonList:
 					avg = sum(pokemon.pokeStats.iv.values()) // 6
-					string += ('**' if selected else '') + str(counter) + ': ' + pokemon.name + ' ID. {} Lv. {} IV. {}'.format(pokemon.ownId, pokemon.pokeStats.level, avg) + (' (selected)**' if selected else '') + (' *(holding gym {})*'.format(inGym) if inGym > 0 else '') + '\n'
+					if pokemon.inDayCare:
+						string += str(counter) + ': ' + pokemon.name + ' - In Day Care.\n'
+					else:
+						string += ('**' if selected else '') + str(counter) + ': ' + pokemon.name + ' ID. {} Lv. {} IV. {}'.format(pokemon.ownId, pokemon.pokeStats.level, avg) + (' Selected**' if selected else '') + (' - Holding Gym {}'.format(inGym) if inGym > 0 else '') + '\n'
 					counter += 1
 			else:
 				string = 'No favorite pokemon.'
@@ -286,7 +300,10 @@ while True: # Why do I do this to myself
 				counter = ((curPage-1) * Player.pokemonPerPage) + 1
 				for pokemon, selected, inGym in pokemonList:
 					avg = sum(pokemon.pokeStats.iv.values()) // 6
-					string += ('**' if selected else '') + str(counter) + ': ' + pokemon.name + ' Lv. {} IV. {}'.format(pokemon.pokeStats.level, avg) + (' (selected)**' if selected else '') + (' *(holding gym {})*'.format(inGym) if inGym > 0 else '') + '\n'
+					if pokemon.inDayCare:
+						string += str(counter) + ': ' + pokemon.name + ' - In Day Care.\n'
+					else:
+						string += ('**' if selected else '') + str(counter) + ': ' + pokemon.name + ' Lv. {} IV. {}'.format(pokemon.pokeStats.level, avg) + (' - Selected**' if selected else '') + (' - Holding Gym {}'.format(inGym) if inGym > 0 else '') + '\n'
 					counter += 1
 			else:
 				string = 'Invalid page.'
@@ -2128,7 +2145,7 @@ while True: # Why do I do this to myself
 		await client.send_message(message.channel, embed=em)
 
 	async def display_already_in_daycare(message, player, pokemon, commandPrefix):
-		msg = '{0.author.mention}, your  *{1}* is already on day care! Type ``{2}daycare`` see all the pokemon you have on day care, and for how much time they will stay there.'.format(message, pokemon.name, commandPrefix)
+		msg = '{0.author.mention}, your  *{1}* is already on day care! Type ``{2}daycare`` to see all the pokemon you have on day care, and for how much time they will stay there.'.format(message, pokemon.name, commandPrefix)
 		em = discord.Embed(title='Already there!', description=msg, colour=0xDEADBF)
 		em.set_author(name='Professor Oak', icon_url=oakUrl)
 		em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
