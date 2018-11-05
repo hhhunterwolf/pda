@@ -721,11 +721,9 @@ __Pokeball Stats:__
 
 		deltaExp = int(pokemon.calculateExp(level) - pokemon.experience)
 
-		# Use raw EXP for cost
-		cost = (500 + int(math.log10(1 + deltaExp//200))) * deltaExp//750
-		
-		# Use log of EXP to stabilize the time, space it out and shit, the expression is right there
-		time = 5000 + int(math.log10(1 + deltaExp//200)) * deltaExp//20
+		cost = (500 + int(math.log10(1 + deltaExp)*level**2 + (deltaExp//100) ** 1.3))
+	
+		time = (500 + int(math.log10(1 + deltaExp)*level**2 + (deltaExp//100) ** 1.25))
 		
 		return cost, time
 
