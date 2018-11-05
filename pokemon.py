@@ -245,7 +245,7 @@ __Experience:__
 			healed = deltaTime <= healTime
 			if healed == False:
 				self.pokeStats.hp = self.pokeStats.current['hp']
-			return healed, healTime - deltaTime
+			return healed, round(healTime - deltaTime)
 				
 		return None, 0
 
