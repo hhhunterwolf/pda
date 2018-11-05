@@ -11,7 +11,7 @@ from datetime import timedelta
 
 class Player:
 	START_MONEY = 3000
-	HALLOWEEN = True # This should not be here...
+	HALLOWEEN = False # This should not be here...
 	EXP_MOD = 3.5
 	DAY_CARE_PRICE_MOD = 1.25
 	DAY_CARE_TIME_MOD = 1.25 * 1000
@@ -237,7 +237,9 @@ __Pokeball Stats:__
 		pokemonList = []
 		if rows:
 			for row in rows:
-				pokemonList.append([Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], mega=row['is_mega']==1), row['selected'], row['in_gym']])
+				pokemon = Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], mega=row['is_mega']==1, inDayCare=row['in_day_care'], dayCareLevel=row['day_care_level'])
+				self.removeFromDayCare(pokemon)
+				pokemonList.append([pokemon, row['selected'], row['in_gym']])
 
 		cursor.execute("""
 			SELECT COUNT(*) 
@@ -284,7 +286,7 @@ __Pokeball Stats:__
 		cost, time = self.getDayCareCost(pokemon=pokemon, level=level)
 		delta = datetime.datetime.now().timestamp() - timeAdded.timestamp()
 		isDone = delta >= time
-		remaining = time + timeAdded.timestamp() - datetime.datetime.now().timestamp()
+		remaining = round(time + timeAdded.timestamp() - datetime.datetime.now().timestamp())
 		if isDone:
 			pokemon.setLevel(level)
 			self.commitPokemonToDB(pokemon)
@@ -297,6 +299,9 @@ __Pokeball Stats:__
 				AND id = %s
 				""", (self.pId, pokemon.ownId))
 			MySQL.commit()
+
+			pokemon.inDayCare = None
+			pokemon.dayCareLevel = None
 
 			return True, remaining
 
@@ -318,7 +323,9 @@ __Pokeball Stats:__
 		pokemonList = []
 		if rows:
 			for row in rows:
-				pokemonList.append([Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], mega=row['is_mega']==1), row['selected'], row['in_gym']])
+				pokemon = Pokemon(name='', level=row['level'], wild=1.5, iv={'hp' : row['iv_hp'], 'attack' : row['iv_attack'], 'defense' : row['iv_defense'], 'special-attack' : row['iv_special_attack'], 'special-defense' : row['iv_special_defense'], 'speed' : row['iv_speed']}, experience=row['experience'], pokemonId=row['pokemon_id'], ownId=row['id'], currentHp=row['current_hp'], healing=row['healing'], mega=row['is_mega']==1, inDayCare=row['in_day_care'], dayCareLevel=row['day_care_level'])
+				self.removeFromDayCare(pokemon)
+				pokemonList.append([pokemon, row['selected'], row['in_gym']])
 
 		return pokemonList
 
@@ -721,11 +728,9 @@ __Pokeball Stats:__
 
 		deltaExp = int(pokemon.calculateExp(level) - pokemon.experience)
 
-		# Use raw EXP for cost
-		cost = (500 + int(math.log10(1 + deltaExp//200))) * deltaExp//750
-		
-		# Use log of EXP to stabilize the time, space it out and shit, the expression is right there
-		time = 5000 + int(math.log10(1 + deltaExp//200)) * deltaExp//20
+		cost = (500 + int(math.log10(1 + deltaExp)*level**2 + (deltaExp//100) ** 1.3))
+	
+		time = (500 + int(math.log10(1 + deltaExp)*level**2 + (deltaExp//100) ** 1.25))
 		
 		return cost, time
 
