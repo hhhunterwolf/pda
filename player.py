@@ -307,7 +307,7 @@ __Pokeball Stats:__
 
 		return False, remaining
 
-	def getFavoritePokemonList(self):
+	def getFavoritePokemonList(self, page):
 		pokemonPerPage = Player.pokemonPerPage
 
 		cursor = MySQL.getCursor()
@@ -317,7 +317,9 @@ __Pokeball Stats:__
 			WHERE player_id = %s
 			AND favorite IS NOT NULL
 			ORDER BY favorite ASC
-			""", (self.pId,))
+			LIMIT %s
+			OFFSET %s
+			""", (self.pId, pokemonPerPage, (pokemonPerPage*(page-1))))
 		rows = cursor.fetchall()
 		
 		pokemonList = []
@@ -327,7 +329,18 @@ __Pokeball Stats:__
 				self.removeFromDayCare(pokemon)
 				pokemonList.append([pokemon, row['selected'], row['in_gym']])
 
-		return pokemonList
+		cursor.execute("""
+			SELECT COUNT(*) 
+			FROM player_pokemon
+			WHERE player_id = %s
+			""", (self.pId,))
+		row = cursor.fetchone()
+
+		pages = 1
+		if row:
+			pages = 1 + ((row['COUNT(*)']-1) // (pokemonPerPage))
+		
+		return pokemonList, pages
 
 	# isFav and isDayCare cannot both be true. This sucks, yes, but XGH.
 	def getPokemon(self, pId, isFav=False, returnSelected=True, isDayCare=False):
@@ -642,10 +655,6 @@ __Pokeball Stats:__
 			AND player_id = %s
 			""", (self.pId,))
 		row = cursor.fetchone()
-
-		favs = row['favs']
-		if favs == 20:
-			return  'full', None, 0
 
 		cursor.execute("""
 			UPDATE player_pokemon 
