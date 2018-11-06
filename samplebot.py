@@ -192,13 +192,6 @@ while True: # Why do I do this to myself
 		em.set_thumbnail(url=message.author.avatar_url)
 		await client.send_message(message.channel, embed=em)
 
-	async def display_fail_full_favorite(message, commandPrefix):
-		msg = '{0.author.mention}, you already have the maximum amount of 20 favorites. Please remove a favorite before adding more.'.format(message)
-		em = discord.Embed(title='Could not add favorite...', description=msg, colour=0xDEADBF)
-		em.set_author(name='Professor Oak', icon_url=oakUrl)
-		em.set_thumbnail(url=message.author.avatar_url)
-		await client.send_message(message.channel, embed=em)
-
 	MAX_DAY_CARE = 10
 	def check_full_daycare(callout, player, commandPrefix):
 		em = None
@@ -213,6 +206,7 @@ while True: # Why do I do this to myself
 	async def display_favorite_pokemons(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
+		curPage = 1	
 		player = playerMap[message.author.id]
 		if player.hasStarted():
 			temp = message.content.split(' ')
@@ -229,9 +223,6 @@ while True: # Why do I do this to myself
 					elif addResult == 'duplicate':
 						await display_fail_add_favorite(message, pokemon, favId, commandPrefix)
 						return
-					elif addResult == 'full':
-						await display_fail_full_favorite(message, commandPrefix)
-						return
 					elif addResult == 'error':
 						return
 				elif option.lower() == 'remove' or option.lower() == 'rem':
@@ -242,6 +233,11 @@ while True: # Why do I do this to myself
 					else:
 						await display_fail_rem_favorite(message, param, commandPrefix)
 						return
+				elif option.lower() == 'page':
+					pokemonList = None
+					curPage = 1
+					pages = 1
+					curPage = int(temp[2])
 			elif len(temp)==2:
 				option = int(temp[1])
 				pokemon, inGym = player.getPokemon(pId=option, isFav=True)
@@ -253,12 +249,12 @@ while True: # Why do I do this to myself
 				else:
 					await display_pokemon_in_gym(message)
 					return
-				
-			pokemonList = player.getFavoritePokemonList()
+			
+			pokemonList, pages = player.getFavoritePokemonList(curPage)
 
 			string = ''
-			counter = 1
 			if len(pokemonList)>0:
+				counter = ((curPage-1) * Player.pokemonPerPage) + 1
 				for pokemon, selected, inGym in pokemonList:
 					avg = sum(pokemon.pokeStats.iv.values()) // 6
 					if pokemon.inDayCare:
@@ -269,10 +265,10 @@ while True: # Why do I do this to myself
 			else:
 				string = 'No favorite pokemon.'
 
-			msg = '{0.author.mention}, this is your favorite pokemon list. You can quickly select your favorite pokemon by typing ``{1}favorite #``, where # is one of the favorite pokemon listed below, if any. To add pokemon to your favorites, type ``{1}favorite add #``, where # is the pokemon id found in ``{1}pokemon``. Finally, to remove a pokemon from your favorites, type ``{1}favorite rem #``.\n\n'.format(message, commandPrefix)
+			msg = '{0.author.mention}, this is your favorite pokemon list. You can quickly select your favorite pokemon by typing ``{1}favorite #``, where # is one of the favorite pokemon listed below, if any. To add pokemon to your favorites, type ``{1}favorite add #``, where # is the pokemon id found in ``{1}pokemon``. Finally, to remove a pokemon from your favorites, type ``{1}favorite rem #``.\n\nTo browse through pages, type ``{1}favorite page #``.\n\n'.format(message, commandPrefix)
 			em = discord.Embed(title='{}\'s Favorite Pokemon List'.format(message.author.name), description=msg+string, colour=0xDEADBF)
 			em.set_author(name='Professor Oak', icon_url=oakUrl)
-			em.set_footer(text='HINT: Favoriting pokemon is an easy way of organizing them.'.format(commandPrefix))
+			em.set_footer(text='HINT: Page {}/{}. Use {}favorite page # to select a different page.'.format(curPage, pages, commandPrefix))
 			await client.send_message(message.channel, embed=em)
 
 	async def display_pokemons(message):
@@ -283,7 +279,7 @@ while True: # Why do I do this to myself
 			temp = message.content.split(' ')
 			
 			option = None
-			if len(temp)>1:
+			if len(temp)==1:
 				option = int(temp[1])
 
 			pokemonList = None
