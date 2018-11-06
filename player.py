@@ -333,6 +333,7 @@ __Pokeball Stats:__
 			SELECT COUNT(*) 
 			FROM player_pokemon
 			WHERE player_id = %s
+			AND favorite IS NOT NULL
 			""", (self.pId,))
 		row = cursor.fetchone()
 
