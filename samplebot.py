@@ -279,7 +279,7 @@ while True: # Why do I do this to myself
 			temp = message.content.split(' ')
 			
 			option = None
-			if len(temp)==1:
+			if len(temp)>1:
 				option = int(temp[1])
 
 			pokemonList = None
@@ -2434,7 +2434,7 @@ while True: # Why do I do this to myself
 		em = discord.Embed(title='PDA admin.', description=messageFile, colour=0xDEADBF)
 		try:
 			pass
-			#await client.send_message(channel, embed=em)
+			await client.send_message(channel, embed=em)
 		except Exception as e:
 			print(datetime.datetime.now(), M_TYPE_WARNING, "Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
 
