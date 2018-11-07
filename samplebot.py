@@ -242,6 +242,10 @@ while True: # Why do I do this to myself
 				option = int(temp[1])
 				pokemon, inGym = player.getPokemon(pId=option, isFav=True)
 				if not inGym:
+					em = check_player_pokemon_daycare(message.author.mention, player, pokemon, commandPrefix)
+					if em:
+						return await client.send_message(message.channel, embed=em)
+
 					player.selectPokemon(pokemon.ownId)
 					message.content = ''
 					await display_pokemon_info(message)
@@ -362,7 +366,7 @@ while True: # Why do I do this to myself
 		em = None
 		inDayCare, remaining = player.removeFromDayCare(pokemon)
 		if not inDayCare:
-			msg = '{0}, your pokemon is currently on day care. It will stay there for {1}, until it reaches level {2}.\nPlease select another pokemon.'.format(callout, humanfriendly.format_timespan(remaining), pokemon.dayCareLevel, commandPrefix)
+			msg = '{0}, your pokemon is currently on day care. It will stay there for {1}, until it reaches level {2}.\n\nPlease select another pokemon.'.format(callout, humanfriendly.format_timespan(remaining), pokemon.dayCareLevel, commandPrefix)
 			em = discord.Embed(title='Your {} is on day care!'.format(pokemon.name), description=msg, colour=0xDEADBF)
 			em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
 			em.set_author(name='Professor Oak', icon_url=oakUrl)
