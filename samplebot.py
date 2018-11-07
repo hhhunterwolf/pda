@@ -366,7 +366,7 @@ while True: # Why do I do this to myself
 		em = None
 		inDayCare, remaining = player.removeFromDayCare(pokemon)
 		if not inDayCare:
-			msg = '{0}, your pokemon is currently on day care. It will stay there for {1}, until it reaches level {2}.\nPlease select another pokemon.'.format(callout, humanfriendly.format_timespan(remaining), pokemon.dayCareLevel, commandPrefix)
+			msg = '{0}, your pokemon is currently on day care. It will stay there for {1}, until it reaches level {2}.\n\nPlease select another pokemon.'.format(callout, humanfriendly.format_timespan(remaining), pokemon.dayCareLevel, commandPrefix)
 			em = discord.Embed(title='Your {} is on day care!'.format(pokemon.name), description=msg, colour=0xDEADBF)
 			em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
 			em.set_author(name='Professor Oak', icon_url=oakUrl)
