@@ -333,6 +333,7 @@ __Pokeball Stats:__
 			SELECT COUNT(*) 
 			FROM player_pokemon
 			WHERE player_id = %s
+			AND favorite IS NOT NULL
 			""", (self.pId,))
 		row = cursor.fetchone()
 
@@ -664,6 +665,7 @@ __Pokeball Stats:__
 			""", (datetime.datetime.now(), self.pId, pId))
 		MySQL.commit()
 
+		favs = row['favs']
 		pokemon, inGym = self.getPokemon(pId, returnSelected=False)
 		if pokemon:
 			return 'success', pokemon, favs+1
