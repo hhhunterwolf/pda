@@ -242,6 +242,10 @@ while True: # Why do I do this to myself
 				option = int(temp[1])
 				pokemon, inGym = player.getPokemon(pId=option, isFav=True)
 				if not inGym:
+					em = check_player_pokemon_daycare(message.author.mention, player, pokemon, commandPrefix)
+					if em:
+						return await client.send_message(message.channel, embed=em)
+
 					player.selectPokemon(pokemon.ownId)
 					message.content = ''
 					await display_pokemon_info(message)
