@@ -2318,7 +2318,7 @@ while True: # Why do I do this to myself
 		await client.wait_until_ready()
 
 		# we do not want the bot to reply to itself
-		if message.author == client.user:
+		if message.author == client.user or message.channel.type == 'private':
 			return 
 
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
