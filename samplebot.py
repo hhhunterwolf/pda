@@ -2450,6 +2450,7 @@ while True: # Why do I do this to myself
 		print(datetime.datetime.now(), M_TYPE_INFO, '------')
 
 		createFirstGymPokemon()
+		Pokemon.setNumberOfPokemon()
 
 		for server in client.servers:
 			evaluate_server(server)
