@@ -3,6 +3,7 @@ import datetime
 import humanfriendly
 import math
 import string
+import random
 
 from pokemon import Pokemon
 from mysql import MySQL
@@ -496,6 +497,8 @@ __Pokeball Stats:__
 		if selected:
 			self.selectPokemon(pokemon.ownId)
 
+		return pokemon
+
 	def getNextLevelExp(self):
 		return self.calculateExp(self.level + 1)
 
@@ -786,4 +789,65 @@ __Pokeball Stats:__
 				return 'no_money', pokemon, level, cost, time
 		return None, None, 0, 0, 0
 
+	REWARD_STREAK_TIME = 12*60*60
+	def giveUpvoteReward(self):
+		cursor = MySQL.getCursor()
+		cursor.execute("""
+			SELECT * 
+			FROM player JOIN botlist_upvotes ON (player.id = botlist_upvotes.player_id)
+			WHERE id = %s
+		""", (self.pId,))
+
+		row = cursor.fetchone()
+		reward = None
+		if row:
+			lastReward = row['last_reward'] if row['last_reward'] else datetime.datetime.now() - datetime.timedelta(days=365)
+			reward = Reward()
+			deltaTime = datetime.datetime.now().timestamp() - lastReward.timestamp()
+			reward.deltaTime = int(Player.REWARD_STREAK_TIME - deltaTime)
+			if deltaTime >= Player.REWARD_STREAK_TIME:
+				deltaTime = datetime.datetime.now().timestamp() - row['last_vote'].timestamp()
+				if deltaTime > Player.REWARD_STREAK_TIME:
+					return None
+
+				cursor.execute("""
+					UPDATE botlist_upvotes
+					SET last_reward = CURRENT_TIMESTAMP
+					WHERE player_id = %s
+					""", (self.pId,))
+				MySQL.commit()
+				
+				reward.rewarded = True
+				reward.streak = row['streak']
+				reward.money = int(1000 + 500*(math.log10(self.level*10)))
+				self.addMoney(reward.money)
+				if reward.streak%2 == 0:
+					reward.expBoost = True
+					self.addItem(10, 1)
+				if reward.streak%3 == 0:
+					reward.ultraBalls = True
+					self.addItem(2, 5)
+				if reward.streak%7 == 0:
+					pokemonId = random.randint(1,Pokemon.NUMBER_OF_POKEMON+1)
+					reward.pokemon = self.addPokemon(pokemonId=pokemonId, level=random.randint(5,100))
+				if reward.streak%11 == 0:
+					reward.maxPotion = True
+					self.addItem(7, 5)
+				if reward.streak%23 == 0:
+					reward.masterBall = True
+					self.addItem(3)
+
+		return reward
+
+class Reward:
+	def __init__(self):
+		self.deltaTime = 0
+		self.streak = 0
+		self.money = 0
+		self.expBoost = False
+		self.ultraBalls = False
+		self.pokemon = None
+		self.maxPotion = False
+		self.masterBall = False
+		self.rewarded = False
 
