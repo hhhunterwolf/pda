@@ -9,6 +9,14 @@ from mysql import MySQL
 from datetime import timedelta
 
 class Pokemon:
+	NUMBER_OF_POKEMON = 0
+
+	def setNumberOfPokemon():
+		cursor = MySQL.getCursor()
+		cursor.execute("""SELECT COUNT(*) AS count FROM pokemon""")		
+		row = cursor.fetchone()
+		Pokemon.NUMBER_OF_POKEMON = row['count']
+
 	def __init__(self, name, level, wild=1, iv=None, experience=0, pokemonId=0, ownId=0, currentHp=-1, healing=None, caughtWith=0, customHp=1, mega=False, inDayCare=None, dayCareLevel=None):
 		cursor = MySQL.getCursor()
 
