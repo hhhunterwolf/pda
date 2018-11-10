@@ -496,6 +496,8 @@ __Pokeball Stats:__
 		if selected:
 			self.selectPokemon(pokemon.ownId)
 
+		return pokemon
+
 	def getNextLevelExp(self):
 		return self.calculateExp(self.level + 1)
 
