@@ -819,7 +819,7 @@ __Pokeball Stats:__
 				
 				reward.rewarded = True
 				reward.streak = row['streak']
-				reward.money = int(1000 + 500*(math.log10(self.level*10)))
+				reward.money = int(1000 + (math.log(self.level*500)) * (self.level*10) ** 1.35)
 				self.addMoney(reward.money)
 				if reward.streak%2 == 0:
 					reward.expBoost = True
