@@ -449,6 +449,8 @@ while True: # Why do I do this to myself
 			'**{0}halloween:** Displays the Halloween Event Poke Mart. \n' \
 			'**{0}trade:** Shows information on how to trade pokemon. \n' \
 			'**{0}daycare:** Displays information on the day care. \n' \
+			'**{0}daycare:** Displays information on the day care. \n' \
+                        '**{0}reward or {0}vote:** Displays information on the day care. \n' \
 			'**{0}donate:** Displays information on donations. \n\n' \
 			'__Admin Commands:__ \n' \
 			'**{0}prefix:** Changes the prefix used to trigger bot commands (default is p). \n' \
@@ -477,7 +479,7 @@ while True: # Why do I do this to myself
 
 	def get_random_boss_pokemon():
 		cursor = MySQL.getCursor()
-		if Player.HALLOWEEN and random.randint(0, 255) >= GHOST_SPAWN_CHANCE:
+		if not Player.HALLOWEEN:
 			cursor.execute("""
 				SELECT * 
 				FROM pokemon
@@ -616,7 +618,7 @@ while True: # Why do I do this to myself
 			if leveledUp:
 				await client.send_message(message.channel, embed=lem)
 
-	bossChance = 4
+	bossChance = 16
 	afkTime = 150
 	valueMod = 8.75*0.45
 	ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
@@ -2308,7 +2310,7 @@ while True: # Why do I do this to myself
 				await client.send_message(message.channel, embed=em)
 		else:
 			# NEVER UPVOTED
-			msg = '{0.author.mention}, thank you for playing PDA! You can get awesome prizes by helping PDA grow! Just go to our page on the discord link, upvote PDA, and collect your reward by typing ``{1}reward``! It\'s that easy!'.format(message, commandPrefix)
+			msg = '{0.author.mention}, thank you for playing PDA! You can get awesome prizes by helping PDA grow! Just go to our page on the [discord bot list](https://discordbots.org/bot/463744693910372362/vote), upvote PDA, and collect your reward by typing ``{1}reward``! It\'s that easy!'.format(message, commandPrefix)
 			em = discord.Embed(title='PDA Rewards'.format(message.author.name), description=msg, colour=0xDEADBF)
 			em.set_author(name='Professor Oak', icon_url=oakUrl)
 			em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.'.format(commandPrefix))
@@ -2364,6 +2366,8 @@ while True: # Why do I do this to myself
 		'ready' : display_ready_trade,
 		'daycare' : display_daycare,
 		'reward' : display_reward,
+		'reward' : display_reward,
+		'vote' : display_reward,
 	}
 
 	admin = 229680411079475201
@@ -2512,7 +2516,7 @@ while True: # Why do I do this to myself
 		em = discord.Embed(title='PDA admin.', description=messageFile, colour=0xDEADBF)
 		try:
 			pass
-			await client.send_message(channel, embed=em)
+			#await client.send_message(channel, embed=em)
 		except Exception as e:
 			print(datetime.datetime.now(), M_TYPE_WARNING, "Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
 
