@@ -806,10 +806,6 @@ __Pokeball Stats:__
 			deltaTime = datetime.datetime.now().timestamp() - lastReward.timestamp()
 			reward.deltaTime = int(Player.REWARD_STREAK_TIME - deltaTime)
 			if deltaTime >= Player.REWARD_STREAK_TIME:
-				deltaTime = datetime.datetime.now().timestamp() - row['last_vote'].timestamp()
-				if deltaTime > Player.REWARD_STREAK_TIME:
-					return None
-
 				cursor.execute("""
 					UPDATE botlist_upvotes
 					SET last_reward = CURRENT_TIMESTAMP
