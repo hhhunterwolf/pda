@@ -801,20 +801,17 @@ __Pokeball Stats:__
 		row = cursor.fetchone()
 		reward = None
 		if row:
-			lastReward = row['last_reward'] if row['last_reward'] else datetime.datetime.now() - datetime.timedelta(days=365)
 			reward = Reward()
-			deltaTime = datetime.datetime.now().timestamp() - lastReward.timestamp()
-			reward.deltaTime = int(Player.REWARD_STREAK_TIME - deltaTime)
-			if deltaTime >= Player.REWARD_STREAK_TIME:
+			lastReward = row['last_reward']==0
+			reward.streak = row['streak']
+			if lastReward:
 				cursor.execute("""
 					UPDATE botlist_upvotes
-					SET last_reward = CURRENT_TIMESTAMP
+					SET last_reward = 1
 					WHERE player_id = %s
 					""", (self.pId,))
 				MySQL.commit()
-				
-				reward.rewarded = True
-				reward.streak = row['streak']
+
 				reward.money = int(1000 + (math.log(self.level*500)) * (self.level*10) ** 1.35)
 				self.addMoney(reward.money)
 				if reward.streak%2 == 0:
@@ -832,6 +829,8 @@ __Pokeball Stats:__
 				if reward.streak%23 == 0:
 					reward.masterBall = True
 					self.addItem(3)
+			else:
+				reward.alreadyCollected = True
 
 		return reward
 
@@ -846,4 +845,5 @@ class Reward:
 		self.maxPotion = False
 		self.masterBall = False
 		self.rewarded = False
+		self.alreadyCollected = False
 

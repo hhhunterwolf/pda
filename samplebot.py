@@ -2255,59 +2255,60 @@ while True: # Why do I do this to myself
 		
 		reward = player.giveUpvoteReward()
 		if reward:
-			if reward.rewarded:
-				ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(math.floor(n/10)%10!=1)*(n%10<4)*n%10::4])
-				streakOrdinal = ordinal(reward.streak)
+			ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(math.floor(n/10)%10!=1)*(n%10<4)*n%10::4])
+			streakOrdinal = ordinal(reward.streak)
 
-				msg = '{0.author.mention}, thank you for upvoting PDA! Upvote and collect your rewards every 12 hours to get better rewards! Don\'t forget to always collect your reward with ``{1}reward``, so you never miss a prize!\n\nHere are your prizes:'.format(message, commandPrefix)
+			if reward.alreadyCollected:
+				msg = '{0.author.mention}, you already collected your {2} reward. Please go to [Discord Bot List](https://discordbots.org/bot/463744693910372362) and vote to get a new reward.'.format(message, reward.money, streakOrdinal)
 				em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
 				em.set_author(name='Professor Oak', icon_url=oakUrl)
 				em.set_footer(text='HINT: Higher level players get better rewards.'.format(commandPrefix))
-				await client.send_message(message.channel, embed=em)
+				return await client.send_message(message.channel, embed=em)
 
-				msg = '{0.author.mention}, you got {1}₽ for your {2} consecutive reward collection! Vote everyday so you don\'t lose your streak!'.format(message, reward.money, streakOrdinal)
+			msg = '{0.author.mention}, thank you for upvoting PDA! Upvote and collect your rewards every 12 hours to get better rewards! Don\'t forget to always collect your reward with ``{1}reward``, so you never miss a prize!\n\nHere are your prizes:'.format(message, commandPrefix)
+			em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
+			em.set_author(name='Professor Oak', icon_url=oakUrl)
+			em.set_footer(text='HINT: You need to vote every 24 hours not to lose your streak.'.format(commandPrefix))
+			await client.send_message(message.channel, embed=em)
+
+			msg = '{0.author.mention}, you got {1}₽ for your {2} consecutive reward collection! Vote everyday so you don\'t lose your streak!'.format(message, reward.money, streakOrdinal)
+			em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
+			em.set_footer(text='HINT: You need to vote every 24 hours not to lose your streak.')
+			em.set_author(name='Professor Oak', icon_url=oakUrl)
+			await client.send_message(message.channel, embed=em)
+
+			if reward.expBoost:
+				msg = '{0.author.mention}, you also got a Big EXP Boost for your {1} consecutive reward collection! Vote everyday so you don\'t lose your streak!'.format(message, streakOrdinal)
 				em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
 				em.set_author(name='Professor Oak', icon_url=oakUrl)
+				em.set_footer(text='HINT: You need to vote every 24 hours not to lose your streak.')
 				await client.send_message(message.channel, embed=em)
-
-				if reward.expBoost:
-					msg = '{0.author.mention}, you also got a Big EXP Boost for your {1} consecutive reward collection! Vote everyday so you don\'t lose your streak!'.format(message, streakOrdinal)
-					em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
-					em.set_author(name='Professor Oak', icon_url=oakUrl)
-					em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.'.format(commandPrefix))
-					await client.send_message(message.channel, embed=em)
-				if reward.ultraBalls:
-					msg = '{0.author.mention}, you also got 5 Ultra Balls for your {1} consecutive reward collection! Vote everyday so you don\'t lose your streak!'.format(message, streakOrdinal)
-					em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
-					em.set_author(name='Professor Oak', icon_url=oakUrl)
-					em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.'.format(commandPrefix))
-					await client.send_message(message.channel, embed=em)
-				if reward.pokemon:
-					msg = '{0.author.mention}, you also got a level {1} {2} for your {3} consecutive reward collection! Vote everyday so you don\'t lose your streak! Check your pokemon list!'.format(message, reward.pokemon.pokeStats.level, reward.pokemon.name, streakOrdinal)
-					em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
-					em.set_author(name='Professor Oak', icon_url=oakUrl)
-					em.set_thumbnail(url=getImageUrl(reward.pokemon.pId, reward.pokemon.mega))
-					em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.'.format(commandPrefix))
-					await client.send_message(message.channel, embed=em)
-				if reward.maxPotion:
-					msg = '{0.author.mention}, you also got 5 Max Potions for your {1} consecutive reward collection! Vote everyday so you don\'t lose your streak!'.format(message, streakOrdinal)
-					em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
-					em.set_author(name='Professor Oak', icon_url=oakUrl)
-					em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.'.format(commandPrefix))
-					await client.send_message(message.channel, embed=em)
-				if reward.masterBall:
-					msg = '{0.author.mention}, you also got a Master Ball for your {1} consecutive reward collection! Vote everyday so you don\'t lose your streak!'.format(message, streakOrdinal)
-					em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
-					em.set_author(name='Professor Oak', icon_url=oakUrl)
-					em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.'.format(commandPrefix))
-					await client.send_message(message.channel, embed=em)
-			else:
-				# COOLDOWN
-				msg = '{0.author.mention}, thank you for upvoting PDA! You just collected a reward! Please wait {1} until you collect again.'.format(message, humanfriendly.format_timespan(reward.deltaTime))
+			if reward.ultraBalls:
+				msg = '{0.author.mention}, you also got 5 Ultra Balls for your {1} consecutive reward collection! Vote everyday so you don\'t lose your streak!'.format(message, streakOrdinal)
 				em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
 				em.set_author(name='Professor Oak', icon_url=oakUrl)
-				em.set_footer(text='HINT: Higher level players get better rewards.'.format(commandPrefix))
+				em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.'.format(commandPrefix))
 				await client.send_message(message.channel, embed=em)
+			if reward.pokemon:
+				msg = '{0.author.mention}, you also got a level {1} {2} for your {3} consecutive reward collection! Vote everyday so you don\'t lose your streak! Check your pokemon list!'.format(message, reward.pokemon.pokeStats.level, reward.pokemon.name, streakOrdinal)
+				em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
+				em.set_author(name='Professor Oak', icon_url=oakUrl)
+				em.set_thumbnail(url=getImageUrl(reward.pokemon.pId, reward.pokemon.mega))
+				em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.'.format(commandPrefix))
+				await client.send_message(message.channel, embed=em)
+			if reward.maxPotion:
+				msg = '{0.author.mention}, you also got 5 Max Potions for your {1} consecutive reward collection! Vote everyday so you don\'t lose your streak!'.format(message, streakOrdinal)
+				em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
+				em.set_author(name='Professor Oak', icon_url=oakUrl)
+				em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.'.format(commandPrefix))
+				await client.send_message(message.channel, embed=em)
+			if reward.masterBall:
+				msg = '{0.author.mention}, you also got a Master Ball for your {1} consecutive reward collection! Vote everyday so you don\'t lose your streak!'.format(message, streakOrdinal)
+				em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
+				em.set_author(name='Professor Oak', icon_url=oakUrl)
+				em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.'.format(commandPrefix))
+				await client.send_message(message.channel, embed=em)
+			
 		else:
 			# NEVER UPVOTED
 			msg = '{0.author.mention}, thank you for playing PDA! You can get awesome prizes by helping PDA grow! Just go to our page on the [discord bot list](https://discordbots.org/bot/463744693910372362/vote), upvote PDA, and collect your reward by typing ``{1}reward``! It\'s that easy!'.format(message, commandPrefix)
