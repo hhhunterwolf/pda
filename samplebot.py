@@ -356,7 +356,10 @@ while True: # Why do I do this to myself
 								return
 
 							pokemon = player.releasePokemon(option)
-							await display_release_success(message, pokemon)
+							if pokemon:
+								await display_release_success(message, pokemon)
+							else:
+								display_pokemon_in_gym(message)
 						except IndexError as error:
 							print(datetime.datetime.now(), M_TYPE_ERROR, error)
 							traceback.print_exc()
@@ -506,11 +509,12 @@ while True: # Why do I do this to myself
 		return row['id'], row['identifier'].upper()
 
 	GHOST_SPAWN_CHANCE = 255
+	RARITY_MOD = 1.115
 	def get_random_pokemon_spawn():
 		rates = [[3,8], [15,85], [86,255]]
 		rateList = []
 		for i in range(0,len(rates)):
-			rate = int(rates[i][1]**1.15)
+			rate = int(rates[i][1]**RARITY_MOD)
 			rateList += rate * [rates[i]]
 		
 		row = None
@@ -546,7 +550,7 @@ while True: # Why do I do this to myself
 
 		print(datetime.datetime.now(), M_TYPE_INFO, textwrap.dedent("""Spawning: Capture Rate: %d, Chance: %f""") % (
 			maxR,
-			int(maxR**1.15) / len(rateList),
+			int(maxR**RARITY_MOD) / len(rateList),
 		))
 		
 		return row['id'], row['identifier'].upper()
@@ -597,7 +601,7 @@ while True: # Why do I do this to myself
 				lem.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
 
 			# item gift
-			baseAmount = int(math.log10(damage/10) + 1) + 1
+			baseAmount = int(math.log10(1 + damage/10)) + 1
 			amount = 1 if not numerous else int(random.uniform(baseAmount*3, baseAmount*5))
 			player.addItem(item.id-1, amount)
 			halloweenStr = ''
@@ -2517,7 +2521,7 @@ while True: # Why do I do this to myself
 		em = discord.Embed(title='PDA admin.', description=messageFile, colour=0xDEADBF)
 		try:
 			pass
-			#await client.send_message(channel, embed=em)
+			await client.send_message(channel, embed=em)
 		except Exception as e:
 			print(datetime.datetime.now(), M_TYPE_WARNING, "Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
 
@@ -2566,6 +2570,8 @@ while True: # Why do I do this to myself
 		client.loop.close()
 		print(datetime.datetime.now(), M_TYPE_ERROR, "PDA was interrupted.")
 		break
+	except Exception:
+		handle_exit()
 
 	print(datetime.datetime.now(), M_TYPE_ERROR, "A problem occurred, PDA is restarting.")
 	client = discord.Client(loop=client.loop)
