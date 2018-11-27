@@ -359,7 +359,7 @@ while True: # Why do I do this to myself
 							if pokemon:
 								await display_release_success(message, pokemon)
 							else:
-								display_pokemon_in_gym(message)
+								await display_pokemon_in_gym(message)
 						except IndexError as error:
 							print(datetime.datetime.now(), M_TYPE_ERROR, error)
 							traceback.print_exc()
@@ -2223,6 +2223,9 @@ while True: # Why do I do this to myself
 						return
 					elif addResult == 'already_in':
 						await display_already_in_daycare(message, player, pokemon, commandPrefix)
+						return
+					elif addResult == 'in_gym':
+						await display_pokemon_in_gym(message)
 						return
 					elif addResult == 'higher_level':
 						await display_level_daycare(message, player, pokemon, commandPrefix)
