@@ -611,6 +611,9 @@ __Pokeball Stats:__
 	def releasePokemon(self, pId):
 		pokemon, inGym = self.getPokemon(pId)
 
+		if inGym:
+			return False
+
 		cursor = MySQL.getCursor()
 		cursor.execute("""
 			DELETE 
