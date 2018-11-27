@@ -757,6 +757,9 @@ __Pokeball Stats:__
 		if alreadyIn:
 			return 'already_in', pokemon, None, 0
 
+		if inGym:
+			return 'in_gym', pokemon, None, 0
+
 		if not pokemon:
 			return 'invalid_id', None, None, 0
 
