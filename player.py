@@ -16,6 +16,7 @@ class Player:
 	EXP_MOD = 3.5
 	DAY_CARE_PRICE_MOD = 1.25
 	DAY_CARE_TIME_MOD = 1.25 * 1000
+	GYM_MODIFIER = 1.25
 
 	def strip_non_ascii(string):
 	    ''' Returns the string without non ASCII characters'''
@@ -649,8 +650,22 @@ __Pokeball Stats:__
 			
 		return pokemon		
 
+	def isGymLeader(self):
+		cursor = MySQL.getCursor()
+		cursor.execute("""
+			SELECT COUNT(*) AS gyms
+			FROM player_pokemon
+			WHERE player_id = %s
+			AND in_gym > 0
+			""", (self.pId,))
+
+		row = cursor.fetchone()
+		return row and row['gyms']>0
+
 	def getCaptureMod(self):
-		return math.log10(3*self.level+1)/3
+		mod = (math.log10(3*self.level+1)/3)
+		isGymLeader = self.isGymLeader()
+		return mod * Player.GYM_MODIFIER if isGymLeader else mod
 
 	def addFavorite(self, pId):
 		cursor = MySQL.getCursor()
