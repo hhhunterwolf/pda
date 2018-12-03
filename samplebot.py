@@ -1599,10 +1599,10 @@ while True: # Why do I do this to myself
 	def getGymInfo(gymId):
 		cursor = MySQL.getCursor()
 		cursor.execute("""
-			SELECT type.id, gym.type_id, gym.pokemon_id as gym_pokemon_id, player_pokemon.id, gym.holder_id, player_pokemon.player_id, player_pokemon.id, pokemon.id as pokemon_p_id, gym.holder_id, player.id, type.identifier as type_identifier, player.name as player_name, pokemon.identifier as pokemon_identifier, player_pokemon.level as pokemon_level, gym.date as gym_date, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, player_pokemon.is_mega as is_mega
+			SELECT type.id, gym.type_id, player_pokemon.id as gym_pokemon_id, player_pokemon.id, gym.holder_id, player_pokemon.player_id, player_pokemon.id, pokemon.id as pokemon_p_id, gym.holder_id, player.id, type.identifier as type_identifier, player.name as player_name, pokemon.identifier as pokemon_identifier, player_pokemon.level as pokemon_level, gym.date as gym_date, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, player_pokemon.is_mega as is_mega
 			FROM gym JOIN type JOIN player_pokemon JOIN pokemon JOIN player
 			WHERE type.id = gym.type_id
-			AND gym.pokemon_id = player_pokemon.id
+			AND player_pokemon.in_gym = type.id
 			AND gym.holder_id = player_pokemon.player_id
 			AND player_pokemon.pokemon_id = pokemon.id
 			AND gym.holder_id = player.id
@@ -1803,10 +1803,9 @@ while True: # Why do I do this to myself
 								cursor = MySQL.getCursor()
 								cursor.execute("""
 									UPDATE gym
-									SET holder_id = %s,
-										pokemon_id = %s
-									WHERE id = %s
-									""", (player.pId, playerPokemon.ownId, gymId))
+									SET holder_id = %s
+									WHERE type_id = %s
+									""", (player.pId, gymId))
 								
 								cursor.execute("""
 									UPDATE player_pokemon
@@ -2511,14 +2510,14 @@ while True: # Why do I do this to myself
 			pokemon = Pokemon(name='', pokemonId=rowPokemon['pokemon_id'], level=100)
 			
 			cursor.execute("""
-				INSERT INTO player_pokemon (id, player_id, pokemon_id, level, experience, current_hp, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, selected, caught_with)
-				VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-				""", (lastPokemon, "PDA", pokemon.pId, pokemon.pokeStats.level, pokemon.experience, pokemon.pokeStats.hp, pokemon.pokeStats.iv['hp'], pokemon.pokeStats.iv['attack'], pokemon.pokeStats.iv['defense'], pokemon.pokeStats.iv['special-attack'], pokemon.pokeStats.iv['special-defense'], pokemon.pokeStats.iv['speed'], 0, pokemon.caughtWith))		
+				INSERT INTO player_pokemon (id, player_id, pokemon_id, level, experience, current_hp, iv_hp, iv_attack, iv_defense, iv_special_attack, iv_special_defense, iv_speed, selected, caught_with, in_gym)
+				VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+				""", (lastPokemon, "PDA", pokemon.pId, pokemon.pokeStats.level, pokemon.experience, pokemon.pokeStats.hp, pokemon.pokeStats.iv['hp'], pokemon.pokeStats.iv['attack'], pokemon.pokeStats.iv['defense'], pokemon.pokeStats.iv['special-attack'], pokemon.pokeStats.iv['special-defense'], pokemon.pokeStats.iv['speed'], 0, pokemon.caughtWith, row['id']))		
 
 			cursor.execute("""
-				INSERT INTO gym (type_id, holder_id, pokemon_id)
-				VALUES (%s, 'PDA', %s)
-				""", (row['id'], lastPokemon))
+				INSERT INTO gym (type_id, holder_id)
+				VALUES (%s, 'PDA')
+				""", (row['id'],))
 
 		MySQL.commit()
 		ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Gym pokemon added.')
