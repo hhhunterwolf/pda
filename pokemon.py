@@ -221,7 +221,7 @@ __Experience:__
 		chance = 1.5 * ((2*self.pokeStats.current['hp']) * self.captureRate * Pokemon.ballRatios[ball]) / (3*self.pokeStats.current['hp']) + random.randint(0, 225)*playerMod
 		random.seed()
 		dice = random.randint(0, 225)
-		print('Capture chance is: {}/{}'.format(dice, chance))
+		# print('Capture chance is: {}/{}'.format(dice, chance))
 		return chance >= dice
 
 	def setLevel(self, level):
