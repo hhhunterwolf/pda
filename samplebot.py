@@ -41,6 +41,13 @@ M_TYPE_INFO = 'INFO'
 M_TYPE_WARNING = 'WARNING'
 M_TYPE_ERROR = 'ERROR'
 
+DEBUG_MODE = False
+
+ocPrint = print
+def print(fargs, *args, **kwargs):
+	if DEBUG_MODE:
+		ocPrint(fargs, *args, **kwargs)
+
 def handle_exit():
 	client.loop.run_until_complete(client.logout())
 	for t in asyncio.Task.all_tasks(loop=client.loop):
@@ -2451,18 +2458,18 @@ while True: # Why do I do this to myself
 		commandPrefix = 'p!'
 		spawnChannel = None
 		if row:
-			print(datetime.datetime.now(), M_TYPE_INFO, 'Found server \'{}\' in database. Fetching configs.'.format(server.id))
+			ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Found server \'{}\' in database. Fetching configs.'.format(server.id))
 			commandPrefix = row['prefix']
 			spawnChannel = row['spawn_channel']
 		else:
-			print(datetime.datetime.now(), M_TYPE_INFO, 'Server \'{}\' was not found in database. Adding.'.format(server.id))
+			ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Server \'{}\' was not found in database. Adding.'.format(server.id))
 			cursor.execute("""
 			INSERT INTO server (id)
 			VALUES (%s)"""
 			, (server.id,))
 			
 		serverMap[server.id] = PokeServer(id=server.id, commandPrefix=commandPrefix.lower(), spawnChannel=spawnChannel)
-		print(datetime.datetime.now(), M_TYPE_INFO, 'Done.')
+		ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Done.')
 
 	def isGymFirstPokemonExist():
 		return getGymInfo(1) is not None
@@ -2514,7 +2521,7 @@ while True: # Why do I do this to myself
 				""", (row['id'], lastPokemon))
 
 		MySQL.commit()
-		print(datetime.datetime.now(), M_TYPE_INFO, 'Gym pokemon added.')
+		ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Gym pokemon added.')
 
 	filePath = os.path.abspath('motd.txt')
 	with open(filePath, "r") as file:
@@ -2530,10 +2537,10 @@ while True: # Why do I do this to myself
 
 	@client.event
 	async def on_ready():
-		print(datetime.datetime.now(), M_TYPE_INFO, 'Logged in as')
-		print(datetime.datetime.now(), M_TYPE_INFO, client.user.name)
-		print(datetime.datetime.now(), M_TYPE_INFO, client.user.id)
-		print(datetime.datetime.now(), M_TYPE_INFO, '------')
+		ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Logged in as')
+		ocPrint(datetime.datetime.now(), M_TYPE_INFO, client.user.name)
+		ocPrint(datetime.datetime.now(), M_TYPE_INFO, client.user.id)
+		ocPrint(datetime.datetime.now(), M_TYPE_INFO, '------')
 
 		createFirstGymPokemon()
 		Pokemon.setNumberOfPokemon()
@@ -2548,9 +2555,9 @@ while True: # Why do I do this to myself
 
 		client.loop.create_task(spawn_wild_pokemon())
 
-		print(datetime.datetime.now(), M_TYPE_INFO, '------')
+		ocPrint(datetime.datetime.now(), M_TYPE_INFO, '------')
 		
-		print(datetime.datetime.now(), M_TYPE_INFO, 'Load item list')
+		ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Load item list')
 		cursor = MySQL.getCursor()
 		cursor.execute("""SELECT * FROM item""")
 
@@ -2561,20 +2568,20 @@ while True: # Why do I do this to myself
 				items.append(item)
 				if row['price']>0:
 					shopItems.append(item)
-		print(datetime.datetime.now(), M_TYPE_INFO, '------')
+		ocPrint(datetime.datetime.now(), M_TYPE_INFO, '------')
 
 	try:
-		print(datetime.datetime.now(), M_TYPE_INFO, "Starting PDA Bot.")
+		ocPrint(datetime.datetime.now(), M_TYPE_INFO, "Starting PDA Bot.")
 		client.loop.run_until_complete(client.start(TOKEN))
 	except SystemExit:
 		handle_exit()
 	except KeyboardInterrupt:
 		handle_exit()
 		client.loop.close()
-		print(datetime.datetime.now(), M_TYPE_ERROR, "PDA was interrupted.")
+		ocPrint(datetime.datetime.now(), M_TYPE_ERROR, "PDA was interrupted.")
 		break
 	except Exception:
 		handle_exit()
 
-	print(datetime.datetime.now(), M_TYPE_ERROR, "A problem occurred, PDA is restarting.")
+	ocPrint(datetime.datetime.now(), M_TYPE_ERROR, "A problem occurred, PDA is restarting.")
 	client = discord.Client(loop=client.loop)
