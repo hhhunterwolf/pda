@@ -697,7 +697,7 @@ while True: # Why do I do this to myself
 					if isBossBool:
 						gym = True
 						if not wildPokemon:
-							wildPokemon = Pokemon(name=spawn.name, pokemonId=spawn.pId, level=100, wild=1, customHp=5)
+							wildPokemon = Pokemon(name=spawn.name, pokemonId=spawn.pId, level=100, wild=1, customHp=11)
 							spawn.isBoss = True, wildPokemon
 					else:
 						gym = False
@@ -829,7 +829,12 @@ while True: # Why do I do this to myself
 		@staticmethod	
 		async def spawn():
 			for server in client.servers:
-				pokeServer = serverMap[server.id]
+				try:
+					pokeServer = serverMap[server.id]
+				except Exception:
+					ocPrint(datetime.datetime.now(), M_TYPE_ERROR, 'Server no found. Evaluating.')
+					evaluate_server(server)
+					return
 				
 				commandPrefix, spawnChannel = pokeServer.get_prefix_spawnchannel()
 
@@ -905,6 +910,8 @@ while True: # Why do I do this to myself
 								spawn.isBoss = False, None
 								try:
 									await client.send_message(channel, embed=em)
+								except Forbidden as f:
+									pass
 								except Exception as e: # I am very disappointed in you, past self
 									traceback.print_exc()
 
