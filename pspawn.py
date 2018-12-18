@@ -18,5 +18,6 @@ class Spawn:
 		self.isBoss = False, None
 		self.lastAct = [datetime.datetime.now(), random.randint(20, 65)]
 		self.restSpawn = 0
+		self.spawnChance = 0
 
 	
