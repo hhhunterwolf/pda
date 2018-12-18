@@ -24,6 +24,7 @@ from datetime import timedelta
 from pitem import PokeItem
 from discord.ext import commands
 from logging.handlers import TimedRotatingFileHandler
+from discord.utils import get
 
 TOKEN = os.environ['PDA_TOKEN']
 
@@ -34,6 +35,8 @@ grassUrl = 'https://i.imgur.com/zdeDVpY.png'
 joyUrl = 'https://i.imgur.com/OIr3D6x.png'
 pokeballUrl = 'https://i.imgur.com/2jQoEjs.png'
 pokeMartUrl = 'https://i.imgur.com/RkJQOOh.png'
+presentUrl = 'https://i.imgur.com/0BLzJEd.png'
+christmasUrl = 'https://i.imgur.com/52tJher.png'
 
 # This should probably be in a utils file. Logs should be done via a log lib. Meh.
 
@@ -41,7 +44,8 @@ M_TYPE_INFO = 'INFO'
 M_TYPE_WARNING = 'WARNING'
 M_TYPE_ERROR = 'ERROR'
 
-DEBUG_MODE = False
+DEBUG_MODE = True
+CHIRSTMAS = True
 
 ocPrint = print
 def print(fargs, *args, **kwargs):
@@ -560,7 +564,7 @@ while True: # Why do I do this to myself
 			int(maxR**RARITY_MOD) / len(rateList),
 		))
 		
-		return row['id'], row['identifier'].upper()
+		return row['id'], row['identifier'].upper(), row['capture_rate']
 
 	def convertDeltaToHuman(deltaTime):
 		return humanfriendly.format_timespan(deltaTime)
@@ -871,7 +875,7 @@ while True: # Why do I do this to myself
 									em.set_image(url=getImageUrl(spawn.pId))
 									em.set_footer(text='HINT: The more people fight the boss, the easier it is to defeat it!'.format(commandPrefix))
 								else:
-									spawn.pId, spawn.name = get_random_pokemon_spawn()
+									spawn.pId, spawn.name, spawn.captureChance = get_random_pokemon_spawn()
 									spawn.trainer[0] = random.randint(0, 255)<=30
 									spawn.trainer[1] = random.randint(0, 1)
 									isTrainer, gender = spawn.trainer
@@ -883,7 +887,16 @@ while True: # Why do I do this to myself
 										em.set_thumbnail(url=trainerURL.format(gender))
 										em.set_footer(text='HINT: You cannot catch other trainer\'s pokemon, but you will earn money if you win the fight.'.format(commandPrefix))
 									else:
-										msg = 'A wild {0} wants to fight! Type ``{1}fight`` to fight it, or ``{1}catch #`` to try and catch it as well!'.format(spawn.name, commandPrefix)
+										role = None
+										for r in server.roles:
+											if r.id == pokeServer.role:
+												role = r
+										
+										msg = 'A'
+										if role and spawn.captureChance <= 10:
+											msg = '{0}, a'.format(role.mention)
+										
+										msg += ' wild {0} wants to fight! Type ``{1}fight`` to fight it, or ``{1}catch #`` to try and catch it as well!'.format(spawn.name, commandPrefix)
 										em = discord.Embed(title='A wild {} appeared!'.format(spawn.name), description=msg, colour=0xDEADBF)
 										em.set_author(name='Tall Grass', icon_url=grassUrl)
 										em.set_thumbnail(url=getImageUrl(spawn.pId))
@@ -1012,6 +1025,39 @@ while True: # Why do I do this to myself
 				MySQL.commit()
 
 				serverMap[message.server.id].spawnChannel = selectedChannel.id
+
+		em = discord.Embed(title='Set Spawn Channel', description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		await client.send_message(message.channel, embed=em)
+
+	async def set_ping_role(message):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		temp = message.content.split(' ')
+				
+		option = None
+		if len(temp)<=1:
+			msg = 'Type ``{}role @role_name`` to set the role that will be pinged when legendary appear.'.format(commandPrefix)
+		else:
+			option = temp[1].replace('@', '').replace('&', '').replace('<', '').replace('>', '')
+			role = None
+			for r in message.server.roles:
+				if r.id == option:
+					role = r
+
+			if not role:
+				msg = 'Invalid role. Type ``{}role @role_name`` to set the role that will be pinged when legendary appear.'.format(commandPrefix)
+			else:
+				cursor = MySQL.getCursor()
+				cursor.execute("""
+					UPDATE server
+					SET ping_role = %s
+					WHERE id = %s
+					""", (option, message.server.id))
+				msg = 'Ping role set to @{0}.'.format(role.mention)
+				MySQL.commit()
+
+				serverMap[message.server.id].role = role
 
 		em = discord.Embed(title='Set Spawn Channel', description=msg, colour=0xDEADBF)
 		em.set_author(name='Professor Oak', icon_url=oakUrl)
@@ -2336,6 +2382,126 @@ while True: # Why do I do this to myself
 			em.set_author(name='Professor Oak', icon_url=oakUrl)
 			em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.'.format(commandPrefix))
 			await client.send_message(message.channel, embed=em)
+
+	async def display_present_drop(message):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		if not CHIRSTMAS:
+			return
+
+		#if message.server.id not in ['492098288133210133']:
+		if message.server.id not in ['492098288133210133', '463744872747237396']:
+			msg = '{0.author.mention}, Santa is giving away presents at the Official PDA Discord Server! Come and get some nice presents! Click [here](https://discord.gg/rEkQWUa) to join!'.format(message, commandPrefix)
+			em = discord.Embed(title='Oops!'.format(message.author.name), description=msg, colour=0xDEADBF)
+			em.set_author(name='Santa', icon_url=christmasUrl)
+			em.set_thumbnail(url=presentUrl)
+			em.set_footer(text='HINT: Don\'t forget to collect your reward by upvoting PDA on Discord Bot List.'.format(commandPrefix))
+			return await client.send_message(message.channel, embed=em)
+
+		if not ChristmasManager.DROP_READY:
+			return
+
+		player = playerMap[message.author.id]
+		em = check_not_started(message.author.mention, player, commandPrefix)
+		if em:
+			await client.send_message(message.channel, embed=em)
+			return
+
+		if player in ChristmasManager.presentList:
+			msg = '{0.author.mention}, you naughty, naughty, trainer! You already collected your present.'.format(message)
+			em = discord.Embed(title='Santa'.format(message.author.name), description=msg, colour=0xDEADBF)
+			em.set_author(name='Santa', icon_url=christmasUrl)
+			em.set_thumbnail(url=message.author.avatar_url)
+			em.set_footer(text='HINT: Donations help the bot stay online.'.format(commandPrefix))
+			return await client.send_message(message.channel, embed=em)
+
+		ChristmasManager.presentList.append(player)
+
+		reward = random.randint(0, 255)
+		if reward >= 200:
+			player.addItem(10, 1)
+			msg = '{0.author.mention}, Merry Christmas! You got a Big EXP Boost!'.format(message)
+			em = discord.Embed(title='{}\'s Present'.format(message.author.name), description=msg, colour=0xDEADBF)
+			em.set_thumbnail(url=message.author.avatar_url)
+			em.set_author(name='Santa', icon_url=christmasUrl)
+			em.set_footer(text='HINT: Presents only drop on the official PDA Discord server.')
+			await client.send_message(message.channel, embed=em)
+		elif reward >= 120:
+			player.addItem(2, 5)
+			msg = '{0.author.mention}, Merry Christmas! You got 5 Ultra Balls!'.format(message)
+			em = discord.Embed(title='{}\'s Present'.format(message.author.name), description=msg, colour=0xDEADBF)
+			em.set_thumbnail(url=message.author.avatar_url)
+			em.set_author(name='Santa', icon_url=christmasUrl)
+			em.set_footer(text='HINT: Presents only drop on the official PDA Discord server.')
+			await client.send_message(message.channel, embed=em)
+		elif reward >= 70:
+			pokemonId = random.randint(1,Pokemon.NUMBER_OF_POKEMON+1)
+			pokemon = player.addPokemon(pokemonId=pokemonId, level=random.randint(5,100), caughtWith=8)
+			msg = '{0.author.mention}, Merry Christmas! You got a level {1} {2}!'.format(message, pokemon.pokeStats.level, pokemon.name)
+			em = discord.Embed(title='{}\'s Present'.format(message.author.name), description=msg, colour=0xDEADBF)
+			em.set_thumbnail(url=message.author.avatar_url)
+			em.set_author(name='Santa', icon_url=christmasUrl)
+			em.set_footer(text='HINT: Presents only drop on the official PDA Discord server.')
+			await client.send_message(message.channel, embed=em)
+		elif reward >= 20:
+			player.addItem(7, 5)
+			msg = '{0.author.mention}, Merry Christmas! You got 5 Max Potions!'.format(message)
+			em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
+			em.set_thumbnail(url=message.author.avatar_url)
+			em.set_author(name='Santa', icon_url=christmasUrl)
+			em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.'.format(commandPrefix))
+			await client.send_message(message.channel, embed=em)
+		else:
+			player.addItem(3)
+			msg = '{0.author.mention}, Merry Christmas! You got a Master Ball!'.format(message)
+			em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
+			em.set_thumbnail(url=message.author.avatar_url)
+			em.set_author(name='Santa', icon_url=christmasUrl)
+			em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.'.format(commandPrefix))
+			await client.send_message(message.channel, embed=em)
+
+	class ChristmasManager:
+		DROP_READY = False
+		lastEvent = 35
+		presentList = []
+
+		@staticmethod
+		async def drop_presents():
+			server = serverMap['463744872747237396']
+
+			if ChristmasManager.lastEvent <= 0:
+				if ChristmasManager.DROP_READY:
+					ChristmasManager.DROP_READY = False
+					ChristmasManager.presentList = []
+					msg = 'It looks like Santa is gone. Don\'t worry, he will be back with more presents!'
+					em = discord.Embed(title='Ah...', description=msg, colour=0xDEADBF)
+					em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.')
+					em.set_author(name='Santa', icon_url=christmasUrl)
+					em.set_thumbnail(url=presentUrl)
+					await client.send_message(discord.Object(id=server.spawnChannel), embed=em)
+					ChristmasManager.lastEvent = random.randint(50, 1800)
+				else:
+					ChristmasManager.DROP_READY = True
+					ChristmasManager.lastEvent = 50
+					msg = 'Look! Santa is dropping presents for PDA trainers! Type ``p!present`` to get yours!'
+					em = discord.Embed(title='Merry Christmas!', description=msg, colour=0xDEADBF)
+					em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.')
+					em.set_author(name='Santa', icon_url=christmasUrl)
+					em.set_thumbnail(url=presentUrl)
+					await client.send_message(discord.Object(id=server.spawnChannel), embed=em)
+					await asyncio.sleep(random.randint(1, 20))
+					ChristmasManager.lastEvent =random.randint(120, 300)
+			else:
+				ChristmasManager.lastEvent -= 5
+
+			await asyncio.sleep(5)
+
+	async def drop_presents():
+		while True:
+			try:
+				await ChristmasManager.drop_presents()
+			except Exception as e:
+				pass
 		
 	#'welcome' : send_greeting,
 	commandList = {
@@ -2389,6 +2555,7 @@ while True: # Why do I do this to myself
 		'reward' : display_reward,
 		'reward' : display_reward,
 		'vote' : display_reward,
+		'present' : display_present_drop,
 	}
 
 	admin = 229680411079475201
@@ -2400,7 +2567,8 @@ while True: # Why do I do this to myself
 
 	serverAdminCommandList = {
 		'prefix' : change_prefix,
-		'spawn' : set_spawn_channel
+		'spawn' : set_spawn_channel,
+		'role' : set_ping_role,
 	}
 
 	playerMessageMap = {}
@@ -2462,11 +2630,13 @@ while True: # Why do I do this to myself
 		row = cursor.fetchone()
 
 		commandPrefix = 'p!'
+		role = None
 		spawnChannel = None
 		if row:
 			ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Found server \'{}\' in database. Fetching configs.'.format(server.id))
 			commandPrefix = row['prefix']
 			spawnChannel = row['spawn_channel']
+			role = row['ping_role']
 		else:
 			ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Server \'{}\' was not found in database. Adding.'.format(server.id))
 			cursor.execute("""
@@ -2474,7 +2644,7 @@ while True: # Why do I do this to myself
 			VALUES (%s)"""
 			, (server.id,))
 			
-		serverMap[server.id] = PokeServer(id=server.id, commandPrefix=commandPrefix.lower(), spawnChannel=spawnChannel)
+		serverMap[server.id] = PokeServer(id=server.id, commandPrefix=commandPrefix.lower(), spawnChannel=spawnChannel, role=role)
 		ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Done.')
 
 	def isGymFirstPokemonExist():
@@ -2560,6 +2730,7 @@ while True: # Why do I do this to myself
 						await send_online_message(channel)
 
 		client.loop.create_task(spawn_wild_pokemon())
+		client.loop.create_task(drop_presents())
 
 		ocPrint(datetime.datetime.now(), M_TYPE_INFO, '------')
 		
