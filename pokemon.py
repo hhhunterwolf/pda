@@ -100,7 +100,7 @@ class Pokemon:
 
 	def __str__(self):
 		t = self.types[0].identifier
-		caughtStrings = ['Starter','Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball', '💸', 'Giveaway', '🎃']
+		caughtStrings = ['Starter','Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball', '💸', 'Giveaway', '🎃', '🎅']
 		try: 
 			t = t + ', ' + self.types[1].identifier
 		except IndexError:
