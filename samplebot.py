@@ -888,7 +888,7 @@ while True: # Why do I do this to myself
 												role = r
 										
 										msg = 'A'
-										if role and spawn.captureChance <= 10:
+										if role and spawn.captureChance < 45:
 											msg = '{0}, a'.format(role.mention)
 										
 										msg += ' wild {0} wants to fight! Type ``{1}fight`` to fight it, or ``{1}catch #`` to try and catch it as well!'.format(spawn.name, commandPrefix)
@@ -2472,7 +2472,7 @@ while True: # Why do I do this to myself
 					em.set_author(name='Santa', icon_url=christmasUrl)
 					em.set_thumbnail(url=presentUrl)
 					await client.send_message(discord.Object(id=server.spawnChannel), embed=em)
-					ChristmasManager.lastEvent = random.randint(50, 1800)
+					ChristmasManager.lastEvent = random.randint(350, 3800)
 				else:
 					ChristmasManager.DROP_READY = True
 					ChristmasManager.lastEvent = 50
