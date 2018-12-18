@@ -44,7 +44,7 @@ M_TYPE_INFO = 'INFO'
 M_TYPE_WARNING = 'WARNING'
 M_TYPE_ERROR = 'ERROR'
 
-DEBUG_MODE = True
+DEBUG_MODE = False
 CHIRSTMAS = True
 
 ocPrint = print
@@ -460,12 +460,11 @@ while True: # Why do I do this to myself
 			'**{0}mega:** Shows info on how to mega evolve pokemon. \n' \
 			'**{0}rank:** Shows the top 10 players in the server. \n' \
 			'**{0}ping:** Standard ping command. \n' \
-			'**{0}halloween:** Displays the Halloween Event Poke Mart. \n' \
 			'**{0}trade:** Shows information on how to trade pokemon. \n' \
 			'**{0}daycare:** Displays information on the day care. \n' \
-			'**{0}daycare:** Displays information on the day care. \n' \
-                        '**{0}reward or {0}vote:** Displays information on the day care. \n' \
+            '**{0}reward or {0}vote:** Displays information on the day care. \n' \
 			'**{0}donate:** Displays information on donations. \n\n' \
+			'**{0}present:** Catches a present delivered by Santa, if available. \n\n' \
 			'__Admin Commands:__ \n' \
 			'**{0}prefix:** Changes the prefix used to trigger bot commands (default is p). \n' \
 			'**{0}spawn:** Sets the channel where wild pokemon and poketrainers will spawn. \n'
@@ -701,7 +700,7 @@ while True: # Why do I do this to myself
 					if isBossBool:
 						gym = True
 						if not wildPokemon:
-							wildPokemon = Pokemon(name=spawn.name, pokemonId=spawn.pId, level=100, wild=1, customHp=5)
+							wildPokemon = Pokemon(name=spawn.name, pokemonId=spawn.pId, level=100, wild=1, customHp=11)
 							spawn.isBoss = True, wildPokemon
 					else:
 						gym = False
@@ -833,7 +832,12 @@ while True: # Why do I do this to myself
 		@staticmethod	
 		async def spawn():
 			for server in client.servers:
-				pokeServer = serverMap[server.id]
+				try:
+					pokeServer = serverMap[server.id]
+				except Exception:
+					ocPrint(datetime.datetime.now(), M_TYPE_ERROR, 'Server no found. Evaluating.')
+					evaluate_server(server)
+					return
 				
 				commandPrefix, spawnChannel = pokeServer.get_prefix_spawnchannel()
 
@@ -918,6 +922,8 @@ while True: # Why do I do this to myself
 								spawn.isBoss = False, None
 								try:
 									await client.send_message(channel, embed=em)
+								except Forbidden as f:
+									pass
 								except Exception as e: # I am very disappointed in you, past self
 									traceback.print_exc()
 
@@ -1047,7 +1053,7 @@ while True: # Why do I do this to myself
 					SET ping_role = %s
 					WHERE id = %s
 					""", (option, message.server.id))
-				msg = 'Ping role set to @{0}.'.format(role.mention)
+				msg = 'Ping role set to {0}.'.format(role.mention)
 				MySQL.commit()
 
 				serverMap[message.server.id].role = role
@@ -2382,8 +2388,8 @@ while True: # Why do I do this to myself
 		if not CHIRSTMAS:
 			return
 
-		#if message.server.id not in ['492098288133210133']:
-		if message.server.id not in ['492098288133210133', '463744872747237396']:
+		if message.server.id not in ['492098288133210133']:
+		#if message.server.id not in ['492098288133210133', '463744872747237396']:
 			msg = '{0.author.mention}, Santa is giving away presents at the Official PDA Discord Server! Come and get some nice presents! Click [here](https://discord.gg/rEkQWUa) to join!'.format(message, commandPrefix)
 			em = discord.Embed(title='Oops!'.format(message.author.name), description=msg, colour=0xDEADBF)
 			em.set_author(name='Santa', icon_url=christmasUrl)
@@ -2455,12 +2461,16 @@ while True: # Why do I do this to myself
 
 	class ChristmasManager:
 		DROP_READY = False
-		lastEvent = 35
+		lastEvent = 15
 		presentList = []
 
 		@staticmethod
 		async def drop_presents():
-			server = serverMap['463744872747237396']
+			try: 
+				server = serverMap['492098288133210133']
+			except Exception as e:
+				print(datetime.datetime.now(), M_TYPE_INFO, 'Server not ready. Waiting.')
+				return await asyncio.sleep(30)
 
 			if ChristmasManager.lastEvent <= 0:
 				if ChristmasManager.DROP_READY:
@@ -2472,8 +2482,7 @@ while True: # Why do I do this to myself
 					em.set_author(name='Santa', icon_url=christmasUrl)
 					em.set_thumbnail(url=presentUrl)
 					await client.send_message(discord.Object(id=server.spawnChannel), embed=em)
-					ChristmasManager.lastEvent = random.randint(350, 3800)
-				else:
+        else:
 					ChristmasManager.DROP_READY = True
 					ChristmasManager.lastEvent = 50
 					msg = 'Look! Santa is dropping presents for PDA trainers! Type ``p!present`` to get yours!'
@@ -2482,11 +2491,11 @@ while True: # Why do I do this to myself
 					em.set_author(name='Santa', icon_url=christmasUrl)
 					em.set_thumbnail(url=presentUrl)
 					await client.send_message(discord.Object(id=server.spawnChannel), embed=em)
-					await asyncio.sleep(random.randint(1, 20))
-					ChristmasManager.lastEvent =random.randint(120, 300)
+					ChristmasManager.lastEvent = random.randint(120, 300)
 			else:
 				ChristmasManager.lastEvent -= 5
 
+			print(datetime.datetime.now(), M_TYPE_INFO, 'Last christmas event: {}'.format(ChristmasManager.lastEvent))
 			await asyncio.sleep(5)
 
 	async def drop_presents():
@@ -2494,7 +2503,7 @@ while True: # Why do I do this to myself
 			try:
 				await ChristmasManager.drop_presents()
 			except Exception as e:
-				pass
+				traceback.print_exc()
 		
 	#'welcome' : send_greeting,
 	commandList = {
@@ -2700,7 +2709,7 @@ while True: # Why do I do this to myself
 		em = discord.Embed(title='PDA admin.', description=messageFile, colour=0xDEADBF)
 		try:
 			pass
-			await client.send_message(channel, embed=em)
+			#await client.send_message(channel, embed=em)
 		except Exception as e:
 			print(datetime.datetime.now(), M_TYPE_WARNING, "Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
 
