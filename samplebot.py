@@ -462,7 +462,7 @@ while True: # Why do I do this to myself
 			'**{0}ping:** Standard ping command. \n' \
 			'**{0}trade:** Shows information on how to trade pokemon. \n' \
 			'**{0}daycare:** Displays information on the day care. \n' \
-            '**{0}reward or {0}vote:** Displays information on the day care. \n' \
+			'**{0}reward or {0}vote:** Displays information on the day care. \n' \
 			'**{0}donate:** Displays information on donations. \n\n' \
 			'**{0}present:** Catches a present delivered by Santa, if available. \n\n' \
 			'__Admin Commands:__ \n' \
@@ -2481,8 +2481,10 @@ while True: # Why do I do this to myself
 					em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.')
 					em.set_author(name='Santa', icon_url=christmasUrl)
 					em.set_thumbnail(url=presentUrl)
+					ChristmasManager.lastEvent = random.randint(120, 3600)
+
 					await client.send_message(discord.Object(id=server.spawnChannel), embed=em)
-        else:
+				else:
 					ChristmasManager.DROP_READY = True
 					ChristmasManager.lastEvent = 50
 					msg = 'Look! Santa is dropping presents for PDA trainers! Type ``p!present`` to get yours!'
@@ -2709,7 +2711,7 @@ while True: # Why do I do this to myself
 		em = discord.Embed(title='PDA admin.', description=messageFile, colour=0xDEADBF)
 		try:
 			pass
-			#await client.send_message(channel, embed=em)
+			await client.send_message(channel, embed=em)
 		except Exception as e:
 			print(datetime.datetime.now(), M_TYPE_WARNING, "Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
 
