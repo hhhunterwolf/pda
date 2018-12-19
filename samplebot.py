@@ -462,7 +462,7 @@ while True: # Why do I do this to myself
 			'**{0}ping:** Standard ping command. \n' \
 			'**{0}trade:** Shows information on how to trade pokemon. \n' \
 			'**{0}daycare:** Displays information on the day care. \n' \
-            '**{0}reward or {0}vote:** Displays information on the day care. \n' \
+			'**{0}reward or {0}vote:** Displays information on the day care. \n' \
 			'**{0}donate:** Displays information on donations. \n\n' \
 			'**{0}present:** Catches a present delivered by Santa, if available. \n\n' \
 			'__Admin Commands:__ \n' \
@@ -892,7 +892,7 @@ while True: # Why do I do this to myself
 												role = r
 										
 										msg = 'A'
-										if role and spawn.captureChance <= 10:
+										if role and spawn.captureChance < 45:
 											msg = '{0}, a'.format(role.mention)
 										
 										msg += ' wild {0} wants to fight! Type ``{1}fight`` to fight it, or ``{1}catch #`` to try and catch it as well!'.format(spawn.name, commandPrefix)
@@ -2481,8 +2481,9 @@ while True: # Why do I do this to myself
 					em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.')
 					em.set_author(name='Santa', icon_url=christmasUrl)
 					em.set_thumbnail(url=presentUrl)
+					ChristmasManager.lastEvent = random.randint(120, 3600)
+
 					await client.send_message(discord.Object(id=server.spawnChannel), embed=em)
-					ChristmasManager.lastEvent = random.randint(50, 980)
 				else:
 					ChristmasManager.DROP_READY = True
 					ChristmasManager.lastEvent = 50
