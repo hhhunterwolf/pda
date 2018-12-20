@@ -637,6 +637,14 @@ while True: # Why do I do this to myself
 	valueMod = 8.75*0.45
 	ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
 	class SpawnManager:
+		# Constants
+		spawnMinTime = 45
+		spawnMaxTime = 55
+		restMinTime = 25
+		restMaxTime = 80
+		trainerChance = 3000
+
+		# Attributes
 		name = {}
 		pId = {}
 		spawned = {}
@@ -653,7 +661,7 @@ while True: # Why do I do this to myself
 			commandPrefix, spawnChannel = pokeServer.get_prefix_spawnchannel()
 			spawn = pokeServer.spawn
 
-			if spawnChannel != message.channel.id:
+			if message.channel.id not in spawnChannel:
 				return
 
 			player = playerMap[message.author.id]
@@ -773,7 +781,6 @@ while True: # Why do I do this to myself
 								'pokemon' : playerPokemon, 
 								'damage' : battle.damageDealt['loser']
 							}
-							
 
 					if isTrainer:
 						if victory:
@@ -845,28 +852,39 @@ while True: # Why do I do this to myself
 					pokeServer.spawn = Spawn()
 				spawn = pokeServer.spawn
 
+				isAfk = True
+				localAfkTime = (datetime.datetime.now().timestamp() - pokeServer.serverMessageMap)
+				isAfk = localAfkTime > afkTime + spawn.restSpawn
+
+				print(datetime.datetime.now(), M_TYPE_INFO, 'Server AFK Status: {2}/{1} ({0})'.format(isAfk, afkTime, localAfkTime)) # Why am I so lazy
+				if isAfk:
+					break
+
+				counter = 0
+				isTrainer, gender = False, ''
+				bossSpawned = random.randint(0,255) <= bossChance
 				for channel in server.channels:
-					if channel.id == spawnChannel:
+					if channel.id in spawnChannel:
+						counter += 1
 						lastAct, actDelay = spawn.lastAct
 						canAct = datetime.datetime.now().timestamp() - lastAct.timestamp()
 						if canAct > actDelay:
-							print(datetime.datetime.now(), M_TYPE_INFO, "Server '" + server.id + "' ready to act. Acting and updating delay.")
 							if not spawn.spawned:
-								spawn.lastAct = [datetime.datetime.now(), random.randint(45, 55)]
-								isAfk = True
-								localAfkTime = (datetime.datetime.now().timestamp() - pokeServer.serverMessageMap)
-								isAfk = localAfkTime > afkTime + spawn.restSpawn
+								print(datetime.datetime.now(), M_TYPE_INFO, "Server '" + server.id + "' ready to act. Acting and updating delay.")
+								if counter != len(spawnChannel):
+									spawn.fought = []
+									spawn.isBoss = False, None
+									spawn.trainer = [False, 0]
+									if not bossSpawned:
+										spawn.pId, spawn.name, spawn.captureChance = get_random_pokemon_spawn()
+									else:
+										spawn.pId, spawn.name = get_random_boss_pokemon()
+									spawn.captureChance = 999 # Ugh
+								else:
+									spawn.spawned = True
+									spawn.lastAct = [datetime.datetime.now(), random.randint(SpawnManager.spawnMinTime, SpawnManager.spawnMaxTime)]
 
-								print(datetime.datetime.now(), M_TYPE_INFO, 'Server AFK Status: {2}/{1} ({0})'.format(isAfk, afkTime, localAfkTime)) # Why am I so lazy
-								if isAfk:
-									break
-
-								spawn.spawned = True
-								spawn.fought = []
-								spawn.isBoss = False, None
-								spawn.trainer = [False, 0]
-								if random.randint(0,255) <= bossChance:
-									spawn.pId, spawn.name = get_random_boss_pokemon()
+								if bossSpawned:
 									spawn.isBoss = True, None
 									msg = 'A boss {0} has appeared! Type ``{1}fight`` to fight it!'.format(spawn.name, commandPrefix)
 									em = discord.Embed(title='A wild Boss Pokemon appears!', description=msg, colour=0xDEADBF)
@@ -874,10 +892,10 @@ while True: # Why do I do this to myself
 									em.set_image(url=getImageUrl(spawn.pId))
 									em.set_footer(text='HINT: The more people fight the boss, the easier it is to defeat it!'.format(commandPrefix))
 								else:
-									spawn.pId, spawn.name, spawn.captureChance = get_random_pokemon_spawn()
-									spawn.trainer[0] = random.randint(0, 255)<=30
-									spawn.trainer[1] = random.randint(0, 1)
-									isTrainer, gender = spawn.trainer
+									if counter != len(spawnChannel):
+										spawn.trainer[0] = random.randint(0, 255)<=SpawnManager.trainerChance
+										spawn.trainer[1] = random.randint(0, 1)
+										isTrainer, gender = spawn.trainer
 									if isTrainer:
 										article = 'him' if gender==0 else 'her'
 										msg = 'A poketrainer is looking for a challenger! Type ``{0}fight`` to fight {1}!'.format(commandPrefix, article)
@@ -892,7 +910,7 @@ while True: # Why do I do this to myself
 												role = r
 										
 										msg = 'A'
-										if role and spawn.captureChance < 45:
+										if role and spawn.captureChance <= 10:
 											msg = '{0}, a'.format(role.mention)
 										
 										msg += ' wild {0} wants to fight! Type ``{1}fight`` to fight it, or ``{1}catch #`` to try and catch it as well!'.format(spawn.name, commandPrefix)
@@ -904,7 +922,6 @@ while True: # Why do I do this to myself
 								#await asyncio.sleep(50)
 							else:
 								isTrainer, gender = spawn.trainer
-								spawn.lastAct = [datetime.datetime.now(), random.randint(25, 80)]
 								if isTrainer:
 									msg = 'The poketrainer is gone! Don\'t worry if you didn\'t have a chance to fight {}, though. Pokemon trainers eager to fight always come back.'.format('him' if gender==0 else 'her')
 									em = discord.Embed(title='Bye!', description=msg, colour=0xDEADBF)
@@ -918,8 +935,10 @@ while True: # Why do I do this to myself
 									em.set_author(name='Tall Grass', icon_url=grassUrl)
 									em.set_footer(text='HINT: Your selected pokemon must be in fighting conditions for you to enter a fight! If you need to heal it, type {}center.'.format(commandPrefix))
 								
-								spawn.spawned = False
-								spawn.isBoss = False, None
+								if counter == len(spawnChannel):
+									spawn.spawned = False
+									spawn.isBoss = False, None
+									spawn.lastAct = [datetime.datetime.now(), random.randint(SpawnManager.restMinTime, SpawnManager.restMaxTime)]
 								try:
 									await client.send_message(channel, embed=em)
 								except Forbidden as f:
@@ -1016,14 +1035,13 @@ while True: # Why do I do this to myself
 			else:
 				cursor = MySQL.getCursor()
 				cursor.execute("""
-					UPDATE server
-					SET spawn_channel = %s
-					WHERE id = %s
-					""", (selectedChannel.id, message.server.id))
+					INSERT INTO server_spawnchannel (server_id, spawn_channel)
+					VALUES (%s, %s)
+					""", (message.server.id, selectedChannel.id))
 				msg = 'Spawn channel set to #{0}.'.format(selectedChannel)
 				MySQL.commit()
 
-				serverMap[message.server.id].spawnChannel = selectedChannel.id
+				serverMap[message.server.id].spawnChannel.append(selectedChannel.id)
 
 		em = discord.Embed(title='Set Spawn Channel', description=msg, colour=0xDEADBF)
 		em.set_author(name='Professor Oak', icon_url=oakUrl)
@@ -2482,7 +2500,8 @@ while True: # Why do I do this to myself
 					em.set_author(name='Santa', icon_url=christmasUrl)
 					em.set_thumbnail(url=presentUrl)
 					await client.send_message(discord.Object(id=server.spawnChannel), embed=em)
-        else:
+					ChristmasManager.lastEvent = random.randint(50, 980)
+				else:
 					ChristmasManager.DROP_READY = True
 					ChristmasManager.lastEvent = 50
 					msg = 'Look! Santa is dropping presents for PDA trainers! Type ``p!present`` to get yours!'
@@ -2628,17 +2647,23 @@ while True: # Why do I do this to myself
 
 	def evaluate_server(server):
 		cursor = MySQL.getCursor()
-		cursor.execute("""SELECT * FROM server WHERE id = %s""", (server.id,))
-		row = cursor.fetchone()
+		cursor.execute("""
+			SELECT * 
+			FROM server JOIN server_spawnchannel ON (server.id = server_spawnchannel.server_id)
+			WHERE id = %s
+			""", (server.id,))
+		rows = cursor.fetchall()
 
 		commandPrefix = 'p!'
 		role = None
 		spawnChannel = None
-		if row:
+		if rows:
 			ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Found server \'{}\' in database. Fetching configs.'.format(server.id))
-			commandPrefix = row['prefix']
-			spawnChannel = row['spawn_channel']
-			role = row['ping_role']
+			spawnChannel = []
+			for row in rows:
+				spawnChannel.append(row['server_spawnchannel.spawn_channel'])
+				commandPrefix = row['prefix']
+				role = row['ping_role']
 		else:
 			ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Server \'{}\' was not found in database. Adding.'.format(server.id))
 			cursor.execute("""
@@ -2709,7 +2734,7 @@ while True: # Why do I do this to myself
 		em = discord.Embed(title='PDA admin.', description=messageFile, colour=0xDEADBF)
 		try:
 			pass
-			#await client.send_message(channel, embed=em)
+			await client.send_message(channel, embed=em)
 		except Exception as e:
 			print(datetime.datetime.now(), M_TYPE_WARNING, "Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
 
@@ -2728,7 +2753,7 @@ while True: # Why do I do this to myself
 			spawnChannel = serverMap[server.id].spawnChannel
 			if spawnChannel:
 				for channel in server.channels:
-					if channel.id == spawnChannel:
+					if channel.id in spawnChannel:
 						await send_online_message(channel)
 
 		client.loop.create_task(spawn_wild_pokemon())
