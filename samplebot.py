@@ -861,7 +861,9 @@ while True: # Why do I do this to myself
 				if isAfk:
 					break
 
-				isTrainer, gender = False, ''
+				spawn.trainer[0] = random.randint(0, 255)<=SpawnManager.trainerChance
+				spawn.trainer[1] = random.randint(0, 1)
+				isTrainer, gender = spawn.trainer
 				bossSpawned = random.randint(0,255) <= bossChance
 				for channel in server.channels:
 					if spawnChannel and channel.id in spawnChannel:
@@ -895,10 +897,6 @@ while True: # Why do I do this to myself
 									em.set_footer(text='HINT: The more people fight the boss, the easier it is to defeat it!'.format(commandPrefix))
 								else:
 									print(counter, len(spawnChannel))
-									if len(spawnChannel)==1 or counter != len(spawnChannel):
-										spawn.trainer[0] = random.randint(0, 255)<=SpawnManager.trainerChance
-										spawn.trainer[1] = random.randint(0, 1)
-										isTrainer, gender = spawn.trainer
 									if isTrainer:
 										article = 'him' if gender==0 else 'her'
 										msg = 'A poketrainer is looking for a challenger! Type ``{0}fight`` to fight {1}!'.format(commandPrefix, article)
@@ -2662,10 +2660,9 @@ while True: # Why do I do this to myself
 
 		commandPrefix = 'p!'
 		role = None
-		spawnChannel = None
+		spawnChannel = []
 		if rows:
 			ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Found server \'{}\' in database. Fetching configs.'.format(server.id))
-			spawnChannel = []
 			for row in rows:
 				if row['server_spawnchannel.spawn_channel']:
 					spawnChannel.append(row['server_spawnchannel.spawn_channel'])
