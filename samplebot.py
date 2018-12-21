@@ -632,7 +632,7 @@ while True: # Why do I do this to myself
 			if leveledUp:
 				await client.send_message(message.channel, embed=lem)
 
-	bossChance = 16
+	bossChance = 1600
 	afkTime = 150
 	valueMod = 8.75*0.45
 	ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
@@ -642,7 +642,7 @@ while True: # Why do I do this to myself
 		spawnMaxTime = 55
 		restMinTime = 25
 		restMaxTime = 80
-		trainerChance = 30
+		trainerChance = 300
 
 		# Attributes
 		name = {}
@@ -852,52 +852,43 @@ while True: # Why do I do this to myself
 					pokeServer.spawn = Spawn()
 				spawn = pokeServer.spawn
 
-				counter = 0
-				spawn.trainer[0] = random.randint(0, 255)<=SpawnManager.trainerChance
-				spawn.trainer[1] = random.randint(0, 1)
-				isTrainer, gender = spawn.trainer
-				bossSpawned = random.randint(0,255) <= bossChance
+				localAfkTime = (datetime.datetime.now().timestamp() - pokeServer.serverMessageMap)
+				isAfk = localAfkTime > afkTime + spawn.restSpawn
+				print(datetime.datetime.now(), M_TYPE_INFO, 'Server AFK Status: {2}/{1} ({0})'.format(isAfk, afkTime, localAfkTime)) # Why am I so lazy
+				if isAfk:
+					break
+
+				if not spawn.spawned:
+					bossSpawned = random.randint(0,255) <= bossChance
+					spawn.fought = []
+					if not bossSpawned:
+						spawn.trainer[0] = random.randint(0, 255)<=SpawnManager.trainerChance
+						spawn.trainer[1] = random.randint(0, 1)
+						spawn.isBoss = False, None
+						spawn.pId, spawn.name, spawn.captureChance = get_random_pokemon_spawn()
+					else:
+						spawn.trainer = [False, 0]
+						spawn.isBoss = True, None
+						spawn.pId, spawn.name = get_random_boss_pokemon()
+						spawn.captureChance = 999 # Ugh
+					isTrainer, gender = spawn.trainer
+
 				for channel in server.channels:
 					if spawnChannel and channel.id in spawnChannel:
-						counter += 1
-
-						isAfk = True
-						localAfkTime = (datetime.datetime.now().timestamp() - pokeServer.serverMessageMap)
-						isAfk = localAfkTime > afkTime + spawn.restSpawn
-
-						print(datetime.datetime.now(), M_TYPE_INFO, 'Server AFK Status: {2}/{1} ({0})'.format(isAfk, afkTime, localAfkTime)) # Why am I so lazy
-						if isAfk:
-							break
-
 						lastAct, actDelay = spawn.lastAct
 						canAct = datetime.datetime.now().timestamp() - lastAct.timestamp()
+						print(canAct, actDelay, canAct > actDelay)
 						if canAct > actDelay:
 							if not spawn.spawned:
 								print(datetime.datetime.now(), M_TYPE_INFO, "Server '" + server.id + "' ready to act. Acting and updating delay.")
-								print(counter, len(spawnChannel))
-								if len(spawnChannel)==1 or counter != len(spawnChannel):
-									spawn.fought = []
-									spawn.isBoss = False, None
-									spawn.trainer = [False, 0]
-									if not bossSpawned:
-										spawn.pId, spawn.name, spawn.captureChance = get_random_pokemon_spawn()
-									else:
-										spawn.pId, spawn.name = get_random_boss_pokemon()
-									spawn.captureChance = 999 # Ugh
 								
-								if len(spawnChannel)==1 or counter == len(spawnChannel):
-									spawn.spawned = True
-									spawn.lastAct = [datetime.datetime.now(), random.randint(SpawnManager.spawnMinTime, SpawnManager.spawnMaxTime)]
-
 								if bossSpawned:
-									spawn.isBoss = True, None
 									msg = 'A boss {0} has appeared! Type ``{1}fight`` to fight it!'.format(spawn.name, commandPrefix)
 									em = discord.Embed(title='A wild Boss Pokemon appears!', description=msg, colour=0xDEADBF)
 									em.set_author(name='Tall Grass', icon_url=grassUrl)
 									em.set_image(url=getImageUrl(spawn.pId))
 									em.set_footer(text='HINT: The more people fight the boss, the easier it is to defeat it!'.format(commandPrefix))
 								else:
-									print(counter, len(spawnChannel))
 									if isTrainer:
 										article = 'him' if gender==0 else 'her'
 										msg = 'A poketrainer is looking for a challenger! Type ``{0}fight`` to fight {1}!'.format(commandPrefix, article)
@@ -937,17 +928,16 @@ while True: # Why do I do this to myself
 									em.set_author(name='Tall Grass', icon_url=grassUrl)
 									em.set_footer(text='HINT: Your selected pokemon must be in fighting conditions for you to enter a fight! If you need to heal it, type {}center.'.format(commandPrefix))
 								
-								print(counter, len(spawnChannel))
-								if counter == len(spawnChannel):
-									spawn.spawned = False
-									spawn.isBoss = False, None
-									spawn.lastAct = [datetime.datetime.now(), random.randint(SpawnManager.restMinTime, SpawnManager.restMaxTime)]
 								try:
 									await client.send_message(channel, embed=em)
 								except Forbidden as f:
 									pass
 								except Exception as e: # I am very disappointed in you, past self
 									traceback.print_exc()
+				
+				if canAct > actDelay:
+					spawn.lastAct = [datetime.datetime.now(), random.randint(SpawnManager.restMinTime, SpawnManager.restMaxTime)]
+					spawn.spawned = not spawn.spawned
 
 			await asyncio.sleep(10)
 
