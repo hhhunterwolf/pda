@@ -632,7 +632,7 @@ while True: # Why do I do this to myself
 			if leveledUp:
 				await client.send_message(message.channel, embed=lem)
 
-	bossChance = 1600
+	bossChance = 16
 	afkTime = 150
 	valueMod = 8.75*0.45
 	ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
@@ -642,7 +642,7 @@ while True: # Why do I do this to myself
 		spawnMaxTime = 55
 		restMinTime = 25
 		restMaxTime = 80
-		trainerChance = 300
+		trainerChance = 30
 
 		# Attributes
 		name = {}
@@ -877,7 +877,7 @@ while True: # Why do I do this to myself
 					if spawnChannel and channel.id in spawnChannel:
 						lastAct, actDelay = spawn.lastAct
 						canAct = datetime.datetime.now().timestamp() - lastAct.timestamp()
-						print(canAct, actDelay, canAct > actDelay)
+						print(datetime.datetime.now(), M_TYPE_INFO, server.id, canAct, actDelay, canAct > actDelay)
 						if canAct > actDelay:
 							if not spawn.spawned:
 								print(datetime.datetime.now(), M_TYPE_INFO, "Server '" + server.id + "' ready to act. Acting and updating delay.")
