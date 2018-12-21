@@ -44,7 +44,7 @@ M_TYPE_INFO = 'INFO'
 M_TYPE_WARNING = 'WARNING'
 M_TYPE_ERROR = 'ERROR'
 
-DEBUG_MODE = False
+DEBUG_MODE = True
 CHIRSTMAS = True
 
 ocPrint = print
@@ -852,15 +852,7 @@ while True: # Why do I do this to myself
 					pokeServer.spawn = Spawn()
 				spawn = pokeServer.spawn
 
-				isAfk = True
-				localAfkTime = (datetime.datetime.now().timestamp() - pokeServer.serverMessageMap)
-				isAfk = localAfkTime > afkTime + spawn.restSpawn
-
 				counter = 0
-				print(datetime.datetime.now(), M_TYPE_INFO, 'Server AFK Status: {2}/{1} ({0})'.format(isAfk, afkTime, localAfkTime)) # Why am I so lazy
-				if isAfk:
-					break
-
 				spawn.trainer[0] = random.randint(0, 255)<=SpawnManager.trainerChance
 				spawn.trainer[1] = random.randint(0, 1)
 				isTrainer, gender = spawn.trainer
@@ -868,6 +860,15 @@ while True: # Why do I do this to myself
 				for channel in server.channels:
 					if spawnChannel and channel.id in spawnChannel:
 						counter += 1
+
+						isAfk = True
+						localAfkTime = (datetime.datetime.now().timestamp() - pokeServer.serverMessageMap)
+						isAfk = localAfkTime > afkTime + spawn.restSpawn
+
+						print(datetime.datetime.now(), M_TYPE_INFO, 'Server AFK Status: {2}/{1} ({0})'.format(isAfk, afkTime, localAfkTime)) # Why am I so lazy
+						if isAfk:
+							break
+
 						lastAct, actDelay = spawn.lastAct
 						canAct = datetime.datetime.now().timestamp() - lastAct.timestamp()
 						if canAct > actDelay:
@@ -2518,7 +2519,7 @@ while True: # Why do I do this to myself
 			else:
 				ChristmasManager.lastEvent -= 5
 
-			print(datetime.datetime.now(), M_TYPE_INFO, 'Last christmas event: {}'.format(ChristmasManager.lastEvent))
+			# print(datetime.datetime.now(), M_TYPE_INFO, 'Last christmas event: {}'.format(ChristmasManager.lastEvent))
 			await asyncio.sleep(5)
 
 	async def drop_presents():
