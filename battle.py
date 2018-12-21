@@ -7,7 +7,7 @@ from mysql import MySQL
 
 defaultPower = 75
 defaultCritModifier = 1.5
-expModifier = 2.5
+expModifier = 2.5*2 # Remove after Christmas
 boostModifier = 0.5
 
 # This should probably be in a utils file. Logs should be done via a log lib. Meh.
