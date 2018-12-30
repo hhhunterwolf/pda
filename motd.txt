@@ -1,24 +1,16 @@
-Changelog 6.0c 
+Changelog 9.4
 
 :pencil: Hi everyone! :pencil:
 
-People have been messaging me about the trade level limit. My objective with PDA was to create a bot that resembled a pokemon adventure, something engaging and fun to play, and I'm very proud of how far it got, as well a very thankful for all of the players it now has. I do believe in the spirit of taking part of the adventure, leveling up your starter and playing the bot, and I'm not too fond of the idea of new players getting very strong pokemon out of the blue via trading. That's why the level limit is there.
-
-I do, however, understand that the early game in PDA can be a little harsh, that it's hard to win battles with low stat pokemon, and that it takes a while to get to level 5. Because of this, wild battles are now easier to win, and both the pokemon and the player now earn 50% and 100% extra EXP respectively. This will make the begninning easier for new players, and all of you will be level 5 in no time. I hope you guys enjoy!
+Time has been short recently, but I'm trying my best to make the bot playable again. Thanks everyone all for the support.
 
 Changes:
 
-+ 50% EXP boost for pokemon on wild battles.
-+ 100% EXP boost for players on every battle.
-+ Wild battles are now easier to win.
-+ Fixed halloween command saying 'trade' instead of 'halloween'.
+- Fixed bug where some private servers wouldn't spawn.
+- Releasing Pokemon now requires confirmation.
 
-News
+:christmas_tree: News :christmas_tree:
 
-:jack_o_lantern: Halloween is here! :jack_o_lantern:
+It's that time of the year! PDA is now getting into the Christmas spirit, and with it comes loads of presents! Santa is going to appear randomly on the official discord server and distribute presents! Join us there!
 
-Ghost Pokemon now drop delicious candy :candy: that can be exchanged for Pokemon with the 'halloween' command! Have fun!
-
-Thank you Natsu dragneel6890#1771 for the amazing idea for this event!
-
-PDA now has an official Discord server! You can join it here. Thanks Natsu dragneel6890#1771 for creating and managing the server! Have fun!
+You can join the server here: https://discord.gg/ZrEuyCY. Thanks Natsu dragneel6890#1771 for creating and managing the server! Have fun!
