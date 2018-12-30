@@ -44,7 +44,7 @@ M_TYPE_INFO = 'INFO'
 M_TYPE_WARNING = 'WARNING'
 M_TYPE_ERROR = 'ERROR'
 
-DEBUG_MODE = True
+DEBUG_MODE = False
 CHIRSTMAS = True
 
 ocPrint = print
@@ -344,6 +344,15 @@ while True: # Why do I do this to myself
 		em.set_author(name='Professor Oak', icon_url=oakUrl)
 		await client.send_message(message.channel, embed=em)
 
+	async def display_release_confirm(message, pokemon):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		msg = '{0.author.mention}, are you sure you want to release {1} back to the wild? Type ``{2}confirm`` to confirm.'.format(message, pokemon.name, commandPrefix)
+		em = discord.Embed(title='Good bye!', description=str(msg), colour=0xDEADBF)
+		em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		await client.send_message(message.channel, embed=em)
+
 	async def release_pokemon(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
@@ -366,11 +375,9 @@ while True: # Why do I do this to myself
 								await client.send_message(message.channel, embed=em)
 								return
 
-							pokemon = player.releasePokemon(option)
-							if pokemon:
-								await display_release_success(message, pokemon)
-							else:
-								await display_pokemon_in_gym(message)
+							pokemon, inGym = player.getPokemon(option)
+							player.release = pokemon
+							await display_release_confirm(message, pokemon)
 						except IndexError as error:
 							print(datetime.datetime.now(), M_TYPE_ERROR, error)
 							traceback.print_exc()
@@ -855,8 +862,8 @@ while True: # Why do I do this to myself
 				localAfkTime = (datetime.datetime.now().timestamp() - pokeServer.serverMessageMap)
 				isAfk = localAfkTime > afkTime + spawn.restSpawn
 				print(datetime.datetime.now(), M_TYPE_INFO, 'Server AFK Status: {2}/{1} ({0})'.format(isAfk, afkTime, localAfkTime)) # Why am I so lazy
-				if isAfk:
-					break
+				#if isAfk:
+					#break
 
 				if not spawn.spawned:
 					bossSpawned = random.randint(0,255) <= bossChance
@@ -877,7 +884,7 @@ while True: # Why do I do this to myself
 					if spawnChannel and channel.id in spawnChannel:
 						lastAct, actDelay = spawn.lastAct
 						canAct = datetime.datetime.now().timestamp() - lastAct.timestamp()
-						print(datetime.datetime.now(), M_TYPE_INFO, server.id, canAct, actDelay, canAct > actDelay)
+						# print(datetime.datetime.now(), M_TYPE_INFO, server.id, canAct, actDelay, canAct > actDelay)
 						if canAct > actDelay:
 							if not spawn.spawned:
 								print(datetime.datetime.now(), M_TYPE_INFO, "Server '" + server.id + "' ready to act. Acting and updating delay.")
@@ -1027,14 +1034,17 @@ while True: # Why do I do this to myself
 				msg = 'Invalid channel. Type ``{}spawn #channel_name`` to set the channel where wild pokemon will appear.'.format(commandPrefix)
 			else:
 				cursor = MySQL.getCursor()
-				cursor.execute("""
-					INSERT INTO server_spawnchannel (server_id, spawn_channel)
-					VALUES (%s, %s)
-					""", (message.server.id, selectedChannel.id))
-				msg = 'Spawn channel set to #{0}.'.format(selectedChannel)
-				MySQL.commit()
+				try:
+					cursor.execute("""
+						INSERT INTO server_spawnchannel (server_id, spawn_channel)
+						VALUES (%s, %s)
+						""", (message.server.id, selectedChannel.id))
+					msg = 'Spawn channel set to #{0}.'.format(selectedChannel)
+					MySQL.commit()
 
-				serverMap[message.server.id].spawnChannel.append(selectedChannel.id)
+					serverMap[message.server.id].spawnChannel.append(selectedChannel.id)
+				except Exception as e:
+					msg = 'Spawn channel #{0} is already set.'.format(selectedChannel)
 
 		em = discord.Embed(title='Set Spawn Channel', description=msg, colour=0xDEADBF)
 		em.set_author(name='Professor Oak', icon_url=oakUrl)
@@ -2236,6 +2246,23 @@ while True: # Why do I do this to myself
 		em.set_footer(text='HINT: Higher level players have a bigger chance of catching wild pokemon.')
 		await client.send_message(message.channel, embed=em)
 
+	async def display_confirm(message):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		player = playerMap[message.author.id]
+
+		if player.release:
+			# Confirm releasing pokemon
+			pokemon = player.releasePokemon(player.release.ownId)
+			if pokemon:
+				await display_release_success(message, pokemon)
+			else:
+				await display_pokemon_in_gym(message)
+			player.release = None
+		else:
+			# Confirm daycare
+			await display_confirm_daycare(message)
+
 	async def display_confirm_daycare(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
@@ -2261,6 +2288,7 @@ while True: # Why do I do this to myself
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
 		player = playerMap[message.author.id]
+		player.release = None
 		msg = '{0}, leveling up your {1} up to level {2} will cost you {3}₽, and will take {4}. Type ``{5}confirm`` to confirm.'.format(message.author.mention, pokemon.name, level, cost, humanfriendly.format_timespan(time), commandPrefix)	
 		em = discord.Embed(title='Confirm Day Care', description=msg, colour=0xDEADBF)
 		em.set_author(name='Professor Oak', icon_url=oakUrl)
@@ -2564,7 +2592,7 @@ while True: # Why do I do this to myself
 		# 'halloween' : display_candy_shop,
 		'trade' : display_trade_offer,
 		'offer' : display_trade_make_offer,
-		'confirm' : display_confirm_daycare,
+		'confirm' : display_confirm,
 		'cancel' : display_cancel_trade,
 		'ready' : display_ready_trade,
 		'daycare' : display_daycare,
@@ -2641,7 +2669,33 @@ while True: # Why do I do this to myself
 		evaluate_server(server)
 
 	def evaluate_server(server):
+		# Fetch server info
 		cursor = MySQL.getCursor()
+		cursor.execute("""
+			SELECT * 
+			FROM server
+			WHERE id = %s
+			""", (server.id,))
+		row = cursor.fetchone()
+
+		commandPrefix = 'p!'
+		role = None
+		spawnChannel = []
+		if row:
+			# Server exists, load info
+			ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Found server \'{}\' in database. Fetching configs.'.format(server.id))
+			commandPrefix = row['prefix']
+			role = row['ping_role']
+				
+		else:
+			# Server doesn't exist, insert info
+			ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Server \'{}\' was not found in database. Adding.'.format(server.id))
+			cursor.execute("""
+			INSERT INTO server (id)
+			VALUES (%s)"""
+			, (server.id,))
+
+		# Fetch spawn channels
 		cursor.execute("""
 			SELECT * 
 			FROM server LEFT JOIN server_spawnchannel ON (server.id = server_spawnchannel.server_id)
@@ -2649,22 +2703,9 @@ while True: # Why do I do this to myself
 			""", (server.id,))
 		rows = cursor.fetchall()
 
-		commandPrefix = 'p!'
-		role = None
-		spawnChannel = []
-		if rows:
-			ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Found server \'{}\' in database. Fetching configs.'.format(server.id))
-			for row in rows:
-				if row['server_spawnchannel.spawn_channel']:
-					spawnChannel.append(row['server_spawnchannel.spawn_channel'])
-				commandPrefix = row['prefix']
-				role = row['ping_role']
-		else:
-			ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Server \'{}\' was not found in database. Adding.'.format(server.id))
-			cursor.execute("""
-			INSERT INTO server (id)
-			VALUES (%s)"""
-			, (server.id,))
+		for row in rows:
+			if row['server_spawnchannel.spawn_channel']:
+				spawnChannel.append(row['server_spawnchannel.spawn_channel'])
 			
 		serverMap[server.id] = PokeServer(id=server.id, commandPrefix=commandPrefix.lower(), spawnChannel=spawnChannel, role=role)
 		ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Done.')
