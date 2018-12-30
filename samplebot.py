@@ -44,7 +44,7 @@ M_TYPE_INFO = 'INFO'
 M_TYPE_WARNING = 'WARNING'
 M_TYPE_ERROR = 'ERROR'
 
-DEBUG_MODE = False
+DEBUG_MODE = True
 CHIRSTMAS = True
 
 ocPrint = print
@@ -880,6 +880,7 @@ while True: # Why do I do this to myself
 						spawn.captureChance = 999 # Ugh
 					isTrainer, gender = spawn.trainer
 
+				canAct = 0
 				for channel in server.channels:
 					if spawnChannel and channel.id in spawnChannel:
 						lastAct, actDelay = spawn.lastAct
@@ -953,10 +954,11 @@ while True: # Why do I do this to myself
 		await client.wait_until_ready()
 
 		while True:
-			try:
-				await SpawnManager.spawn()
-			except Exception as e: # Still disgusting
-				traceback.print_exc()
+			await SpawnManager.spawn()
+			#try:
+			#	pass	
+			#except Exception as e: # Still disgusting
+			#	traceback.print_exc()
 			
 	async def add_random_pokemon(message):
 		player = playerMap[message.author.id]
