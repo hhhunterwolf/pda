@@ -645,10 +645,10 @@ while True: # Why do I do this to myself
 	ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
 	class SpawnManager:
 		# Constants
-		spawnMinTime = 45
-		spawnMaxTime = 55
+		spawnMinTime = 35
+		spawnMaxTime = 45
 		restMinTime = 25
-		restMaxTime = 80
+		restMaxTime = 60
 		trainerChance = 30
 
 		# Attributes
@@ -948,18 +948,17 @@ while True: # Why do I do this to myself
 					spawn.lastAct = [datetime.datetime.now(), random.randint(SpawnManager.restMinTime, SpawnManager.restMaxTime)]
 					spawn.spawned = not spawn.spawned
 
-			await asyncio.sleep(10)
+			await asyncio.sleep(30)
 
 	@asyncio.coroutine
 	async def spawn_wild_pokemon():
 		await client.wait_until_ready()
 
 		while True:
-			await SpawnManager.spawn()
-			#try:
-			#	pass	
-			#except Exception as e: # Still disgusting
-			#	traceback.print_exc()
+			try:
+				await SpawnManager.spawn()
+			except Exception as e: # Still disgusting
+				traceback.print_exc()
 			
 	async def add_random_pokemon(message):
 		player = playerMap[message.author.id]
