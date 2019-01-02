@@ -881,6 +881,7 @@ while True: # Why do I do this to myself
 					isTrainer, gender = spawn.trainer
 
 				canAct = 0
+				actDelay = 0
 				for channel in server.channels:
 					if spawnChannel and channel.id in spawnChannel:
 						lastAct, actDelay = spawn.lastAct
