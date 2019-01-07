@@ -645,10 +645,10 @@ while True: # Why do I do this to myself
 	ballList = ['Poke Ball', 'Great Ball', 'Ultra Ball', 'Master Ball']
 	class SpawnManager:
 		# Constants
-		spawnMinTime = 35
-		spawnMaxTime = 45
-		restMinTime = 25
-		restMaxTime = 60
+		spawnMinTime = 65
+		spawnMaxTime = 125
+		restMinTime = 35
+		restMaxTime = 75
 		trainerChance = 30
 
 		# Attributes
@@ -845,108 +845,119 @@ while True: # Why do I do this to myself
 
 		@staticmethod	
 		async def spawn():
-			for server in client.servers:
+			counter = 1
+			servers = [x for x in client.servers]
+			for server in servers:
 				try:
-					pokeServer = serverMap[server.id]
-				except Exception:
-					ocPrint(datetime.datetime.now(), M_TYPE_ERROR, 'Server no found. Evaluating.')
-					evaluate_server(server)
-					return
-				
-				commandPrefix, spawnChannel = pokeServer.get_prefix_spawnchannel()
+					try:
+						pokeServer = serverMap[server.id]
+					except Exception:
+						ocPrint(datetime.datetime.now(), M_TYPE_ERROR, 'Server no found. Evaluating.')
+						evaluate_server(server)
+						return
+					
+					print(datetime.datetime.now(), M_TYPE_INFO, 'Iteration \'{}\' ({}/{})'.format(server.id, counter, len(servers)))
+					commandPrefix, spawnChannel = pokeServer.get_prefix_spawnchannel()
 
-				if not pokeServer.spawn:
-					pokeServer.spawn = Spawn()
-				spawn = pokeServer.spawn
+					if not pokeServer.spawn:
+						pokeServer.spawn = Spawn()
+					spawn = pokeServer.spawn
 
-				localAfkTime = (datetime.datetime.now().timestamp() - pokeServer.serverMessageMap)
-				isAfk = localAfkTime > afkTime + spawn.restSpawn
-				print(datetime.datetime.now(), M_TYPE_INFO, 'Server AFK Status: {2}/{1} ({0})'.format(isAfk, afkTime, localAfkTime)) # Why am I so lazy
-				#if isAfk:
-					#break
+					localAfkTime = (datetime.datetime.now().timestamp() - pokeServer.serverMessageMap)
+					isAfk = localAfkTime > afkTime + spawn.restSpawn
+					#print(datetime.datetime.now(), M_TYPE_INFO, 'Server AFK Status: {2}/{1} ({0})'.format(isAfk, afkTime, localAfkTime)) # Why am I so lazy
+					#if isAfk:
+						#break
 
-				if not spawn.spawned:
-					bossSpawned = random.randint(0,255) <= bossChance
-					spawn.fought = []
-					if not bossSpawned:
-						spawn.trainer[0] = random.randint(0, 255)<=SpawnManager.trainerChance
-						spawn.trainer[1] = random.randint(0, 1)
-						spawn.isBoss = False, None
-						spawn.pId, spawn.name, spawn.captureChance = get_random_pokemon_spawn()
-					else:
-						spawn.trainer = [False, 0]
-						spawn.isBoss = True, None
-						spawn.pId, spawn.name = get_random_boss_pokemon()
-						spawn.captureChance = 999 # Ugh
-					isTrainer, gender = spawn.trainer
+					if not spawn.spawned:
+						bossSpawned = random.randint(0,255) <= bossChance
+						spawn.fought = []
+						if not bossSpawned:
+							spawn.trainer[0] = random.randint(0, 255)<=SpawnManager.trainerChance
+							spawn.trainer[1] = random.randint(0, 1)
+							spawn.isBoss = False, None
+							spawn.pId, spawn.name, spawn.captureChance = get_random_pokemon_spawn()
+						else:
+							spawn.trainer = [False, 0]
+							spawn.isBoss = True, None
+							spawn.pId, spawn.name = get_random_boss_pokemon()
+							spawn.captureChance = 999 # Ugh
+						isTrainer, gender = spawn.trainer
 
-				canAct = 0
-				actDelay = 0
-				for channel in server.channels:
-					if spawnChannel and channel.id in spawnChannel:
-						lastAct, actDelay = spawn.lastAct
-						canAct = datetime.datetime.now().timestamp() - lastAct.timestamp()
-						# print(datetime.datetime.now(), M_TYPE_INFO, server.id, canAct, actDelay, canAct > actDelay)
-						if canAct > actDelay:
-							if not spawn.spawned:
-								print(datetime.datetime.now(), M_TYPE_INFO, "Server '" + server.id + "' ready to act. Acting and updating delay.")
-								
-								if bossSpawned:
-									msg = 'A boss {0} has appeared! Type ``{1}fight`` to fight it!'.format(spawn.name, commandPrefix)
-									em = discord.Embed(title='A wild Boss Pokemon appears!', description=msg, colour=0xDEADBF)
-									em.set_author(name='Tall Grass', icon_url=grassUrl)
-									em.set_image(url=getImageUrl(spawn.pId))
-									em.set_footer(text='HINT: The more people fight the boss, the easier it is to defeat it!'.format(commandPrefix))
-								else:
-									if isTrainer:
-										article = 'him' if gender==0 else 'her'
-										msg = 'A poketrainer is looking for a challenger! Type ``{0}fight`` to fight {1}!'.format(commandPrefix, article)
-										em = discord.Embed(title='Here comes a new challenger!', description=msg, colour=0xDEADBF)
+					canAct = 0
+					actDelay = 0
+
+					# print(datetime.datetime.now(), M_TYPE_INFO, 'Server Channels', server.id, [c.id for c in server.channels])
+					for channel in list(server.channels):
+						if spawnChannel and channel.id in spawnChannel:
+							lastAct, actDelay = spawn.lastAct
+							canAct = datetime.datetime.now().timestamp() - lastAct.timestamp()
+							# print(datetime.datetime.now(), M_TYPE_INFO, server.id, canAct, actDelay, canAct > actDelay)
+							if canAct > actDelay:
+								if not spawn.spawned:
+									print(datetime.datetime.now(), M_TYPE_INFO, "Server '" + server.id + "' ready to act. Acting and updating delay.")
+									
+									if bossSpawned:
+										msg = 'A boss {0} has appeared! Type ``{1}fight`` to fight it!'.format(spawn.name, commandPrefix)
+										em = discord.Embed(title='A wild Boss Pokemon appears!', description=msg, colour=0xDEADBF)
 										em.set_author(name='Tall Grass', icon_url=grassUrl)
-										em.set_thumbnail(url=trainerURL.format(gender))
-										em.set_footer(text='HINT: You cannot catch other trainer\'s pokemon, but you will earn money if you win the fight.'.format(commandPrefix))
+										em.set_image(url=getImageUrl(spawn.pId))
+										em.set_footer(text='HINT: The more people fight the boss, the easier it is to defeat it!'.format(commandPrefix))
 									else:
-										role = None
-										for r in server.roles:
-											if r.id == pokeServer.role:
-												role = r
-										
-										msg = 'A'
-										if role and spawn.captureChance <= 10:
-											msg = '{0}, a'.format(role.mention)
-										
-										msg += ' wild {0} wants to fight! Type ``{1}fight`` to fight it, or ``{1}catch #`` to try and catch it as well!'.format(spawn.name, commandPrefix)
-										em = discord.Embed(title='A wild {} appeared!'.format(spawn.name), description=msg, colour=0xDEADBF)
-										em.set_author(name='Tall Grass', icon_url=grassUrl)
-										em.set_thumbnail(url=getImageUrl(spawn.pId))
-										em.set_footer(text='HINT: You need pokeballs to catch pokemon! Check your supply by typing {}me.'.format(commandPrefix))
-								await client.send_message(channel, embed=em)
-								#await asyncio.sleep(50)
-							else:
-								isTrainer, gender = spawn.trainer
-								if isTrainer:
-									msg = 'The poketrainer is gone! Don\'t worry if you didn\'t have a chance to fight {}, though. Pokemon trainers eager to fight always come back.'.format('him' if gender==0 else 'her')
-									em = discord.Embed(title='Bye!', description=msg, colour=0xDEADBF)
-									em.set_thumbnail(url=trainerURL.format(gender))
-									em.set_author(name='Tall Grass', icon_url=grassUrl)
-									em.set_footer(text='HINT: Your selected pokemon must be in fighting conditions for you to enter a fight! If you need to heal it, type {}center.'.format(commandPrefix))
-								else:
-									msg = 'Darn it, {} has fled the scene! Don\'t worry if you didn\'t have a chance to fight it, though. Wild pokemon appear a lot around these parts.'.format(spawn.name, commandPrefix)
-									em = discord.Embed(title='{} fled!'.format(spawn.name), description=msg, colour=0xDEADBF)
-									em.set_thumbnail(url=getImageUrl(spawn.pId))
-									em.set_author(name='Tall Grass', icon_url=grassUrl)
-									em.set_footer(text='HINT: Your selected pokemon must be in fighting conditions for you to enter a fight! If you need to heal it, type {}center.'.format(commandPrefix))
-								
-								try:
+										if isTrainer:
+											article = 'him' if gender==0 else 'her'
+											msg = 'A poketrainer is looking for a challenger! Type ``{0}fight`` to fight {1}!'.format(commandPrefix, article)
+											em = discord.Embed(title='Here comes a new challenger!', description=msg, colour=0xDEADBF)
+											em.set_author(name='Tall Grass', icon_url=grassUrl)
+											em.set_thumbnail(url=trainerURL.format(gender))
+											em.set_footer(text='HINT: You cannot catch other trainer\'s pokemon, but you will earn money if you win the fight.'.format(commandPrefix))
+										else:
+											role = None
+											for r in server.roles:
+												if r.id == pokeServer.role:
+													role = r
+											
+											msg = 'A'
+											if role and spawn.captureChance <= 10:
+												msg = '{0}, a'.format(role.mention)
+											
+											msg += ' wild {0} wants to fight! Type ``{1}fight`` to fight it, or ``{1}catch #`` to try and catch it as well!'.format(spawn.name, commandPrefix)
+											em = discord.Embed(title='A wild {} appeared!'.format(spawn.name), description=msg, colour=0xDEADBF)
+											em.set_author(name='Tall Grass', icon_url=grassUrl)
+											em.set_thumbnail(url=getImageUrl(spawn.pId))
+											em.set_footer(text='HINT: You need pokeballs to catch pokemon! Check your supply by typing {}me.'.format(commandPrefix))
 									await client.send_message(channel, embed=em)
-								except Forbidden as f:
-									pass
-								except Exception as e: # I am very disappointed in you, past self
-									traceback.print_exc()
+									#await asyncio.sleep(50)
+								else:
+									isTrainer, gender = spawn.trainer
+									if isTrainer:
+										msg = 'The poketrainer is gone! Don\'t worry if you didn\'t have a chance to fight {}, though. Pokemon trainers eager to fight always come back.'.format('him' if gender==0 else 'her')
+										em = discord.Embed(title='Bye!', description=msg, colour=0xDEADBF)
+										em.set_thumbnail(url=trainerURL.format(gender))
+										em.set_author(name='Tall Grass', icon_url=grassUrl)
+										em.set_footer(text='HINT: Your selected pokemon must be in fighting conditions for you to enter a fight! If you need to heal it, type {}center.'.format(commandPrefix))
+									else:
+										msg = 'Darn it, {} has fled the scene! Don\'t worry if you didn\'t have a chance to fight it, though. Wild pokemon appear a lot around these parts.'.format(spawn.name, commandPrefix)
+										em = discord.Embed(title='{} fled!'.format(spawn.name), description=msg, colour=0xDEADBF)
+										em.set_thumbnail(url=getImageUrl(spawn.pId))
+										em.set_author(name='Tall Grass', icon_url=grassUrl)
+										em.set_footer(text='HINT: Your selected pokemon must be in fighting conditions for you to enter a fight! If you need to heal it, type {}center.'.format(commandPrefix))
+									
+									try:
+										await client.send_message(channel, embed=em)
+									except Forbidden as f:
+										pass
+									except Exception as e: # I am very disappointed in you, past self
+										traceback.print_exc()
+					
+					if canAct > actDelay:
+						spawn.lastAct = [datetime.datetime.now(), random.randint(SpawnManager.restMinTime, SpawnManager.restMaxTime)]
+						spawn.spawned = not spawn.spawned
+
+					counter += 1
 				
-				if canAct > actDelay:
-					spawn.lastAct = [datetime.datetime.now(), random.randint(SpawnManager.restMinTime, SpawnManager.restMaxTime)]
-					spawn.spawned = not spawn.spawned
+				except discord.errors.Forbidden as e:
+					print(datetime.datetime.now(), M_TYPE_INFO, 'Permission problem with server "{}". Skipping.'.format(server.id))
 
 			await asyncio.sleep(30)
 
@@ -1047,6 +1058,15 @@ while True: # Why do I do this to myself
 					serverMap[message.server.id].spawnChannel.append(selectedChannel.id)
 				except Exception as e:
 					msg = 'Spawn channel #{0} is already set.'.format(selectedChannel)
+					cursor.execute("""
+						DELETE FROM server_spawnchannel 
+						WHERE server_id = %s
+						AND spawn_channel = %s
+						""", (message.server.id, selectedChannel.id))
+					msg = 'Spawn channel #{0} removed. Pokemon won\'t spawn there anymore.'.format(selectedChannel)
+					MySQL.commit()
+
+					serverMap[message.server.id].spawnChannel.remove(selectedChannel.id)
 
 		em = discord.Embed(title='Set Spawn Channel', description=msg, colour=0xDEADBF)
 		em.set_author(name='Professor Oak', icon_url=oakUrl)
@@ -2647,7 +2667,7 @@ while True: # Why do I do this to myself
 			random.seed()
 			
 			# get command
-			command = content.split(' ')[0].replace(commandPrefix, '')
+			command = content.split(' ')[0].replace(commandPrefix, '', 1)
 
 			# try executing command as player
 			if command in commandList:
@@ -2710,6 +2730,7 @@ while True: # Why do I do this to myself
 				spawnChannel.append(row['server_spawnchannel.spawn_channel'])
 			
 		serverMap[server.id] = PokeServer(id=server.id, commandPrefix=commandPrefix.lower(), spawnChannel=spawnChannel, role=role)
+		print(datetime.datetime.now(), M_TYPE_INFO, 'Spawn Channels', server.id, serverMap[server.id].spawnChannel)
 		ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Done.')
 
 	def isGymFirstPokemonExist():
@@ -2772,7 +2793,7 @@ while True: # Why do I do this to myself
 		em = discord.Embed(title='PDA admin.', description=messageFile, colour=0xDEADBF)
 		try:
 			pass
-			await client.send_message(channel, embed=em)
+			#await client.send_message(channel, embed=em)
 		except Exception as e:
 			print(datetime.datetime.now(), M_TYPE_WARNING, "Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
 
