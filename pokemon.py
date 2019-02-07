@@ -29,7 +29,9 @@ class Pokemon:
 		self.dayCareLevel = dayCareLevel
 		
 		if pokemonId == 0:
-			cursor.execute("""SELECT * FROM pokemon WHERE pokemon.identifier = %s""", (name.replace('MEGA ', ''),))		
+			if mega and '-mega' not in name:
+				name = name + "%mega%"
+			cursor.execute("""SELECT * FROM pokemon WHERE pokemon.identifier LIKE %s""", (name,))
 			row = cursor.fetchone()
 			pId = row['id']
 		else:
@@ -37,11 +39,18 @@ class Pokemon:
 			row = cursor.fetchone()
 			name = row['identifier']
 			pId = pokemonId
+			if mega and '-mega' not in name:
+				name = name + "%mega%"
+				cursor.execute("""SELECT * FROM pokemon WHERE pokemon.identifier LIKE %s""", (name,))
+				row = cursor.fetchone()
+				pId = row['id']
+			
 
-		self.name = name.upper()
-		self.name = 'MEGA ' + self.name if self.mega else self.name
+		self.name = row['identifier'].upper()
 		self.captureRate = row['capture_rate']
 		self.candyDrop = row['candy_drop']
+		self.yieldEv = row['yield_ev']
+		self.evolvedAtLevel = row['evolved_at_level']
 
 		cursor.execute("""
 			SELECT * FROM `type` JOIN pokemon_type 
@@ -55,26 +64,11 @@ class Pokemon:
 			t = PokeType(row['type_id'], row['identifier'])
 			self.types.append(t)
 
-		if not mega:
-			cursor.execute("""
-				SELECT * FROM pokemon_stat JOIN stat
-				WHERE pokemon_stat.pokemon_id = %s 
-				AND stat.id = pokemon_stat.stat_id
-				""", (pId,))		
-		else:
-			cursor.execute("""
-				SELECT * FROM mega_stat JOIN mega_pokemon JOIN stat
-				WHERE mega_pokemon.pokemon_id = %s
-				AND stat.id = mega_stat.stat_id
-				AND mega_pokemon.mega_id = mega_stat.mega_id
-				""", (pId,))
-			
-			cursor.execute("""
-				SELECT * FROM mega_stat JOIN mega_pokemon JOIN stat
-				WHERE mega_pokemon.pokemon_id = %s
-				AND stat.id = mega_stat.stat_id
-				AND mega_pokemon.mega_id = mega_stat.mega_id
-				""", (pId,))
+		cursor.execute("""
+			SELECT * FROM pokemon_stat JOIN stat
+			WHERE pokemon_stat.pokemon_id = %s 
+			AND stat.id = pokemon_stat.stat_id
+			""", (pId,))	
 		rows = cursor.fetchall()
 		
 		stats = {}
@@ -112,6 +106,14 @@ class Pokemon:
 		deltaStr = Pokemon.convertDeltaToHuman(delta)
 		healingStr = '- **__Heals in *{}*__**'.format(deltaStr) if isHealing else ''
 
+		evolvesStr = ''
+		evolutions = self.getEvolutions()
+		if evolutions:
+			evolvesStr = '\n**Evolutions: **'
+			for e in evolutions:
+				evolvesStr += '{} at level {}, '.format(e.name, e.evolvedAtLevel)
+			evolvesStr = evolvesStr[:-2] + '.'
+
 		return textwrap.dedent("""
 __Information:__
 
@@ -120,7 +122,7 @@ __Information:__
 **Pokedex:** %d
 **Level:** %s
 **Types:** %s
-**Caught with:** %s
+**Caught with:** %s%s
 
 __Stats and IV:__
 
@@ -141,6 +143,7 @@ __Experience:__
 			self.pokeStats.level,
 			t,
 			caughtStrings[self.caughtWith],
+			evolvesStr,
 			self.pokeStats.hp,
 			self.pokeStats.current['hp'], 
 			self.pokeStats.iv['hp'],
@@ -186,32 +189,55 @@ __Experience:__
 
 	def canMegaEvolve(self):
 		cursor = MySQL.getCursor()
-		cursor.execute("""
-			SELECT * FROM mega_pokemon
-			WHERE mega_pokemon.pokemon_id = %s
-			""", (self.pId,))
+		
+		name = self.name + "%mega%"
+		cursor.execute("""SELECT * FROM pokemon WHERE pokemon.identifier LIKE %s""", (name,))
 		
 		return cursor.fetchone() is not None
 
-	def megaEvolve(self):
-		self.evolve(Pokemon(name=self.name, level=self.pokeStats.level, wild=self.wild, iv=self.pokeStats.iv, mega=True))
+	def megaEvolve(self, pokemon=None):
+		if not pokemon:
+			pokemon = Pokemon(name=self.name, level=self.pokeStats.level, wild=self.wild, iv=self.pokeStats.iv)
+		pokemon.mega = True
+
+		self.evolve(pokemon)
 
 	def hasEvolved(self):
+		return self.getEvolutions(True)
+
+	def getMegaEvolutions(self):
+		cursor = MySQL.getCursor()
+		
+		name = self.name + "%mega%"
+		cursor.execute("""
+			SELECT * FROM pokemon 
+			WHERE pokemon.identifier LIKE %s
+		""", (name,))
+		rows = cursor.fetchall()
+		
+		megaEvolutions = []
+		for row in rows:
+			megaEvolutions.append(Pokemon(row['identifier'], self.pokeStats.level, self.wild, self.pokeStats.iv))
+
+		return megaEvolutions
+
+	def getEvolutions(self, leveLimit=False):
 		cursor = MySQL.getCursor()
 		cursor.execute("""
 			SELECT * FROM pokemon
 			WHERE pokemon.evolves_from_species_id = %s
-			ORDER BY RAND()
 			""", (self.pId,))		
-		row = cursor.fetchone()
+		rows = cursor.fetchall()
 
-		if row:
-			evolveLevel = row['evolved_at_level']
-			if self.pokeStats.level >= evolveLevel:
-				self.evolve(Pokemon(row['identifier'], self.pokeStats.level, self.wild, self.pokeStats.iv))
-				return True
+		evolutions = []
 
-		return False
+		if rows:
+			for row in rows:
+				evolveLevel = row['evolved_at_level']
+				if not leveLimit or self.pokeStats.level >= evolveLevel:
+					evolutions.append(Pokemon(row['identifier'], self.pokeStats.level, self.wild, self.pokeStats.iv))
+
+		return evolutions
 
 	def isWild(self):
 		return self.wild==1
@@ -269,3 +295,44 @@ __Experience:__
 			return self.types[0].tId == tId
 		else:
 			return self.types[0].tId == tId or self.types[1].tId == tId
+
+	def getMoves(self, leveLimit=False):
+		cursor = MySQL.getCursor()
+		
+		if not leveLimit:
+			cursor.execute("""
+				SELECT * FROM pokemon_move JOIN move ON (pokemon_move.move_id = move.id)
+				WHERE pokemon_id = %s
+				AND enabled = True
+			""", (self.pId, ))
+		else:
+			cursor.execute("""
+				SELECT * FROM pokemon_move JOIN move ON (pokemon_move.move_id = move.id)
+				WHERE pokemon_id = %s
+				AND learned_at_level <= %s
+				AND enabled = True
+			""", (self.pId, self.pokeStats.level))
+		rows = cursor.fetchall()
+
+		return [row['move_id'] for row in rows]
+
+	def getLatestNaturalMoves(self):
+		cursor = MySQL.getCursor()
+
+		cursor.execute("""
+			SELECT * FROM pokemon_move JOIN move ON (pokemon_move.move_id = move.id)
+			WHERE pokemon_id = %s
+			AND learned_at_level <= %s
+			AND enabled = True
+			AND learned_at_level IS NOT NULL
+			LIMIT 4
+		""", (self.pId, self.pokeStats.level))
+		rows = cursor.fetchall()
+
+		if not rows:
+			return [165]
+
+		return [row['move_id'] for row in rows]
+
+	def __repr__(self):
+		return str([self.pId, self.name])

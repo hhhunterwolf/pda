@@ -1,6 +1,8 @@
 import math
 import random
 import datetime
+import requests
+import json
 
 from pokemon import Pokemon
 from mysql import MySQL
@@ -58,7 +60,7 @@ class Battle:
 					self.modifier2 = max(tempMod, self.modifier2)
 		self.modifier2 = self.modifier2/100
 
-	def __init__(self, challenger1, challenger2, boost=None, gym=False):
+	def old__init__(self, challenger1, challenger2, boost=None, gym=False):
 		random.seed()
 		self.boost = boost
 		self.gym = gym
@@ -86,6 +88,50 @@ class Battle:
 		
 		#print(datetime.datetime.now(), M_TYPE_INFO, challenger1)
 		#print(datetime.datetime.now(), M_TYPE_INFO, challenger2)
+
+	def __init__(self, challenger1, challenger2, boost=None, gym=False, f1name=None, f2name='wild', f1id=None, f2id='0', p1moves=None, p2moves=None):
+		random.seed()
+		self.boost = boost
+		self.gym = gym
+		self.damageDealt = {
+			'winner' : 0,
+			'loser' : 0
+		}
+		self.challenger1, self.challenger2 = challenger1, challenger2
+
+		# Handicap is for players against wild pokemon. This code is a mess.
+		playerHandicap = Battle.PLAYER_HANDICAP if (challenger1.wild==1.5 and challenger2.wild==1 and not gym) else 1
+
+		self.param = {}
+		self.param['f1name'] = f1name
+		self.param['f1id'] = f1id
+		self.param['f2name'] = f2name
+		self.param['f2id'] = f2id
+		self.prepareParameter(challenger1, 'p1', p1moves, playerHandicap)
+		self.prepareParameter(challenger2, 'p2', p2moves)
+		
+	def prepareParameter(self, pokemon, prefix, moves, playerHandicap=1):
+		# name and id
+		self.param[prefix + 'name'] = str(pokemon.name)
+		self.param[prefix + 'id'] = str(pokemon.pId)
+
+		# moves
+		moves = moves if moves else pokemon.getLatestNaturalMoves()
+		self.param[prefix + 'moves'] = str(moves).replace(' ', '').replace('[', '').replace(']', '')
+
+		# types
+		self.param[prefix + 'types'] = str([t.tId for t in pokemon.types]).replace('[', '').replace(']', '')
+
+		# stats
+		self.param[prefix + 'stats'] = 'hp: {}, maxHp: {}, attack: {}, defense: {}, spattack: {}, spdefense: {}, speed: {}'.format(
+								   pokemon.pokeStats.hp,
+								   pokemon.pokeStats.fakeCurrent['hp'],
+								   pokemon.pokeStats.fakeCurrent['attack']*playerHandicap,
+								   pokemon.pokeStats.fakeCurrent['defense']*playerHandicap,
+								   pokemon.pokeStats.fakeCurrent['special-attack']*playerHandicap,
+								   pokemon.pokeStats.fakeCurrent['special-defense']*playerHandicap,
+								   pokemon.pokeStats.fakeCurrent['speed']*playerHandicap,
+								   )
 
 	def getDamage(self, challenger1, challenger2, modifier):
 		return math.floor(((((0.4*challenger1.pokeStats.level + 2) * defaultPower * (challenger1.pokeStats.current['attack'] / challenger2.pokeStats.current['defense']))/50) + 2) * modifier)
@@ -129,16 +175,9 @@ class Battle:
 		return totalDamage, totalDamage/len(damage), missCount, critCount
 
 	def getYieldExp(self, pokemon1, pokemon2):
-		cursor = MySQL.getCursor()
-		cursor.execute("""
-			SELECT experience 
-			FROM pokemon_yield_ev 
-			WHERE pokemon_id = %s
-			""", (pokemon2.pId, ))
-		baseExp = cursor.fetchone()['experience']
-		return int(expModifier * math.floor((pokemon2.wild * baseExp * pokemon2.pokeStats.level)/7))
+		return int(expModifier * math.floor((pokemon2.wild * pokemon2.yieldEv * pokemon2.pokeStats.level)/7))
 
-	def execute(self):
+	def old_execute(self):
 		winner, loser, damage1, damage2 = self.executeCycle()
 		totalDamage, averageDamage, missCount, critCount = self.getDamageInfo(damage1)
 		self.damageDealt['winner'] = totalDamage
@@ -176,6 +215,62 @@ class Battle:
 			levelUpMessage = ('{} leveled up to level {}!\n\n'.format(name, str(winner.pokeStats.level)))
 			if evolved:
 				levelUpMessage += ('What!? {} is evolving! It evolved into a {}!'.format(name, winner.name))
+				#print(datetime.datetime.now(), M_TYPE_INFO, winner)
+		
+		if levelUpMessage:
+			#print(datetime.datetime.now(), M_TYPE_INFO, levelUpMessage)
+			pass
+
+		return winner, msg, levelUpMessage
+
+	def execute(self):
+		r = requests.get('http://localhost:8000', headers=self.param)
+		response = json.loads(r.text)
+
+		if response['battle']['winner']['id'] == self.param['f1id']:
+			winner = self.challenger1
+			loser = self.challenger2
+		else:
+			winner = self.challenger2
+			loser = self.challenger1
+
+		self.damageDealt['winner'] = response['battle']['winner']['damage']
+		self.damageDealt['loser'] = response['battle']['loser']['damage']
+		
+		exp = self.getYieldExp(winner, loser)
+		bonusExp = 0
+		if self.boost and self.boost == winner:
+			bonusExp = int(exp * boostModifier)
+
+		winner.pokeStats.hp = response['battle']['winner']['hp']
+		loser.pokeStats.hp = response['battle']['loser']['hp']
+	
+		msg = '```{}'.format(response['battle']['log'].replace('\\n', '\n'))
+		if len(msg)>=1500:
+			temp = response['battle']['log'].replace('\\n', '\n').split('\n\n')
+			print(temp)
+			msg = '```Battle log is too long.\n{}'.format(temp[-1:][0])
+
+		if winner.pokeStats.level < 100 and not self.gym and not winner.isWild():
+			msg += '\n'
+			bonusMsg = ''
+			if bonusExp > 0:
+				bonusMsg = ' (+' + str(bonusExp) + ' boost)'
+			msg += ('\n{} earned '.format(winner.name) + str(exp) + bonusMsg + ' EXP points.\n')
+		msg += '```'
+		print(datetime.datetime.now(), M_TYPE_INFO, msg)
+
+		name = winner.name
+		# print(datetime.datetime.now(), M_TYPE_INFO, "{} wins.".format(name))
+		if not self.gym:
+			leveledUp, evolved = winner.addExperience(exp+bonusExp)
+		else:
+			leveledUp, evolved = False, False
+		levelUpMessage = None
+		if leveledUp:
+			levelUpMessage = ('{} leveled up to level {}!\n\n'.format(name, str(winner.pokeStats.level)))
+			if evolved:
+				levelUpMessage += ('What!? {} is ready to evolve! Use the ``evolve`` command for more information.'.format(name, winner.name))
 				#print(datetime.datetime.now(), M_TYPE_INFO, winner)
 		
 		if levelUpMessage:
