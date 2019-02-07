@@ -1153,7 +1153,7 @@ __Pokeball Stats:__
 			VALUES (%s, %s, %s)
 		""", (qId, self.pId, value))
 
-		return Quest(qId, row['status'], row['value'], row['completed'])
+		return Quest(qId, 0, value, False)
 
 	def updateQuest(self, qId, status, value=None, completed=False):
 		cursor = MySQL.getCursor()
