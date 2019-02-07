@@ -4,10 +4,14 @@ import humanfriendly
 import math
 import string
 import random
+import sys
 
 from pokemon import Pokemon
+from pmove import Move
+from pmove import MoveSet
 from mysql import MySQL
 from pitem import PokeItem
+from pitem import Bag
 from datetime import timedelta
 
 class Player:
@@ -17,6 +21,10 @@ class Player:
 	DAY_CARE_PRICE_MOD = 1.25
 	DAY_CARE_TIME_MOD = 1.25 * 1000
 	GYM_MODIFIER = 1.25
+	MAX_LEVEL = 1000
+	MAX_MONEY = 250000
+
+	bagSizes = ['Small', 'Medium', 'Large', 'Extra Large']
 
 	def strip_non_ascii(string):
 	    ''' Returns the string without non ASCII characters'''
@@ -51,13 +59,15 @@ class Player:
 		self.lastGym = datetime.datetime.now() - timedelta(days=1)
 		self.selectedPokemon = None
 		self.pId = pId
-		self.items = []
 		self.badges = []
 		self.lastBattle = {
 			'pokemon' : None,
 			'damage' : 0
 		}
 		self.dayCareRequest = None, 0
+		self.release = None
+		self.moveLearn = None
+		self.bag = Bag(self.pId, 1)
 		if row is not None:
 			self.level = row['level']
 			self.experience = row['experience']
@@ -66,17 +76,7 @@ class Player:
 			self.pokemonCaught = row['pokemon_caught']
 			self.boost = row['exp_boost']
 			self.name = row['name'] if row['name'] != '' else 'Unknown'
-
-			cursor.execute("""
-				SELECT *
-				FROM player_item JOIN item
-				WHERE player_item.item_id = item.id
-				AND player_id = %s
-			""", (pId,))
-
-			rows = cursor.fetchall()
-			for row in rows:
-				self.items.append(row['quantity'])
+			self.bag.size = row['bag_size']
 
 			cursor.execute("""
 				SELECT *
@@ -106,11 +106,12 @@ class Player:
 				""", (pId, name))
 
 			for i in range(0,PokeItem.NUMBER_OF_ITEMS):
-				self.items.append(10 if i==0 else 0)
+				item = self.bag.getItem(i+1)
+				item.quantity = 10 if i==0 else 0
 				cursor.execute("""
 					INSERT INTO player_item (player_id, item_id, quantity)
 					VALUES (%s, %s, %s)
-					""", (pId, i+1, self.items[i]))
+					""", (pId, i+1, item.quantity))
 			
 			MySQL.commit()
 
@@ -186,7 +187,8 @@ __General Stats:__
 **Name:** %s
 **Level:** %s
 **Experience:** %d / %d%s
-**Money:** %d₽%s
+**Money:** %d₽ / %s₽%s
+**Bag Size: **%s
 
 __Pokemon Stats:__
 
@@ -208,7 +210,9 @@ __Pokeball Stats:__
 			self.calculateExp(self.level + 1),
 			expBoostStr,
 			self.money,
+			self.getMoneyLimit(),
 			candyStr,
+			Player.bagSizes[self.bag.size-1],
 			self.pokemonCaught,
 			averageLevel,
 			highLevelStr,
@@ -447,17 +451,19 @@ __Pokeball Stats:__
 					money = %s,
 					candy = %s,
 					pokemon_caught = %s,
-					exp_boost = %s
+					exp_boost = %s,
+					bag_size = %s
 				WHERE id = %s
-			""", (self.name, self.level, self.experience, self.money, self.candy, self.pokemonCaught, self.boost, self.pId))
+			""", (self.name, self.level, self.experience, self.money, self.candy, self.pokemonCaught, self.boost, self.bag.size, self.pId))
 
 		for i in range(0,PokeItem.NUMBER_OF_ITEMS):
+			item = self.bag.getItem(i+1)
 			cursor.execute("""
 				UPDATE player_item
 				SET	quantity = %s
 				WHERE player_id = %s
 				AND item_id = %s 
-				""", (self.items[i], self.pId, i+1))
+				""", (item.quantity, self.pId, i+1))
 
 		MySQL.commit()
 
@@ -518,7 +524,7 @@ __Pokeball Stats:__
 
 
 	def addExperience(self, experience):
-		if self.level == 50:
+		if self.level == Player.MAX_LEVEL:
 			return False
 
 		self.experience += experience
@@ -528,8 +534,12 @@ __Pokeball Stats:__
 		
 		return False
 
+	def getMoneyLimit(self):
+		return Player.MAX_MONEY * self.bag.size
+
 	def addMoney(self, money):
-		self.money += money
+		if self.money + money <= self.getMoneyLimit():
+			self.money += money
 
 	def removeMoney(self, money):
 		if(self.money >= money):
@@ -548,29 +558,30 @@ __Pokeball Stats:__
 		return False
 
 	def addItem(self, id, amount=1):
-		self.items[id] += 1*amount
+		ret = self.bag.addItem(id, amount)
 		self.update()
-				
-	def getUsableItems(self):
-		usable = []
-		for i in range(4, len(self.items)): # pokeballs are not usable
-			quantity = self.items[i]
-			if quantity > 0:
-				usable.append(i)
-		return usable
+		return ret
+
+	def hasSpace(self, id, amount=1):
+		return self.bag.hasSpace(id, amount)
 
 	def useItem(self, item):
-		self.items[item.id-1] -= 1
-		if item.itemType == 1:
-			pokemon = self.getSelectedPokemon()
-			pokemon.pokeStats.hp += item.value
-			pokemon.pokeStats.hp = pokemon.pokeStats.hp if pokemon.pokeStats.hp <= pokemon.pokeStats.current['hp'] else pokemon.pokeStats.current['hp']
-			self.commitPokemonToDB()
-		elif item.itemType == 2:
-			self.boost = datetime.datetime.now() + timedelta(seconds=item.value)
+		if self.bag.removeItem(item.id):
+			if item.itemType == 1:
+				pokemon = self.getSelectedPokemon()
+				pokemon.pokeStats.hp += item.value
+				pokemon.pokeStats.hp = pokemon.pokeStats.hp if pokemon.pokeStats.hp <= pokemon.pokeStats.current['hp'] else pokemon.pokeStats.current['hp']
+				self.commitPokemonToDB()
+			elif item.itemType == 2:
+				self.boost = datetime.datetime.now() + timedelta(seconds=item.value)
+			
 			self.update()
+			return item.itemType
+		
+		return None		
 
-		return item.itemType
+	def getBagLimit(self, id):
+		return self.bag.getLimit(id)
 
 	def getBoostTime(self):
 		if self.boost:
@@ -716,8 +727,9 @@ __Pokeball Stats:__
 	def hasBadge(self, badgeId, badgeName):
 		return [badgeId, badgeName.upper()] in self.badges
 
-	def megaEvolveSelectedPokemon(self):
-		pokemon = self.getSelectedPokemon()
+	def canMegaEvolvePokemon(self, pokemon=None):
+		if not pokemon:
+			pokemon = self.getSelectedPokemon()
 
 		hasMega = False
 		hasBadges = True
@@ -735,11 +747,12 @@ __Pokeball Stats:__
 
 		hasLevel = pokemon.pokeStats.level == 100
 
-		if hasMega and hasBadges and hasLevel and not isMega:
-			pokemon.megaEvolve()
-			self.commitPokemonToDB(pokemon)
-
 		return hasMega, hasBadges, isMega, hasLevel
+
+	def megaEvolvePokemon(self, pokemon, evolution):
+		self.preserveEvolutionMoves(pokemon, evolution)
+		pokemon.megaEvolve(evolution)
+		self.commitPokemonToDB(pokemon)
 
 	def isPokemonOnDayCare(self, pId):
 		cursor = MySQL.getCursor()
@@ -825,6 +838,7 @@ __Pokeball Stats:__
 			reward = Reward()
 			lastReward = row['last_reward']==0
 			reward.streak = row['streak']
+			item = None
 			if lastReward:
 				cursor.execute("""
 					UPDATE botlist_upvotes
@@ -835,36 +849,353 @@ __Pokeball Stats:__
 
 				reward.money = int(1000 + (math.log(self.level*500)) * (self.level*10) ** 1.35)
 				self.addMoney(reward.money)
+
 				if reward.streak%2 == 0:
-					reward.expBoost = True
-					self.addItem(10, 1)
+					reward.item = PokeItem.getItem(11)
+					if not self.addItem(10, 1):
+						reward.full = True
 				if reward.streak%3 == 0:
-					reward.ultraBalls = True
-					self.addItem(2, 5)
+					reward.item = PokeItem.getItem(3)
+					if not self.addItem(2, 5):
+						reward.full = True
 				if reward.streak%7 == 0:
 					pokemonId = random.randint(1,Pokemon.NUMBER_OF_POKEMON+1)
 					reward.pokemon = self.addPokemon(pokemonId=pokemonId, level=random.randint(5,100))
 				if reward.streak%11 == 0:
-					reward.maxPotion = True
-					self.addItem(7, 5)
+					reward.item = PokeItem.getItem(8)
+					if not self.self.addItem(7, 5):
+						reward.full = True
 				if reward.streak%23 == 0:
-					reward.masterBall = True
-					self.addItem(3)
-			else:
-				reward.alreadyCollected = True
+					reward.item = PokeItem.getItem(4)
+					if not self.addItem(3):
+						reward.full = True
 
 		return reward
+
+	def checkMove(self, move, pokemon=None):
+		cursor = MySQL.getCursor()
+
+		if not pokemon:
+			pokemon = self.getSelectedPokemon()
+
+		cursor.execute("""
+			(SELECT pokemon_move.move_id FROM pokemon_move 
+			JOIN move ON (pokemon_move.move_id = move.id)
+			WHERE pokemon_id = %s
+			AND move_id = %s
+			AND enabled = 1
+			AND learned_at_level <= %s)
+			UNION
+			(SELECT player_pokemon_move.move_id FROM player_pokemon_move 
+			JOIN player_pokemon 
+			ON (player_pokemon_move.player_id = player_pokemon.player_id 
+			AND player_pokemon_move.pokemon_id = player_pokemon.id)
+			WHERE player_pokemon_move.pokemon_id = %s
+			AND player_pokemon_move.player_id = %s
+			AND player_pokemon_move.move_id = %s
+			)
+		""", (pokemon.pId, move, pokemon.pokeStats.level, pokemon.ownId, self.pId, move))
+
+		return cursor.fetchone() is not None
+
+	def canLearnMove(self, move, pokemon=None):
+		if not pokemon:
+			pokemon = self.getSelectedPokemon()
+		return move in pokemon.getMoves()
+
+	def learnMove(self, move, pokemon=None, force=False):
+		cursor = MySQL.getCursor()
+
+		if not pokemon:
+			pokemon = self.getSelectedPokemon()
+
+		if not force and not self.canLearnMove(move, pokemon):
+			return 'cannot_learn'
+
+		if not force and self.checkMove(move, pokemon):
+			return 'already_knows'
+
+		cursor.execute("""
+			INSERT INTO player_pokemon_move (player_id, pokemon_id, move_id)
+			VALUES (%s, %s, %s)
+			ON DUPLICATE KEY UPDATE move_id = move_id
+		""", (self.pId, pokemon.ownId, move))
+
+		return 'learned'
+
+	def getMoves(self, pokemon=None, levelLimit=False):
+		cursor = MySQL.getCursor()
+
+		if not pokemon:
+			pokemon = self.getSelectedPokemon()
+
+		moveSet = MoveSet()
+
+		cursor.execute("""
+			SELECT * FROM move 
+			JOIN pokemon_move ON (move.id = pokemon_move.move_id)
+			WHERE pokemon_id = %s
+			AND enabled = True
+			ORDER BY learned_at_level ASC
+		""", (pokemon.pId,))
+		rows = cursor.fetchall()
+
+		for row in rows:
+			learnedAtLevel = row['learned_at_level'] if row['learned_at_level'] else sys.maxsize
+			moveSet.addMove(Move(row['id'], row['name'], row['description'], row['type_id'], row['base_power'], row['accuracy'], row['priority'], row['damage_class'], row['enabled'], learnedAtLevel, learnedAtLevel<=pokemon.pokeStats.level))
+		
+		cursor.execute("""
+			SELECT move.id, move.name, move.description, move.type_id, move.accuracy, move.base_power, move.accuracy, move.priority, move.damage_class, move.enabled
+			FROM player_pokemon_move 
+			JOIN player_pokemon
+			ON (player_pokemon_move.player_id = player_pokemon.player_id 
+			AND player_pokemon_move.pokemon_id = player_pokemon.id)
+			JOIN move
+			ON (move.id = player_pokemon_move.move_id)
+			WHERE player_pokemon_move.pokemon_id = %s
+			AND player_pokemon_move.player_id = %s
+			AND enabled = True
+		""", (pokemon.ownId, self.pId))
+		rows = cursor.fetchall()
+
+		for row in rows:
+			if moveSet.contains(row['id']):
+				moveSet.setLearned(row['id'])
+			else:
+				moveSet.addMove(Move(row['id'], row['name'], row['description'], row['type_id'], row['base_power'], row['accuracy'], row['priority'], row['damage_class'], row['enabled'], sys.maxsize, True))
+
+		return moveSet
+
+	def setDefaultMoves(self, moves, pokemon=None):
+		cursor = MySQL.getCursor()
+
+		if not pokemon:
+			pokemon = self.getSelectedPokemon()
+
+		cursor.execute("""
+			DELETE FROM player_pokemon_default_move
+			WHERE player_id = %s
+			AND pokemon_id = %s
+		""", (self.pId, pokemon.ownId))
+
+		for move in moves:
+			cursor.execute("""
+				INSERT INTO player_pokemon_default_move (pokemon_id, player_id, move_id)
+				VALUES (%s, %s, %s)
+			""", (pokemon.ownId, self.pId, move))
+
+	def getDefaultMoves(self, pokemon=None):
+		cursor = MySQL.getCursor()
+
+		moves = []
+
+		if not pokemon:
+			pokemon = self.getSelectedPokemon()
+
+		cursor.execute("""
+			SELECT * FROM player_pokemon_default_move
+			WHERE player_id = %s
+			AND pokemon_id = %s
+		""", (self.pId, pokemon.ownId))
+		rows = cursor.fetchall()
+
+		for row in rows:
+			moves.append(row['move_id'])
+
+		if not moves:
+			moves = pokemon.getLatestNaturalMoves()
+
+		return moves
+
+	def getMove(self, moveId, pokemon=None):
+		cursor = MySQL.getCursor()
+
+		if not pokemon:
+			pokemon = self.getSelectedPokemon()
+
+		cursor.execute("""
+			SELECT * FROM move 
+			JOIN pokemon_move ON (move.id = pokemon_move.move_id)
+			WHERE pokemon_id = %s
+			AND move_id = %s
+			AND enabled = True
+		""", (pokemon.pId, moveId))
+		row = cursor.fetchone()
+
+		move = None
+		canLearn = False
+		if row:
+			canLearn = True
+		else:
+			cursor.execute("""
+				SELECT * FROM move 
+				JOIN pokemon_move ON (move.id = pokemon_move.move_id)
+				AND move_id = %s
+				AND enabled = True
+			""", (moveId,))
+			row = cursor.fetchone()
+
+		if row:
+			learnedAtLevel = row['learned_at_level'] if row['learned_at_level'] else sys.maxsize
+			move = Move(row['id'], row['name'], row['description'], row['type_id'], row['base_power'], row['accuracy'], row['priority'], row['damage_class'], row['enabled'], learnedAtLevel, learnedAtLevel<=pokemon.pokeStats.level and canLearn)
+				
+		cursor.execute("""
+			SELECT move.id, move.name, move.description, move.type_id, move.accuracy, move.priority, move.damage_class, move.enabled
+			FROM player_pokemon_move 
+			JOIN player_pokemon
+			ON (player_pokemon_move.player_id = player_pokemon.player_id 
+			AND player_pokemon_move.pokemon_id = player_pokemon.id)
+			AND move_id = %s
+			JOIN move
+			ON (move.id = player_pokemon_move.move_id)
+			WHERE player_pokemon_move.pokemon_id = %s
+			AND player_pokemon_move.player_id = %s
+			AND enabled = True
+			AND move_id = %s
+		""", (moveId, pokemon.ownId, self.pId, moveId))
+		row = cursor.fetchone()
+
+		if move:
+			if row:
+				move.learned = True
+			move.canLearn = canLearn
+
+		return move
+
+	def preserveEvolutionMoves(self, pokemon, evolution):
+		cursor = MySQL.getCursor()
+
+		cursor.execute("""
+			SELECT * FROM pokemon_move
+			WHERE pokemon_id = %s
+			AND learned_at_level IS NOT NULL
+			AND move_id NOT IN (
+				SELECT move_id FROM pokemon_move
+				WHERE pokemon_id = %s
+				AND learned_at_level IS NOT NULL
+			)
+		""", (pokemon.pId, evolution.pId))
+		rows = cursor.fetchall()
+
+		moves = []
+		for row in rows:
+			self.learnMove(row['move_id'], pokemon, True)
+
+		cursor.execute("""
+			SELECT * FROM pokemon_move
+			WHERE pokemon_id = %s
+			AND learned_at_level <= %s
+			AND move_id IN (
+				SELECT move_id FROM pokemon_move
+				WHERE pokemon_id = %s
+				AND learned_at_level > %s
+			)
+		""", (pokemon.pId, pokemon.pokeStats.level, evolution.pId, pokemon.pokeStats.level))
+		rows = cursor.fetchall()
+
+		for row in rows:
+			self.learnMove(row['move_id'], pokemon, True)
+
+	def getBagQuest(self):
+		cursor = MySQL.getCursor()
+
+		quest = self.getQuest(1)
+		if quest:
+			quest.value = Pokemon(name='', pokemonId=quest.value, level=1)
+		else:
+			cursor.execute("""
+				SELECT * FROM pokemon
+				WHERE capture_rate = 255
+				AND enabled = 1
+				ORDER BY RAND()
+				LIMIT 1
+			""")
+			row = cursor.fetchone()
+
+			quest = self.addQuest(1, row['id'])
+			quest.value = Pokemon(name='', pokemonId=row['id'], level=1)
+
+		return quest
+
+	def completeBagQuest(self, quest=None, qId=None):
+		cursor = MySQL.getCursor()
+
+		if not quest:
+			quest = self.getBagQuest()
+
+		if not qId:
+			qId = quest.qId
+
+		rates = [255, 190, 45, 3]
+		if quest.status == 3:
+			quest.completed = True
+			quest.value = 1
+		else:
+			quest.status += 1
+			cursor.execute("""
+				SELECT * FROM pokemon
+				WHERE capture_rate = %s
+				AND enabled = 1
+				ORDER BY RAND()
+				LIMIT 1
+			""", (rates[quest.status],))
+			row = cursor.fetchone()
+			quest.value = row['id']
+		
+		self.bag.size += 1
+		self.update()
+		self.updateQuest(qId, quest.status, quest.value, quest.completed)
+
+	def addQuest(self, qId, value):
+		cursor = MySQL.getCursor()
+		cursor.execute("""
+			INSERT INTO player_quest (quest_id, player_id, value)
+			VALUES (%s, %s, %s)
+		""", (qId, self.pId, value))
+
+		return Quest(qId, row['status'], row['value'], row['completed'])
+
+	def updateQuest(self, qId, status, value=None, completed=False):
+		cursor = MySQL.getCursor()
+		
+		cursor.execute("""
+			UPDATE player_quest 
+			SET status = %s,
+				value = %s,
+				completed = %s
+			WHERE player_id = %s
+			AND quest_id = %s
+		""", (status, value, completed, self.pId, qId))
+
+	def getQuest(self, qId):
+		cursor = MySQL.getCursor()
+		cursor.execute("""
+			SELECT * FROM player_quest
+			WHERE player_id = %s
+			AND quest_id = 1
+		""", (self.pId,))
+		row = cursor.fetchone()
+
+		quest = None
+		if row:
+			quest = Quest(qId, row['status'], row['value'], row['completed'])
+
+		return quest
 
 class Reward:
 	def __init__(self):
 		self.deltaTime = 0
 		self.streak = 0
 		self.money = 0
-		self.expBoost = False
-		self.ultraBalls = False
 		self.pokemon = None
-		self.maxPotion = False
-		self.masterBall = False
 		self.rewarded = False
 		self.alreadyCollected = False
+		self.full = True
+
+class Quest:
+	def __init__(self, qId, status, value, completed):
+		self.qId = qId
+		self.status = status
+		self.value = value
+		self.completed = completed
 
