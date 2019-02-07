@@ -46,7 +46,7 @@ M_TYPE_INFO = 'INFO'
 M_TYPE_WARNING = 'WARNING'
 M_TYPE_ERROR = 'ERROR'
 
-DEBUG_MODE = True
+DEBUG_MODE = False
 CHIRSTMAS = True
 
 ocPrint = print
@@ -71,6 +71,7 @@ def handle_exit():
 		except asyncio.CancelledError:
 			pass
 		except Exception:
+			traceback.print_exc()
 			pass
 
 while True: # Why do I do this to myself
@@ -1090,9 +1091,10 @@ while True: # Why do I do this to myself
 									try:
 										await client.send_message(channel, embed=em)
 									except Forbidden as f:
-										pass
+										continue
 									except Exception as e: # I am very disappointed in you, past self
 										traceback.print_exc()
+										continue
 					
 					if canAct > actDelay:
 						spawn.lastAct = [datetime.datetime.now(), random.randint(SpawnManager.restMinTime, SpawnManager.restMaxTime)]
