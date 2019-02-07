@@ -10,6 +10,7 @@ import humanfriendly
 import time
 import os
 import copy
+import sys
 
 #from pcommand import Command
 from ptrade import Trade
@@ -37,6 +38,7 @@ pokeballUrl = 'https://i.imgur.com/2jQoEjs.png'
 pokeMartUrl = 'https://i.imgur.com/RkJQOOh.png'
 presentUrl = 'https://i.imgur.com/0BLzJEd.png'
 christmasUrl = 'https://i.imgur.com/52tJher.png'
+bagUrl = 'https://yfrit.com/pokemon/bag.png'
 
 # This should probably be in a utils file. Logs should be done via a log lib. Meh.
 
@@ -75,10 +77,11 @@ while True: # Why do I do this to myself
 	playerMap = {}
 	
 	def getImageUrl(pId, mega=False):
-		if not mega:
-			return 'https://yfrit.com/pokemon/{}.png'.format(pId)
-		else:
-			return 'https://yfrit.com/pokemon/{}-mega.png'.format(pId)
+		#if not mega:
+		#	return 'https://yfrit.com/pokemon/{}.png'.format(pId)
+		#else:
+		#	return 'https://yfrit.com/pokemon/{}-mega.png'.format(pId)
+		return 'https://yfrit.com/pokemon/{}.png'.format(pId)
 
 	async def send_greeting(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
@@ -175,6 +178,73 @@ while True: # Why do I do this to myself
 			await client.send_message(message.channel, embed=em)
 		else:
 			await display_not_started(message, commandPrefix)
+
+	async def display_move_info(message):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		player = playerMap[message.author.id]
+
+		if player.hasStarted():
+			temp = message.content.split(' ')
+			
+			option = None
+			if len(temp)>1:
+				try:
+					option = int(temp[1])
+				except ValueError:
+					return
+
+			pokemon = player.getSelectedPokemon()
+			if option:
+				move = player.getMove(option)
+			else:
+				return
+
+			player.moveLearn = [move, pokemon]
+
+			if not move:
+				msg = 'Invalid move ID.'
+			else:
+				msg = str(move)
+				learnStr = '__**can\'t learn**__ this move'
+				if move.learned:
+					learnStr = '__**already knows**__ this move'
+				elif move.canLearn:
+					if move.learnedAtLevel != sys.maxsize:
+						learnStr = '__**can learn**__ this move. It will learn it at level {}'.format(move.learnedAtLevel, move.learnedAtLevel)
+					else:
+						learnStr = '__**can learn**__ this move. It will cost you **{}₽** to teach it. Type ``{}confirm`` to confirm'.format(move.cost, commandPrefix)
+				
+				msg += '\nYour {} {}.'.format(pokemon.name, learnStr)
+				
+			em = discord.Embed(title='Move Info', description=msg, colour=0xDEADBF)
+			em.set_author(name='Professor Oak', icon_url=oakUrl)
+			em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+			em.set_footer(text='HINT: Use {0}moves to see your pokemon\'s full list of moves.'.format(commandPrefix))
+			await client.send_message(message.channel, embed=em)
+		else:
+			await display_not_started(message, commandPrefix)
+
+	async def set_default_moves(message):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		player = playerMap[message.author.id]
+
+		em = check_not_started(message.author.mention, player, commandPrefix)
+		if em:
+			await client.send_message(message.channel, embed=em)
+			return
+
+		moves = await checkMoves(message)
+		if moves:
+			player.setDefaultMoves(moves)
+			pokemon = player.getSelectedPokemon()
+			msg = 'Default moves set to {0} for {1}. You can check all your pokemon\'s moves with ``{2}moves``. Doing ``{2}default`` will reset default moves.'.format(moves, pokemon.name, commandPrefix)
+			em = discord.Embed(title='Set Default Moves', description=msg, colour=0xDEADBF)
+			em.set_author(name='Professor Oak', icon_url=oakUrl)
+			em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+			em.set_footer(text='HINT: Use {0}moves to see your pokemon\'s full list of moves.'.format(commandPrefix))
+			await client.send_message(message.channel, embed=em)
 
 	async def display_success_add_favorite(message, pokemon, favId, commandPrefix):
 		msg = '{0.author.mention}, your  *{1}* was added to your favorites with Fav. ID: **{2}**. Use ``{3}favorite {2}`` to select it, or just ``{3}favorite`` to list all favorite pokemon.'.format(message, pokemon.name, favId, commandPrefix)
@@ -286,6 +356,52 @@ while True: # Why do I do this to myself
 			em.set_author(name='Professor Oak', icon_url=oakUrl)
 			em.set_footer(text='HINT: Page {}/{}. Use {}favorite page # to select a different page.'.format(curPage, pages, commandPrefix))
 			await client.send_message(message.channel, embed=em)
+
+	async def display_evolutions(message):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		player = playerMap[message.author.id]
+
+		em = check_not_started(message.author.mention, player, commandPrefix)
+		if em:	
+			await client.send_message(message.channel, embed=em)
+			return
+
+		temp = message.content.split(' ')
+			
+		pokemon = player.getSelectedPokemon()
+		thumbnail = pokemon.pId
+		evolutions = pokemon.hasEvolved()
+
+		msg = ''
+		if evolutions:
+			option = None
+			try:
+				option = int(temp[1])
+				if option > 0 and option <= len(evolutions):
+					evolution = evolutions[option-1]
+					msg = '{0.author.mention}, your {1} evolved into a {2}!'.format(message, pokemon.name, evolution.name)
+					thumbnail = evolution.pId
+					player.preserveEvolutionMoves(pokemon, evolution)
+					pokemon.evolve(evolution)
+					player.commitPokemonToDB(pokemon)
+				else:
+					raise ValueError
+			except (ValueError, IndexError):
+				msg = '{0.author.mention}, your {1} is ready to evolve! Please type ``{2}evolve #``, where "#" is one of the options below:\n\n'.format(message, pokemon.name, commandPrefix)
+				counter = 0
+				for evolution in evolutions:
+					counter += 1
+					msg += '**{}.** {}\n'.format(counter, evolution.name)
+				msg += '\nBe aware that, once evolved, a pokemon will __never__ go back to the previous form!'
+		else:
+			msg = '{0.author.mention}, your {1} is not ready to evolve.'.format(message, pokemon.name)
+
+		em = discord.Embed(title='Evolution', description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_thumbnail(url=getImageUrl(thumbnail, pokemon.mega))
+		em.set_footer(text='HINT: Sometimes it\'s good to wait to evolve a Pokemon, so it can learn all its moves.')
+		await client.send_message(message.channel, embed=em)
 
 	async def display_pokemons(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
@@ -447,35 +563,57 @@ while True: # Why do I do this to myself
 	async def display_help(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
-		msg = 'Welcome to Pokemon Discord Adventure! This bot is in a very alpha state, and most things are still being worked on. Please expect it to crash, bug out and suddenly restart. If you have any questions, suggestions, or just want to have a chat, contact me at Discord Fairfruit#8973, or send me an email at contact@yfrit.com.\n\n' \
-			'__Player Commands:__ \n' \
-			'**{0}info or {0}i :** Shows stats of a specific pokemon (selected pokemon if none is specified) \n' \
+		temp = message.content.split(' ')
+
+		topic = 0
+		if len(temp)>1:
+			try:
+				topic = int(temp[1])
+			except ValueError:
+				pass
+
+		msgList = ['Welcome to Pokemon Discord Adventure! This bot is in a very alpha state, and most things are still being worked on. Please expect it to crash, bug out and suddenly restart. If you have any questions, suggestions, or just want to have a chat, contact me at Discord Fairfruit#8973, or send me an email at contact@yfrit.com.\n\n \
+			Type ``{}help #`` where # is one of the following help topics:\n\n \
+			**1.** Player Commands\n \
+			**2.** Pokemon Commands\n \
+			**3.** Admin Commands\n',
+			
+			'__Player Commands:__ \n\n' \
 			'**{0}start:** Shows information on how to select a starter and start the adventure. \n' \
-			'**{0}pokemon or {0}p:** Shows a list of all your pokemon. \n' \
-			'**{0}select or {0}s:** Selects a pokemon in your list to use on your journey.\n' \
-			'**{0}favorite or {0}v:** Shows information on how to add pokemon to your favorite list.\n' \
-			'**{0}release or {0}r:** Releases a pokemon in your list pokemon. It will never come back.\n' \
 			'**{0}fight or {0}f:** Fights the currently spawned pokemon or poketrainer if available.\n' \
 			'**{0}catch or {0}c:** Fights and tries to catch the currently spawned pokemon if available.\n' \
-			'**{0}center or {0}h:** Heals wounded pokemon.\n' \
+			'**{0}info or {0}i :** Shows stats of a specific pokemon (selected pokemon if none is specified) \n' \
 			'**{0}me:** Shows information on the player.\n' \
 			'**{0}shop or {0}b:** Displays the shop. \n' \
 			'**{0}item or {0}u:** Displays the player inventory. \n' \
 			'**{0}duel or {0}d:** Challenges another player to a duel. \n' \
 			'**{0}accept or {0}a:** Accepts a duel challenge. \n' \
 			'**{0}gym or {0}g:** Shows information on the gyms. \n' \
-			'**{0}mega:** Shows info on how to mega evolve pokemon. \n' \
 			'**{0}rank:** Shows the top 10 players in the server. \n' \
 			'**{0}ping:** Standard ping command. \n' \
 			'**{0}trade:** Shows information on how to trade pokemon. \n' \
 			'**{0}daycare:** Displays information on the day care. \n' \
 			'**{0}reward or {0}vote:** Displays information on how to vote and get daily rewards. \n' \
-			'**{0}donate:** Displays information on donations. \n\n' \
-			'**{0}present:** Catches a present delivered by Santa, if available. \n\n' \
-			'__Admin Commands:__ \n' \
+			'**{0}donate:** Displays information on donations.',
+			'**{0}bag:** Displays information on how to get a bigger bag and carry more items and pokeballs.',
+			
+			'__Pokemon Commands:__ \n\n' \
+			'**{0}pokemon or {0}p:** Shows a list of all your pokemon. \n' \
+			'**{0}center or {0}h:** Heals wounded pokemon.\n' \
+			'**{0}select or {0}s:** Selects a pokemon in your list to use on your journey.\n' \
+			'**{0}favorite or {0}v:** Shows information on how to add pokemon to your favorite list.\n' \
+			'**{0}release or {0}r:** Releases a pokemon in your pokemon list. It will never come back.\n' \
+			'**{0}moves or {0}m:** Shows your selected pokemon\'s move list.\n' \
+			'**{0}move or {0}t:** Shows information on a specific move.\n' \
+			'**{0}default or {0}d:** Sets a movie set as default for the selected pokemon.\n' \
+			'**{0}mega:** Shows info on how to mega evolve pokemon. \n',
+			'**{0}evolve:** Shows info on how evolve your pokemon. \n',
+			
+			'__Admin Commands:__ \n\n' \
 			'**{0}prefix:** Changes the prefix used to trigger bot commands (default is p). \n' \
-			'**{0}spawn:** Sets the channel where wild pokemon and poketrainers will spawn. \n'
+			'**{0}spawn:** Sets the channel where wild pokemon and poketrainers will spawn.']
 
+		msg = msgList[topic]
 		msg = msg.format(commandPrefix)
 		em = discord.Embed(title='Help!', description=msg, colour=0xDEADBF)
 		footerMsg = 'HINT: Don\'t forget to set the spawn channel with the spawn command, otherwise wild pokemon will not spawn until you do. The bot also has an "anti-afk" system, in which spawn channels that don\'t receive messages for a while will stop having pokemon spawned.'
@@ -506,6 +644,7 @@ while True: # Why do I do this to myself
 				JOIN pokemon_type
 				WHERE enabled = 1 
 				AND capture_rate <= 3
+				AND id < 10000
 				ORDER BY RAND()
 				LIMIT 1
 				""")
@@ -538,6 +677,7 @@ while True: # Why do I do this to myself
 		while not row:
 			captureRate = random.choice(rateList)
 			minR, maxR = captureRate
+			#print(minR, maxR)
 			cursor = MySQL.getCursor()
 			if Player.HALLOWEEN and random.randint(0, 255) >= GHOST_SPAWN_CHANCE:
 				cursor.execute("""
@@ -549,6 +689,7 @@ while True: # Why do I do this to myself
 					AND  pokemon_type.pokemon_id = pokemon.id
 					AND capture_rate >= %s
 					AND capture_rate <= %s
+					AND id < 10000
 					ORDER BY RAND()
 					LIMIT 1
 					""", (minR, maxR))
@@ -559,6 +700,7 @@ while True: # Why do I do this to myself
 					WHERE enabled = 1 
 					AND capture_rate >= %s
 					AND capture_rate <= %s
+					AND id < 10000
 					ORDER BY RAND()
 					LIMIT 1
 					""", (minR, maxR))
@@ -581,12 +723,12 @@ while True: # Why do I do this to myself
 		item = None
 		numerous = True
 		if rand <= 16:
-			item = items[3]
+			item = PokeItem.getItem(4)
 			numerous = False
 		elif rand <= 32:
-			item = items[7]
+			item = PokeItem.getItem(8)
 		else:
-			item = items[2]
+			item = PokeItem.getItem(3)
 
 		msg = '{0.author.mention}, there are no wild pokemon or trainers willing to fight near you at this time.'.format(message)
 		
@@ -611,7 +753,7 @@ while True: # Why do I do this to myself
 			if leveledUp:
 				levelUpMessage = ('{} leveled up to level {}!\n\n'.format(pokemon.name, str(pokemon.pokeStats.level)))
 				if evolved:
-					levelUpMessage += ('What!? {} is evolving! It evolved into a {}!'.format(name, winner.name))
+					levelUpMessage += ('What!? {} is ready to evolve! You can evolve it by using the ``{}evolve`` command.'.format(name, commandPrefix))
 				lem = discord.Embed(title='Level up!', description='<@{0}>, your '.format(player.pId.replace(serverId, '')) + levelUpMessage, colour=0xDEADBF)
 				lem.set_author(name='Professor Oak', icon_url=oakUrl)
 				lem.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
@@ -620,7 +762,9 @@ while True: # Why do I do this to myself
 			# item gift
 			baseAmount = int(math.log10(1 + damage/10)) + 1
 			amount = 1 if not numerous else int(random.uniform(baseAmount*3, baseAmount*5))
-			player.addItem(item.id-1, amount)
+			add = player.addItem(item.id, amount)
+			if not add:
+				player.addMoney(money)
 			halloweenStr = ''
 			if Player.HALLOWEEN and candy>0:
 				player.addCandy(candy)
@@ -629,7 +773,7 @@ while True: # Why do I do this to myself
 			# update
 			player.update()
 
-			msg = '<@{}>, you participated in the boss fight, your reward is {} EXP for you, {} EXP for your {}, {}P and {} unit(s) of {}! {}'.format(player.pId.replace(serverId, ''), exp, basePValue, pokemon.name, money, amount, item.name, halloweenStr)
+			msg = '<@{}>, you participated in the boss fight, your reward is {} EXP for you,{} {}₽ and {}'.format(player.pId.replace(serverId, ''), exp, '{} EXP for your {},'.format(basePValue, pokemon.name) if pokemon.pokeStats.level < 100 else '', money, '{} unit(s) of {}! {}'.format(amount, item.name, halloweenStr) if add else ', since you don\t have space in your bag for {} unit(s) of {}, extra {}₽!'.format(amount, item.name, money))
 			em = discord.Embed(title='Well done!', description=msg, colour=0xDEADBF)
 			em.set_author(name='Professor Oak', icon_url=oakUrl)
 			em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
@@ -663,7 +807,7 @@ while True: # Why do I do this to myself
 		lastAct = {}
 
 		@staticmethod
-		async def fight(message, capture=0):
+		async def fight(message, capture=0, moves=None):
 			pokeServer = serverMap[message.server.id]
 			commandPrefix, spawnChannel = pokeServer.get_prefix_spawnchannel()
 			spawn = pokeServer.spawn
@@ -733,7 +877,7 @@ while True: # Why do I do this to myself
 					if isBoosted:
 						boost = playerPokemon
 
-					battle = Battle(challenger1=playerPokemon, challenger2=wildPokemon, boost=boost, gym=gym)
+					battle = Battle(challenger1=playerPokemon, challenger2=wildPokemon, boost=boost, gym=gym, f1name=player.name, f1id=player.pId, f2name='PokeTrainer' if isTrainer else 'wild', p1moves=moves)
 					winner, battleLog, levelUpMessage = battle.execute()
 					player.commitPokemonToDB()
 
@@ -750,7 +894,7 @@ while True: # Why do I do this to myself
 							player.addMoney(money)
 
 							if capture>0:
-								player.items[capture-1] -= 1
+								player.bag.removeItem(capture)
 								captureMessage += '\nYou threw a {} on {} and...\n'.format(ballList[capture-1], wildPokemon.name)
 								if wildPokemon.attemptCapture(capture-1, player.getCaptureMod()):
 									captureMessage += '```fix\nGotcha! {} was added to your pokemon list!\n```'.format(wildPokemon.name)
@@ -865,7 +1009,7 @@ while True: # Why do I do this to myself
 
 					localAfkTime = (datetime.datetime.now().timestamp() - pokeServer.serverMessageMap)
 					isAfk = localAfkTime > afkTime + spawn.restSpawn
-					#print(datetime.datetime.now(), M_TYPE_INFO, 'Server AFK Status: {2}/{1} ({0})'.format(isAfk, afkTime, localAfkTime)) # Why am I so lazy
+					print(datetime.datetime.now(), M_TYPE_INFO, 'Server AFK Status: {2}/{1} ({0})'.format(isAfk, afkTime, localAfkTime)) # Why am I so lazy
 					#if isAfk:
 						#break
 
@@ -898,7 +1042,7 @@ while True: # Why do I do this to myself
 									print(datetime.datetime.now(), M_TYPE_INFO, "Server '" + server.id + "' ready to act. Acting and updating delay.")
 									
 									if bossSpawned:
-										msg = 'A boss {0} has appeared! Type ``{1}fight`` to fight it!'.format(spawn.name, commandPrefix)
+										msg = 'A boss {0} has appeared! Type ``{1}fight move1,move2,move3,move4`` to fight it!\n\n If no moveset is specified, the default one will be used. You can check your moves my typing ``{1}moves``.'.format(spawn.name, commandPrefix)
 										em = discord.Embed(title='A wild Boss Pokemon appears!', description=msg, colour=0xDEADBF)
 										em.set_author(name='Tall Grass', icon_url=grassUrl)
 										em.set_image(url=getImageUrl(spawn.pId))
@@ -906,7 +1050,7 @@ while True: # Why do I do this to myself
 									else:
 										if isTrainer:
 											article = 'him' if gender==0 else 'her'
-											msg = 'A poketrainer is looking for a challenger! Type ``{0}fight`` to fight {1}!'.format(commandPrefix, article)
+											msg = 'A poketrainer is looking for a challenger! Type ``{0}fight move1,move2,move3,move4`` to fight {1}!\n\n If no moveset is specified, the default one will be used. You can check your moves my typing ``{0}moves``.'.format(commandPrefix, article)
 											em = discord.Embed(title='Here comes a new challenger!', description=msg, colour=0xDEADBF)
 											em.set_author(name='Tall Grass', icon_url=grassUrl)
 											em.set_thumbnail(url=trainerURL.format(gender))
@@ -921,11 +1065,11 @@ while True: # Why do I do this to myself
 											if role and spawn.captureChance <= 10:
 												msg = '{0}, a'.format(role.mention)
 											
-											msg += ' wild {0} wants to fight! Type ``{1}fight`` to fight it, or ``{1}catch #`` to try and catch it as well!'.format(spawn.name, commandPrefix)
+											msg += ' wild {0} wants to fight! Type ``{1}fight move1,move2,move3,move4`` to fight it!\n\n If you want to catch it, type ``{1}catch pokeball move1,move2,move3,move4``. \n\nIf no moveset is specified, the default one will be used. You can check your moves my typing ``{1}moves``.'.format(spawn.name, commandPrefix)
 											em = discord.Embed(title='A wild {} appeared!'.format(spawn.name), description=msg, colour=0xDEADBF)
 											em.set_author(name='Tall Grass', icon_url=grassUrl)
 											em.set_thumbnail(url=getImageUrl(spawn.pId))
-											em.set_footer(text='HINT: You need pokeballs to catch pokemon! Check your supply by typing {}me.'.format(commandPrefix))
+											em.set_footer(text='HINT: If no damage moves are specified, the pokemon will use Struggle.'.format(commandPrefix))
 									await client.send_message(channel, embed=em)
 									#await asyncio.sleep(50)
 								else:
@@ -1106,13 +1250,78 @@ while True: # Why do I do this to myself
 		await client.send_message(message.channel, embed=em)
 
 	async def display_fight(message):
-		await SpawnManager.fight(message)
+		moves = await checkMoves(message)
+		if moves:
+			await SpawnManager.fight(message=message, moves=moves)
+
+	async def checkMoves(message, movesetId=1):
+		player = playerMap[message.author.id]
+
+		content = message.content
+		array = content.split(' ')
+		moveSet = []
+		if len(array)>movesetId:
+			ids = array[movesetId]
+			moves = ids.split(',')
+			
+			if len(moves)>4:
+				return await display_too_many_moves_string(message)
+
+			for i in moves:
+				try:
+					move = int(i)
+					if not player.checkMove(move):
+						return await display_invalid_move(message, player.getSelectedPokemon(), move)
+					moveSet.append(move)
+				except ValueError:
+					return await display_invalid_move_string(message)
+		else:
+			moveSet = player.getDefaultMoves()
+		#print(moveSet)
+		return moveSet
+
+	async def display_too_many_moves_string(message):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		player = playerMap[message.author.id]
+
+		msg = '{0.author.mention}, your move set can only have 4 moves. Please indicated the desired move set by separating each move id with a coma, like this `1,2,3,4`'.format(message, commandPrefix)
+
+		em = discord.Embed(title='Too many moves!', description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_footer(text='HINT: Low on pokeballs? You can buy more by typing {}shop. Or if you\'re low on cash, you get pokeballs by just staying online!'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
+
+	async def display_invalid_move_string(message):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		player = playerMap[message.author.id]
+
+		msg = '{0.author.mention}, you typed an invalid move set. Please indicated the desired move set by separating each move id with a coma, like this `1,2,3,4`'.format(message, commandPrefix)
+
+		em = discord.Embed(title='Invalid move set!', description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_footer(text='HINT: Low on pokeballs? You can buy more by typing {}shop. Or if you\'re low on cash, you get pokeballs by just staying online!'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
+
+	async def display_invalid_move(message, pokemon, move):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		player = playerMap[message.author.id]
+
+		msg = '{0.author.mention}, your {1} does not know the move with id {2}. Please provide a move set containing only moves known by your pokemon. You can check the known moves by typing ``{3}moves``.'.format(message, pokemon.name, move, commandPrefix)
+
+		em = discord.Embed(title='Invalid move set!', description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_footer(text='HINT: Low on pokeballs? You can buy more by typing {}shop. Or if you\'re low on cash, you get pokeballs by just staying online!'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
 
 	def getBallsString(player):
 		msg = ''
 		counter = 1
 		for ball in ballList:
-			msg += '{}. {} ({} available)\n'.format(counter, ball, player.items[counter-1])
+			item = player.bag.getItem(counter)
+			msg += '{}. {} ({}/{} available)\n'.format(counter, item.name, item.quantity, player.getBagLimit(item.id))
 			counter += 1
 		return msg
 
@@ -1141,8 +1350,9 @@ while True: # Why do I do this to myself
 				if option and option > len(ballList) or option < 1:
 					await display_balls_message(message, player, commandPrefix)
 				else:
-					if player.items[option-1]>0:
-						if option-1 == 3 and not player.hasAllBadges():
+					item = player.bag.getItem(option)
+					if item.quantity>0:
+						if option == 4 and not player.hasAllBadges():
 							msg = '{0.author.mention}, only players with all the 18 gym badges can use Master Balls!'.format(message)
 							em = discord.Embed(title='You wish!', description=msg, colour=0xDEADBF)
 							em.set_author(name='Professor Oak', icon_url=oakUrl)
@@ -1164,13 +1374,15 @@ while True: # Why do I do this to myself
 								em.set_author(name='Professor Oak', icon_url=oakUrl)
 								await client.send_message(message.channel, embed=em)
 							else:
-								await SpawnManager.fight(message, option)
+								moves = await checkMoves(message, 2)
+								if moves:
+									await SpawnManager.fight(message, option, moves)
 					else:
 						msg = '{0.author.mention}, you don\'t have any {1}s left! Here\'s your list of pokeballs: \n\n'.format(message, ballList[option-1])
 
 						counter = 1
 						for ball in ballList:
-							msg += '{}. {} ({} available)\n'.format(counter, ball, player.items[counter-1])
+							msg += '{}. {} ({}/{} available)\n'.format(counter, ball, item.quantity, player.getBagLimit(item.id))
 							counter += 1
 
 						em = discord.Embed(title='Select your pokeball!', description=msg, colour=0xDEADBF)
@@ -1266,6 +1478,46 @@ while True: # Why do I do this to myself
 			else:
 				await display_fail_pokecenter(message, commandPrefix)
 
+	async def display_bag_quest(message):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		player = playerMap[message.author.id]
+
+		em = check_not_started(message.author.mention, player, commandPrefix)
+		if em:
+			return await client.send_message(message.channel, embed=em)
+
+		quest = player.getBagQuest()
+
+		if quest.completed:
+			msg = '{0.author.mention}, I don\'t have any more bags for you. Thank you for helping me with my studies!'.format(message)
+		else:
+			level = (quest.status+1)*25
+			pokemon = quest.value
+
+			temp = message.content.split(' ')
+			option = None
+			try:
+				option = int(temp[1])
+				offer, inGym = player.getPokemon(option, returnSelected=False)
+				if offer.pId == pokemon.pId and offer.pokeStats.level >= level:
+					em = check_hold_availability(message.author.mention, player, commandPrefix)
+					if em:
+						return await client.send_message(message.channel, embed=em)
+					player.releasePokemon(option)
+					player.completeBagQuest(quest)
+					msg = '{0.author.mention}, that is exactly what I needed! As promissed, heres a larger bag. Thank you very much!'.format(message)
+				else:
+					msg = '{0.author.mention}, are you joking? That is a level {1} {2}. I need a level {3} {4}. If you want a bigger bag, that\'s my price.'.format(message, offer.pokeStats.level, offer.name, level, pokemon.name)
+			except (ValueError, IndexError, AttributeError):
+				msg = '{0.author.mention}, I see you\'re in need of more space! Yes, yes, I can get you a bigger bag, but you gotta do something for me. \n\nFor my Pokemon studies, I am in dire need of a level {1} {2}. It can be stronger, it doesn\'t matter, but it must be at least level {1}. Do you think you can find one of those for me? Bring me one, and I\'ll get you a bigger bag.\n\nType ``{3}bag #``, where "#" is the ID of the pokemon you want to offer me.'.format(message, level, pokemon.name, commandPrefix)
+
+		em = discord.Embed(title='In desperate need of space!', description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_footer(text='HINT: Low on pokeballs? You can buy more by typing {}shop. Or if you\'re low on cash, you get pokeballs by just staying online!'.format(commandPrefix))
+		em.set_thumbnail(url=bagUrl)
+		await client.send_message(message.channel, embed=em)
+
 	async def display_not_started(message, commandPrefix):
 		msg = '{0.author.mention}, you don\'t have a Pokemon yet! Type ``{1}start`` to start your adventure!'.format(message, commandPrefix)
 		em = discord.Embed(title='Choose your starter!', description=msg, colour=0xDEADBF)
@@ -1282,6 +1534,13 @@ while True: # Why do I do this to myself
 
 	async def display_fail_shop(message, commandPrefix):
 		msg = '{0.author.mention}, you don\'t have enough money for that!'.format(message)
+		em = discord.Embed(title='Erm...', description=msg, colour=0xDEADBF)
+		em.set_author(name='Poke Mart', icon_url=pokeballUrl)
+		em.set_thumbnail(url=pokeMartUrl)
+		await client.send_message(message.channel, embed=em)
+
+	async def display_no_space_item(message, item, amount, commandPrefix):
+		msg = '{0.author.mention}, you don\'t have enough space left in your bag for {1} units of {2}.'.format(message, amount, item.name)
 		em = discord.Embed(title='Erm...', description=msg, colour=0xDEADBF)
 		em.set_author(name='Poke Mart', icon_url=pokeballUrl)
 		em.set_thumbnail(url=pokeMartUrl)
@@ -1321,7 +1580,6 @@ while True: # Why do I do this to myself
 			await client.send_message(message.channel, embed=em)
 
 	shopItems = []
-	items = []
 
 	async def display_shop(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
@@ -1343,11 +1601,13 @@ while True: # Why do I do this to myself
 						amount = 1
 						if len(temp)>2:
 							amount = int(temp[2])
-						
+
+						if not player.bag.hasSpace(item.id, amount):
+							return await display_no_space_item(message, item, amount, commandPrefix)
+
 						if player.removeMoney(item.price*amount):
-							item = shopItems[option]
 							await display_success_shop(message, item, amount, commandPrefix)
-							player.addItem(item.id-1, amount)
+							player.addItem(item.id, amount)
 						else:
 							await display_fail_shop(message, commandPrefix)
 
@@ -1437,15 +1697,14 @@ while True: # Why do I do this to myself
 		await client.send_message(message.channel, embed=em)
 
 	def getUsableItemsString(player):
-		usable = player.getUsableItems()
+		items = player.bag.itemList
 		msg = ''
 		counter = 1
-		for i in range(0,len(usable)):
-			itemId = usable[i]
-			item = items[itemId]
-			msg += '**{}.** {} ({} units)\n'.format(counter, item.name, player.items[itemId])
-			msg += '**Description:** {}\n'.format(item.description)
-			counter += 1
+		for item in items:
+			if item.id > 4:
+				msg += '**{}.** {} ({}/{} units)\n'.format(item.id-4, item.name, item.quantity, player.getBagLimit(item.id))
+				msg += '**Description:** {}\n'.format(item.description)
+				counter += 1
 		
 		return msg
 
@@ -1498,16 +1757,19 @@ while True: # Why do I do this to myself
 			option = None
 			if len(temp)>1:
 				try:
-					option = int(temp[1]) - 1
-					usable = player.getUsableItems()
-					if option >=0 and option < len(usable):
-						itemId = usable[option]
-						item = items[itemId]
+					option = int(temp[1])
+					option += 4
+
+					if option > 1 and option <= len(player.bag.itemList):
+						item = player.bag.getItem(option)
+						#print(option, item)
 						used = player.useItem(item)
 						if used == 1:
 							await display_used_potion(message, player, item, commandPrefix)
 						elif used == 2:
 							await display_used_boost(message, player, item, commandPrefix)
+						else:
+							await display_info_item(message, player, commandPrefix)
 					else:
 						await display_info_item(message, player, commandPrefix)
 
@@ -1523,7 +1785,7 @@ while True: # Why do I do this to myself
 			
 		option = None
 		if len(temp)<=1:
-			msg = 'Type ``{}duel @player`` to challenge a player for a duel.'.format(commandPrefix)
+			msg = 'Type ``{0}duel @player move1,move2,move3,move4`` to challenge a player for a duel. If no moveset is specified, the default one will be used. You can check the default move set using the ``{0}moves`` command.'.format(commandPrefix)
 		else:
 			player = playerMap[message.author.id]
 			
@@ -1537,8 +1799,11 @@ while True: # Why do I do this to myself
 				else:
 					member = message.server.get_member(option)
 					if member:
+						moves = await checkMoves(message, 2)
+						if not moves:
+							return
 						msg = '{0}, {1} is challenging you to a duel! Type ``{2}accept`` to accept!'.format(temp[1], message.author.mention, commandPrefix)
-						duelMap[option] = [message.author.id, message.author.mention]
+						duelMap[option] = [message.author.id, message.author.mention, player.getSelectedPokemon(), moves]
 					else:
 						msg = 'No member with that name could be found!'
 
@@ -1594,13 +1859,22 @@ while True: # Why do I do this to myself
 			halloweenStr = ' You also got **{}** 🍬!'.format(candy)
 		return '\n{} earned **{} EXP** and **{}₽** for this battle.{}'.format(callout, int(exp), money, halloweenStr)
 
+	def check_pokemon_changed(callout, pokemon, player, commandPrefix):
+		em = None
+		if pokemon != player.getSelectedPokemon():
+			msg = '{0}, you changed your selected pokemon, the default move set will be used for this battle.'.format(callout, commandPrefix)
+			em = discord.Embed(title='That doesn\'t work!', description=msg, colour=0xDEADBF)
+			em.set_author(name='Professor Oak', icon_url=oakUrl)
+			em.set_footer(text='HINT: Use {}start # to select a starter pokemon.'.format(commandPrefix))
+		return em
+
 	duelCooldown = 300
 	async def accept_challenge(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
 		challengedKey = message.author.id
 		if challengedKey in duelMap:
-			challengerKey, challlengerCallout = duelMap[challengedKey]
+			challengerKey, challlengerCallout, p1pokemon, p1moves = duelMap[challengedKey]
 			
 			challenger = playerMap[challengerKey]
 			challenged = playerMap[challengedKey]
@@ -1646,11 +1920,20 @@ while True: # Why do I do this to myself
 				await client.send_message(message.channel, embed=em)
 				return
 
+			em = check_pokemon_changed(challlengerCallout, p1pokemon, challenger, commandPrefix)
+			if em:
+				await client.send_message(message.channel, embed=em)
+				p1moves = challenger.getDefaultMoves()
+
 			del duelMap[challengedKey]
 			challenger.lastDuel = datetime.datetime.now()
 			challenged.lastDuel = datetime.datetime.now()
 
-			battle = Battle(challenger1=challengerPokemon, challenger2=challengedPokemon, gym=True)
+			p2moves = await checkMoves(message, 1)
+			if not p2moves:
+				return
+
+			battle = Battle(challenger1=challengerPokemon, challenger2=challengedPokemon, gym=True, f1name=challenger.name, f1id=challenger.pId, f2name=challenged.name, f2id=challenged.pId, p1moves=p1moves, p2moves=p2moves)
 
 			winner, battleLog, levelUpMessage = battle.execute()
 			challenger.commitPokemonToDB()
@@ -1731,7 +2014,7 @@ while True: # Why do I do this to myself
 			""")
 		rows = cursor.fetchall()
 
-		msg = 'If you want to become a Pokemon master, you need to beat all the gyms and get all the badges! There are 18 gyms in total, each one with a different pokemon type. Gyms can be held by players if they\'re able to win a fight against the current owner.\n\nFor more information on a gym\'s current owner, type `{0}gym # info`, where *#* is the gym number. To fight a gym and try to earn its badges, type `{0}gym # fight`. To challenge the current holder of a gym, type `{0}gym # claim`. Only pokemon with the correct type can hold a gym. This means the *FLYING* gym, for instance, can only be held by a *FLYING* pokemon.\n\nThese are the currently available gyms:\n\n'.format(commandPrefix)
+		msg = 'If you want to become a Pokemon master, you need to beat all the gyms and get all the badges! There are 18 gyms in total, each one with a different pokemon type. Gyms can be held by players if they\'re able to win a fight against the current owner.\n\nFor more information on a gym\'s current owner, type `{0}gym # info`, where *#* is the gym number. To fight a gym and try to earn its badges, type `{0}gym # fight move1,move2,move3,move4`. If no moveset is specified, the default one will be used. To challenge the current holder of a gym, type `{0}gym # claim`. Only pokemon with the correct type can hold a gym. This means the *FLYING* gym, for instance, can only be held by a *FLYING* pokemon.\n\nThese are the currently available gyms:\n\n'.format(commandPrefix)
 		
 		counter = 1
 		for row in rows:
@@ -1810,10 +2093,14 @@ while True: # Why do I do this to myself
 								await client.send_message(message.channel, embed=em)
 								return
 
+							if not await checkMoves(message, 3):
+								return
+
 							player.lastGym = datetime.datetime.now()
-							battle = Battle(challenger1=playerPokemon, challenger2=gymPokemon, gym=True)
+							battle = Battle(challenger1=playerPokemon, challenger2=gymPokemon, gym=True, f1name=player.name, f1id=player.pId, f2name='Gym Leader')
 							
 							winner, battleLog, levelUpMessage = battle.execute()
+							player.commitPokemonToDB()
 
 							msg = '{0.author.mention}, your {1} fought a beautiful battle against gym leader {2}\'s {3}! Here are the details: \n\n'.format(message, playerPokemon.name, row['player_name'], gymPokemon.name)
 							em = discord.Embed(title='{} Gym Battle: {} Lv. {} vs {} Lv. {}!'.format(row['type_identifier'].upper(), playerPokemon.name, playerPokemon.pokeStats.level, gymPokemon.name, gymPokemon.pokeStats.level), description=msg+battleLog, colour=0xDEADBF)
@@ -1869,8 +2156,12 @@ while True: # Why do I do this to myself
 								await client.send_message(message.channel, embed=em)
 								return
 
+							if not await checkMoves(message, 3):
+								return
+
 							player.lastGym = datetime.datetime.now()
-							battle = Battle(challenger1=playerPokemon, challenger2=gymPokemon, gym=True)
+							battle = Battle(challenger1=playerPokemon, challenger2=gymPokemon, gym=True, f1name=player.name, f1id=player.pId, f2name='Gym Leader')
+							player.commitPokemonToDB()
 							
 							winner, battleLog, levelUpMessage = battle.execute()
 
@@ -1894,7 +2185,7 @@ while True: # Why do I do this to myself
 								em.set_thumbnail(url=getImageUrl(winner.pId, winner.mega))
 								em.set_footer(text='HINT: Taking too long to level up? Buy an EXP boost at the shop! Type {}shop for more information.'.format(commandPrefix))
 
-								print(player.pId, playerPokemon.ownId, gymId)
+								#print(player.pId, playerPokemon.ownId, gymId)
 								cursor = MySQL.getCursor()
 								cursor.execute("""
 									UPDATE gym
@@ -1944,13 +2235,13 @@ while True: # Why do I do this to myself
 	megaEvolutionPrice = 250000
 	async def display_mega_info_message(message, commandPrefix, pokemon, player):
 		msg = '{0.author.mention}, here\'s what you need for your Mega Evolution: \n\n'.format(message, megaEvolutionPrice)
-		msg += "**Level:** {0}/100.\n".format(pokemon.pokeStats.level)
+		msg += "**Level:** {0}/100. {1}\n".format(pokemon.pokeStats.level, ("(✓)" if pokemon.pokeStats.level==100 else "(X)"))
 		msg += "**Badges:** \n"
 
 		for t in pokemon.types:
-			msg += "    {0}: {1}\n ".format(t.identifier.upper(), ("✓" if player.hasBadge(t.tId, t.identifier) else "򪪪"))
+			msg += "    {0}: {1}\n ".format(t.identifier.upper(), ("(✓)" if player.hasBadge(t.tId, t.identifier) else "(X)"))
 
-		msg += "**Money:** {0}₽/{1}₽. \n".format(player.money, megaEvolutionPrice)
+		msg += "**Money:** {0}₽/{1}₽. {2} \n".format(player.money, megaEvolutionPrice, ("(✓)" if player.money > megaEvolutionPrice else "(X)"))
 
 		em = discord.Embed(title='Sorry, but you can\'t mega evolve yet!', description=msg, colour=0xDEADBF)
 		em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
@@ -1993,28 +2284,62 @@ while True: # Why do I do this to myself
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
 		player = playerMap[message.author.id]
+
+		em = check_not_started(message.author.mention, player, commandPrefix)
+		if em:	
+			await client.send_message(message.channel, embed=em)
+			return
 			
-		hasMega, hasBadges, isMega, hasLevel = player.megaEvolveSelectedPokemon()
+		hasMega, hasBadges, isMega, hasLevel = player.canMegaEvolvePokemon()
 		pokemon = player.getSelectedPokemon()
 
 		if not hasMega:
-			await display_mega_nomega_message(message, commandPrefix, pokemon)
+			return await display_mega_nomega_message(message, commandPrefix, pokemon)
 		elif isMega:
-			await display_mega_ismega_message(message, commandPrefix, pokemon)
+			return await display_mega_ismega_message(message, commandPrefix, pokemon)
 		elif not hasBadges or not hasLevel:
-			await display_mega_info_message(message, commandPrefix, pokemon, player)
+			return await display_mega_info_message(message, commandPrefix, pokemon, player)
 		else:
-			if player.removeMoney(megaEvolutionPrice):
-				await display_mega_evolved_message(message, commandPrefix, pokemon)
-			else:
-				await display_mega_info_message(message, commandPrefix, pokemon, player)
+			temp = message.content.split(' ')
+				
+			pokemon = player.getSelectedPokemon()
+			evolutions = pokemon.getMegaEvolutions()
 
+			msg = ''
+			if evolutions:
+				option = None
+				try:
+					option = int(temp[1])
+					if option > 0 and option <= len(evolutions):
+						if player.removeMoney(megaEvolutionPrice):
+							evolution = evolutions[option-1]
+							player.megaEvolvePokemon(pokemon, evolution)
+							return await display_mega_evolved_message(message, commandPrefix, pokemon)
+						else:
+							return await display_mega_info_message(message, commandPrefix, pokemon, player)
+					else:
+						raise ValueError
+				except (ValueError, IndexError):
+					msg = '{0.author.mention}, your {1} is ready to mega evolve! Please type ``{2}mega #``, where "#" is one of the options below:\n\n'.format(message, pokemon.name, commandPrefix)
+					counter = 0
+					for evolution in evolutions:
+						counter += 1
+						msg += '**{}.** {}\n'.format(counter, evolution.name)
+					msg += '\nBe aware that, once evolved, a pokemon will __never__ go back to its previous form!'
+					em = discord.Embed(title='Mega Evolution', description=msg, colour=0xDEADBF)
+					em.set_author(name='Professor Oak', icon_url=oakUrl)
+					em.set_footer(text='HINT: Winning against trainers is a very good way of getting cash!')
+					em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+					await client.send_message(message.channel, embed=em)
+			else:
+				msg = '{0.author.mention}, your {1} is not ready to evolve.'.format(message, pokemon.name)
 
 	async def display_rank(message):
 		cursor = MySQL.getCursor()
 		cursor.execute("""
 			SELECT *
 			FROM player
+			WHERE name <> 'PDA'
 			ORDER BY level DESC
 			LIMIT 10
 		""")
@@ -2268,12 +2593,47 @@ while True: # Why do I do this to myself
 		em.set_footer(text='HINT: Higher level players have a bigger chance of catching wild pokemon.')
 		await client.send_message(message.channel, embed=em)
 
+	async def display_move_taught(message, move, pokemon):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		player = playerMap[message.author.id]
+		
+		msg = '{0}, move {1}, {2} was taught to your {3}.'.format(message.author.mention, move.mId, move.name, pokemon.name)	
+
+		em = discord.Embed(title='Move Taught!', description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+		em.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
+
+	async def display_move_no_money(message, move, pokemon):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		player = playerMap[message.author.id]
+		
+		msg = '{0}, teaching move *{1}-{2}* to your {3} will cost you {4}₽. You don\'t have enought money.'.format(message.author.mention, move.mId, move.name.capitalize(), pokemon.name, move.cost)	
+
+		em = discord.Embed(title='Not enought money!', description=msg, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+		em.set_footer(text='HINT: Two pokemons of the same species and level can have different stats. That happens because pokemon with higher IV are stronger. Check your pokemon\'s IV by typing {}info!'.format(commandPrefix))
+		await client.send_message(message.channel, embed=em)
+
 	async def display_confirm(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
 		player = playerMap[message.author.id]
 
-		if player.release:
+		if player.moveLearn:
+			move, pokemon = player.moveLearn
+			if player.removeMoney(move.cost):
+				player.learnMove(move.mId, pokemon)
+				await display_move_taught(message, move, pokemon)
+			else:
+				await display_move_no_money(message, move, pokemon)
+			player.release = None
+			player.moveLearn = None
+		elif player.release:
 			# Confirm releasing pokemon
 			pokemon = player.releasePokemon(player.release.ownId)
 			if pokemon:
@@ -2370,6 +2730,31 @@ while True: # Why do I do this to myself
 			em.set_footer(text='HINT: Day Care prices are based on EXP earned, the higher the level, the higher the price.'.format(commandPrefix))
 			await client.send_message(message.channel, embed=em)
 
+	async def display_moves(message):
+		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
+
+		temp = message.content.split(' ')
+		option = 1
+		if len(temp)>1:
+			option = int(temp[1])
+
+		player = playerMap[message.author.id]
+		em = check_not_started(message.author.mention, player, commandPrefix)
+		if em:
+			await client.send_message(message.channel, embed=em)
+			return
+
+		pokemon = player.getSelectedPokemon()
+		msg = 'This is your pokemon\'s move list. Known moves are underlined. Moves listed as "*not learned*" can be purchased and taught by typing ``{}move #``, where "#" is the move id. \n\n'.format(commandPrefix)
+		temp, pages = player.getMoves().getMoveSetString(player.getDefaultMoves(), pokemon.pokeStats.level, option)
+		if option > pages:
+			temp, pages = player.getMoves().getMoveSetString(player.getDefaultMoves(), pokemon.pokeStats.level, 1)
+		em = discord.Embed(title='{}\'s Moves List'.format(player.name), description=msg+temp, colour=0xDEADBF)
+		em.set_author(name='Professor Oak', icon_url=oakUrl)
+		em.set_footer(text='HINT: Page {}/{}. Use {}move to see more info on the move and teach it to your pokemon.'.format(option, pages, commandPrefix))
+		em.set_thumbnail(url=getImageUrl(pokemon.pId, pokemon.mega))
+		await client.send_message(message.channel, embed=em)
+
 	async def display_reward(message):
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
@@ -2403,13 +2788,21 @@ while True: # Why do I do this to myself
 			em.set_author(name='Professor Oak', icon_url=oakUrl)
 			await client.send_message(message.channel, embed=em)
 
-			if reward.expBoost:
+			if reward.full:
+				msg = '{0.author.mention}, your bag is full, you can not carry more {1}! You got 10000₽ instead!'.format(message, reward.item.name)
+				em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
+				em.set_author(name='Professor Oak', icon_url=oakUrl)
+				em.set_footer(text='HINT: You need to vote every 24 hours not to lose your streak.')
+				player.addMoney(10000)
+				await client.send_message(message.channel, embed=em)
+
+			if reward.item.id == 11:
 				msg = '{0.author.mention}, you also got a Big EXP Boost for your {1} consecutive reward collection! Vote everyday so you don\'t lose your streak!'.format(message, streakOrdinal)
 				em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
 				em.set_author(name='Professor Oak', icon_url=oakUrl)
 				em.set_footer(text='HINT: You need to vote every 24 hours not to lose your streak.')
 				await client.send_message(message.channel, embed=em)
-			if reward.ultraBalls:
+			if reward.item.id == 3:
 				msg = '{0.author.mention}, you also got 5 Ultra Balls for your {1} consecutive reward collection! Vote everyday so you don\'t lose your streak!'.format(message, streakOrdinal)
 				em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
 				em.set_author(name='Professor Oak', icon_url=oakUrl)
@@ -2422,13 +2815,13 @@ while True: # Why do I do this to myself
 				em.set_thumbnail(url=getImageUrl(reward.pokemon.pId, reward.pokemon.mega))
 				em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.'.format(commandPrefix))
 				await client.send_message(message.channel, embed=em)
-			if reward.maxPotion:
+			if reward.item.id == 8:
 				msg = '{0.author.mention}, you also got 5 Max Potions for your {1} consecutive reward collection! Vote everyday so you don\'t lose your streak!'.format(message, streakOrdinal)
 				em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
 				em.set_author(name='Professor Oak', icon_url=oakUrl)
 				em.set_footer(text='HINT: Don\'t forget to collect your reward with the reward command after you upvote.'.format(commandPrefix))
 				await client.send_message(message.channel, embed=em)
-			if reward.masterBall:
+			if reward.item.id == 4:
 				msg = '{0.author.mention}, you also got a Master Ball for your {1} consecutive reward collection! Vote everyday so you don\'t lose your streak!'.format(message, streakOrdinal)
 				em = discord.Embed(title='{}\'s Reward'.format(message.author.name), description=msg, colour=0xDEADBF)
 				em.set_author(name='Professor Oak', icon_url=oakUrl)
@@ -2622,6 +3015,14 @@ while True: # Why do I do this to myself
 		'reward' : display_reward,
 		'vote' : display_reward,
 		'present' : display_present_drop,
+		'm' : display_moves,
+		'moves' : display_moves,
+		't' : display_move_info,
+		'move' : display_move_info,
+		'd' : set_default_moves,
+		'default' : set_default_moves,
+		'evolve' : display_evolutions,
+		'bag' : display_bag_quest,
 	}
 
 	admin = 229680411079475201
@@ -2816,7 +3217,7 @@ while True: # Why do I do this to myself
 						await send_online_message(channel)
 
 		client.loop.create_task(spawn_wild_pokemon())
-		client.loop.create_task(drop_presents())
+		#client.loop.create_task(drop_presents())
 
 		ocPrint(datetime.datetime.now(), M_TYPE_INFO, '------')
 		
@@ -2827,8 +3228,7 @@ while True: # Why do I do this to myself
 		rows = cursor.fetchall()
 		if len(shopItems) == 0:
 			for row in rows:
-				item = PokeItem(id=row['id'], itemType=row['type'], name=row['name'], price=row['price'], description=row['description'], value=row['value'])
-				items.append(item)
+				item = PokeItem(id=row['id'], itemType=row['type'], name=row['name'], price=row['price'], description=row['description'], value=row['value'], limit=row['value'])
 				if row['price']>0:
 					shopItems.append(item)
 		ocPrint(datetime.datetime.now(), M_TYPE_INFO, '------')
@@ -2844,6 +3244,7 @@ while True: # Why do I do this to myself
 		ocPrint(datetime.datetime.now(), M_TYPE_ERROR, "PDA was interrupted.")
 		break
 	except Exception:
+		traceback.print_exc()
 		handle_exit()
 
 	ocPrint(datetime.datetime.now(), M_TYPE_ERROR, "A problem occurred, PDA is restarting.")
