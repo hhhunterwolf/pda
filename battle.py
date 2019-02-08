@@ -19,7 +19,7 @@ M_TYPE_WARNING = 'WARNING'
 M_TYPE_ERROR = 'ERROR'
 
 class Battle:
-	PLAYER_HANDICAP = 1.5
+	PLAYER_HANDICAP = 1.25
 
 	def getModifiers(self, playerHandicap=False):
 		cursor = MySQL.getCursor()
