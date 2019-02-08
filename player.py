@@ -1131,8 +1131,8 @@ __Pokeball Stats:__
 				SELECT * FROM pokemon
 				WHERE capture_rate = 255
 				AND enabled = 1
-				ORDER BY RAND()
 				AND id < 10000
+				ORDER BY RAND()
 				LIMIT 1
 			""")
 			row = cursor.fetchone()
