@@ -413,8 +413,21 @@ while True: # Why do I do this to myself
 			temp = message.content.split(' ')
 			
 			option = None
+			term = None
 			if len(temp)>1:
-				option = int(temp[1])
+				try:
+					# normal lookup
+					option = int(temp[1])
+				except (ValueError, IndexError, AttributeError):
+					# get term
+					term = temp[1]
+
+					try:
+						# normal lookup
+						option = int(temp[2])
+					except (ValueError, IndexError, AttributeError):
+						# inavlid search
+						option = 1
 
 			pokemonList = None
 			curPage = 1
@@ -423,7 +436,7 @@ while True: # Why do I do this to myself
 				option = 1 + (player.getSelectedPokemon().ownId-1) // Player.pokemonPerPage
 
 			curPage = option
-			pokemonList, pages = player.getPokemonList(option)
+			pokemonList, pages = player.getPokemonList(option, term)
 
 			string = ''
 			if len(pokemonList)>0:
@@ -433,7 +446,7 @@ while True: # Why do I do this to myself
 					if pokemon.inDayCare:
 						string += str(counter) + ': ' + pokemon.name + ' - In Day Care.\n'
 					else:
-						string += ('**' if selected else '') + str(counter) + ': ' + pokemon.name + ' Lv. {} IV. {}'.format(pokemon.pokeStats.level, avg) + (' - Selected**' if selected else '') + (' - Holding Gym {}'.format(inGym) if inGym > 0 else '') + '\n'
+						string += ('**' if selected else '') + str(pokemon.ownId) + ': ' + pokemon.name + ' Lv. {} IV. {}'.format(pokemon.pokeStats.level, avg) + (' - Selected**' if selected else '') + (' - Holding Gym {}'.format(inGym) if inGym > 0 else '') + '\n'
 					counter += 1
 			else:
 				string = 'Invalid page.'

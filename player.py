@@ -227,19 +227,33 @@ __Pokeball Stats:__
 		return self.selectedPokemon is not None
 
 	pokemonPerPage = 20
-	def getPokemonList(self, page):
+	def getPokemonList(self, page, term=None):
 		pokemonPerPage = Player.pokemonPerPage
 
 		cursor = MySQL.getCursor()
-		cursor.execute("""
-			SELECT * 
-			FROM player_pokemon
-			WHERE player_id = %s
-			LIMIT %s
-			OFFSET %s
+
+		if not term:
+			cursor.execute("""
+				SELECT * 
+				FROM player_pokemon
+				WHERE player_id = %s
+				LIMIT %s
+				OFFSET %s
 			""", (self.pId, pokemonPerPage, (pokemonPerPage*(page-1))))
+		else:
+			cursor.execute("""
+				SELECT * 
+				FROM player_pokemon
+				JOIN pokemon
+				ON player_pokemon.pokemon_id = pokemon.id
+				WHERE player_id = %s
+				AND pokemon.identifier LIKE %s
+				LIMIT %s
+				OFFSET %s
+			""", (self.pId, '%{}%'.format(term), pokemonPerPage, (pokemonPerPage*(page-1))))
+
 		rows = cursor.fetchall()
-		
+
 		pokemonList = []
 		if rows:
 			for row in rows:
@@ -247,10 +261,20 @@ __Pokeball Stats:__
 				self.removeFromDayCare(pokemon)
 				pokemonList.append([pokemon, row['selected'], row['in_gym']])
 
-		cursor.execute("""
-			SELECT COUNT(*) 
-			FROM player_pokemon
-			WHERE player_id = %s
+		if term:
+			cursor.execute("""
+				SELECT COUNT(*) 
+				FROM player_pokemon
+				JOIN pokemon
+				ON player_pokemon.pokemon_id = pokemon.id
+				WHERE player_id = %s
+				AND pokemon.identifier LIKE %s
+			""", (self.pId, term))
+		else:
+			cursor.execute("""
+				SELECT COUNT(*) 
+				FROM player_pokemon
+				WHERE player_id = %s
 			""", (self.pId,))
 		row = cursor.fetchone()
 
