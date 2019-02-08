@@ -17,8 +17,8 @@ from datetime import timedelta
 class Player:
 	START_MONEY = 3000
 	HALLOWEEN = False # This should not be here...
-	EXP_MOD = 3.5 * 2 # Remove after Christmas
-	DAY_CARE_PRICE_MOD = 1.25
+	EXP_MOD = 3.5 # Remove after Christmas
+	DAY_CARE_PRICE_MOD = 1.05
 	DAY_CARE_TIME_MOD = 1.25 * 1000
 	GYM_MODIFIER = 1.25
 	MAX_LEVEL = 1000
@@ -1108,6 +1108,7 @@ __Pokeball Stats:__
 				WHERE capture_rate = 255
 				AND enabled = 1
 				ORDER BY RAND()
+				AND id < 10000
 				LIMIT 1
 			""")
 			row = cursor.fetchone()
@@ -1136,6 +1137,7 @@ __Pokeball Stats:__
 				SELECT * FROM pokemon
 				WHERE capture_rate = %s
 				AND enabled = 1
+				AND id < 10000
 				ORDER BY RAND()
 				LIMIT 1
 			""", (rates[quest.status],))
