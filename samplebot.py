@@ -184,6 +184,7 @@ while True: # Why do I do this to myself
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
 		player = playerMap[message.author.id]
+		player.release = None
 
 		if player.hasStarted():
 			temp = message.content.split(' ')
@@ -474,7 +475,8 @@ while True: # Why do I do this to myself
 		commandPrefix, spawnChannel = serverMap[message.server.id].get_prefix_spawnchannel()
 
 		player = playerMap[message.author.id]
-		
+		player.moveLearn = None
+
 		msg = ''
 		if not player.hasStarted():
 			await display_not_started(message, commandPrefix)
@@ -595,7 +597,7 @@ while True: # Why do I do this to myself
 			'**{0}trade:** Shows information on how to trade pokemon. \n' \
 			'**{0}daycare:** Displays information on the day care. \n' \
 			'**{0}reward or {0}vote:** Displays information on how to vote and get daily rewards. \n' \
-			'**{0}donate:** Displays information on donations.',
+			'**{0}donate:** Displays information on donations.' \
 			'**{0}bag:** Displays information on how to get a bigger bag and carry more items and pokeballs.',
 			
 			'__Pokemon Commands:__ \n\n' \
@@ -607,7 +609,7 @@ while True: # Why do I do this to myself
 			'**{0}moves or {0}m:** Shows your selected pokemon\'s move list.\n' \
 			'**{0}move or {0}t:** Shows information on a specific move.\n' \
 			'**{0}default or {0}d:** Sets a movie set as default for the selected pokemon.\n' \
-			'**{0}mega:** Shows info on how to mega evolve pokemon. \n',
+			'**{0}mega:** Shows info on how to mega evolve pokemon. \n' \
 			'**{0}evolve:** Shows info on how evolve your pokemon. \n',
 			
 			'__Admin Commands:__ \n\n' \
@@ -3196,7 +3198,7 @@ while True: # Why do I do this to myself
 		em = discord.Embed(title='PDA admin.', description=messageFile, colour=0xDEADBF)
 		try:
 			pass
-			#await client.send_message(channel, embed=em)
+			await client.send_message(channel, embed=em)
 		except Exception as e:
 			print(datetime.datetime.now(), M_TYPE_WARNING, "Can't send message to channel {}. Missing permissions. Skipping.".format(str(channel)))
 
