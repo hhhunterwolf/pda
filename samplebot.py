@@ -3232,14 +3232,9 @@ async def on_ready():
 
 def keepAlive():
 	try:
-		client.loop.run_until_complete(client.start(TOKEN))
-	except KeyboardInterrupt:
-		ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Received KeyboardInterrupt. Skipping.')
-		pass
-	finally:
-		ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Reached end of execution. Resetting.')
-		client.loop.close()
+		client.run(TOKEN)
+	except Exception:
+		traceback.print_exc()		
 		keepAlive()
 
 keepAlive()
-
