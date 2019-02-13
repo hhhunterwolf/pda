@@ -1,0 +1,3 @@
+[submodule "pokemon-battle"]
+	path = pokemon-battle
+	url = https://github.com/mp-pinheiro/pokemon-battle
