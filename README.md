@@ -2,30 +2,30 @@
 Pokemon Discord Adventure bot repository.
 
 # Note 
-I will no longer be mantaining PDA.
+I will no longer be maintaining PDA.
 
-For those who don't know, PDA is just another Pokemon bot for Discord amidst the hundreds of others. It's a passion project that I started with the sole purpose of having some contact with Python. It started as a simple and quick thing, in which players would battle and capture wild Pokemon on their Discord server. By "players" I mean my friends and by "server" I mean our personal server. PDA wasn't initially meant to be shared with the world, but when it was, it grew so much and scaled so much that I am unable to thank everone for the massive support. 
+For those who don't know, PDA is just another Pokemon bot for Discord amidst the hundreds of others. It's a passion project that I started with the sole purpose of having some contact with Python. It started as a simple and quick thing, in which players would battle and capture wild Pokemon on their Discord server. By "players" I mean my friends and by "server" I mean our personal server. PDA wasn't initially meant to be shared with the world, but when it was, it grew so much and scaled so much that I am unable to thank everyone for the massive support. 
 
-The reason why I didn't want to release PDA as a "public" bot is the fact that, as I stated before, it was a project created with the means of myself learning Python. As the bot grew, and I got excited with the positive feedback and new features, it grew into this massive Frankenstein that can barely stand. I am no Python programmer, and I slowsly stopped learning the art of Python to code PDA "the way I knew". Even the core file of the bot is called "samplebot.py", which I got from a bot example on the web. This turned PDA into a massive mess, with thousands of lines of code, no actual strucutre, barely no Object Orientation, and a ton of very lazy code. The things that I did in the beginning that were meant only to quickly exercise the language became the norm, and those abberations were only expanded on. Message sending, command handling, bot callbacks, all of that was done in the most crude, lazy way possible, and it bothers me way too much now. I started a "refactor" a couple of times for the things that were bothering the much: commands and items, but it never went too far. 
+The reason why I didn't want to release PDA as a "public" bot is the fact that, as I stated before, it was a project created with the means of myself learning Python. As the bot grew, and I got excited with the positive feedback and new features, it grew into this massive Frankenstein that can barely stand. I am no Python programmer, and I slowly stopped learning the art of Python to code PDA "the way I knew". Even the core file of the bot is called "samplebot.py", which I got from a bot example on the web. This turned PDA into a massive mess, with thousands of lines of code, no actual structure, barely no Object Orientation, and a ton of very lazy code. The things that I did in the beginning that were meant only to quickly exercise the language became the norm, and those aberrations were only expanded on. Message sending, command handling, bot callbacks, all of that was done in the most crude, lazy way possible, and it bothers me way too much now. I started a "refactor" a couple of times for the things that were bothering the much: commands and items, but it never went too far. 
 
 Now here we are. PDA was a ton of fun to work on, but it was not very good at teaching me Python, and it's time I move on. I am now working with python on my day-to-day job, actually learning it, instead of just playing with it on my attempt of bot making. I once again thank every single one of you that played the bot, for the feedback, the messages and the emails.
 
-I pay for the servers that host PDA from my own pocket, and the growth of the bot ended up being its own demise. It got too expensive for me to keep online, and the amount of work required to mantain it is also too big for me to handle right now. This is why I am no longer mantaining PDA. If you want to take the wheel, I will try to share as much about the bot on this READ ME. 
+I pay for the servers that host PDA from my own pocket, and the growth of the bot ended up being its own demise. It got too expensive for me to keep online, and the amount of work required to maintain it is also too big for me to handle right now. This is why I am no longer maintaining PDA. If you want to take the wheel, I will try to share as much about the bot on this READ ME. 
 
 Thanks guys, it's been a good one!
 
 # Dependencies (Linux, should be similar for Windows)
-+ My-SQL for Python: pip install mysqlclient (needs build-essential, maybe needs libmysqlclient-dev)
++ My-SQL for Python: pip install mysqlclient (needs build-essential, maybe needs libmysqlclient-deep)
 + discord.py of course
 + requests for battle system
 
 # Structure
 There is not much to say about the code structure, it's as crude as it gets. The 'samplebot.py' file is the core file of the bot, the one that once run, starts the bot. All the other files have intuitive names, like 'player.py' or 'pokemon.py'. Here's the core structure of the bot:
 
-+ **Database:** A MYSQL database which holds information on all pokemon, types, players, servers, and so on. Every persistent piece of data is stored here. The file "database.sql" creates the database with everything that PDA needs. All the info on the database not generated by PDA was gathered in http://pokemon.db and http://veekun.com.
++ **Database:** A MYSQL database which holds information on all pokemon, types, players, servers, and so on. Every persistent piece of data is stored here. The file "database.sql" creates the database with everything that PDA needs. It was created with [HeidiSQL](https://www.heidisql.com/). All the info on the database not generated by PDA was gathered in http://pokemon.db and http://veekun.com.
 + **Python (samplebot.py):** The 'dicord.py' library is used to manage the bot, sending and reading message, interpreting commands, etc. The data stored in the database is translated into the objects that compose the bot.
 + **Python (webserver.py):** This file catches the webhooks from the Discord Bot List for the reward system. It updates the database when a player upvotes the vote, so that this player can collect his reward.
-+ **Coffeescript (battle system):** This is a fork of (fonse's pokemon-battle)[https://github.com/mp-pinheiro/pokemon-battle], a modified version that fits PDA. The file "server.js" runs a web API, which PDA makes requests to, specifying the pokemon that will fight and the moves they'll use. The webserver then returns a JSON file with information regarding the battle, like the battle log and the winner.
++ **Coffeescript (battle system):** This is a fork of [fonse's pokemon-battle](https://github.com/mp-pinheiro/pokemon-battle), a modified version that fits PDA. The file "server.js" runs a web API, which PDA makes requests to, specifying the pokemon that will fight and the moves they'll use. The webserver then returns a JSON file with information regarding the battle, like the battle log and the winner.
 
 # Final words
 That's it. If you can dig through the hideous duplicated code, the XGH and the pile of bugs, there is a lot of cool stuff in the PDA code. This was really a very cool ride. See ya on the next one.
