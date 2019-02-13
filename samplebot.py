@@ -3230,9 +3230,16 @@ async def on_ready():
 				shopItems.append(item)
 	ocPrint(datetime.datetime.now(), M_TYPE_INFO, '------')
 
-try:
-    client.loop.run_until_complete(client.start(TOKEN))
-except KeyboardInterrupt:
-    pass
-finally:
-    client.loop.close()
+def keepAlive():
+	try:
+		client.loop.run_until_complete(client.start(TOKEN))
+	except KeyboardInterrupt:
+		ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Received KeyboardInterrupt. Skipping.')
+		pass
+	finally:
+		ocPrint(datetime.datetime.now(), M_TYPE_INFO, 'Reached end of execution. Resetting.')
+		client.loop.close()
+		keepAlive()
+
+keepAlive()
+
