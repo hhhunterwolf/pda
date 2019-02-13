@@ -24,7 +24,7 @@ class Player:
 	MAX_LEVEL = 1000
 	MAX_MONEY = 250000
 
-	bagSizes = ['Small', 'Medium', 'Large', 'Extra Large']
+	bagSizes = ['Small', 'Medium', 'Large', 'Extra Large', 'Maximum']
 
 	def strip_non_ascii(string):
 	    ''' Returns the string without non ASCII characters'''
@@ -67,7 +67,7 @@ class Player:
 		self.dayCareRequest = None, 0
 		self.release = None
 		self.moveLearn = None
-		self.bag = Bag(self.pId, 1)
+		bagSize = 1
 		if row is not None:
 			self.level = row['level']
 			self.experience = row['experience']
@@ -76,7 +76,7 @@ class Player:
 			self.pokemonCaught = row['pokemon_caught']
 			self.boost = row['exp_boost']
 			self.name = row['name'] if row['name'] != '' else 'Unknown'
-			self.bag.size = row['bag_size']
+			bagSize = row['bag_size']
 
 			cursor.execute("""
 				SELECT *
@@ -106,7 +106,7 @@ class Player:
 				""", (pId, name))
 
 			for i in range(0,PokeItem.NUMBER_OF_ITEMS):
-				item = self.bag.getItem(i+1)
+				item = PokeItem.getItem(i+1)
 				item.quantity = 10 if i==0 else 0
 				cursor.execute("""
 					INSERT INTO player_item (player_id, item_id, quantity)
@@ -114,6 +114,7 @@ class Player:
 					""", (pId, i+1, item.quantity))
 			
 			MySQL.commit()
+		self.bag = Bag(self.pId, bagSize)
 
 	def __str__(self):
 		averageLevel = 0
@@ -507,6 +508,7 @@ __Pokeball Stats:__
 			self.selectPokemon(pokemon.ownId)
 
 	def addPokemon(self, level, name='', pokemonId=0, selected=False, mega=False, caughtWith=0):
+		print('call')
 		pokemon = None
 		if pokemonId == 0:
 			pokemon = Pokemon(name, level, 1.5)
@@ -524,8 +526,10 @@ __Pokeball Stats:__
 
 		self.update()
 
+		print('before')
 		pokemon.ownId = self.pokemonCaught
 		if selected:
+			print('hello')
 			self.selectPokemon(pokemon.ownId)
 
 		return pokemon
